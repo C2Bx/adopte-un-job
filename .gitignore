@@ -1,0 +1,22 @@
+# secrets : jamais versionnes
+api/config.php
+site/config.php
+*.env
+dbpwd*.txt
+
+# dependances et sorties de build
+node_modules/
+beta/dist/
+beta/tsconfig.tsbuildinfo
+*.log
+
+# binaires OCR, regeneres par `npm run ocr` (voir beta/README)
+beta/public/ocr/core/
+beta/public/ocr/lang/
+beta/public/ocr/worker.min.js
+
+# donnees personnelles : les CV d'essai restent hors du depot
+cv/
+*.pdf
+scripts/zz_*
+__pycache__/

@@ -1,0 +1,8 @@
+# Le worker pdf.js est un module .mjs : sans ce type, Apache le sert en text/plain
+# et le navigateur refuse de l executer.
+AddType text/javascript .mjs
+# Le modele Tesseract est un binaire : pas de compression a la volee, pas de type texte.
+AddType application/octet-stream .traineddata
+<IfModule mod_deflate.c>
+  SetEnvIfNoCase Request_URI \.traineddata$ no-gzip
+</IfModule>

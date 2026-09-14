@@ -1,0 +1,16 @@
+{
+  "name": "Adopte un Job",
+  "short_name": "Adopte",
+  "description": "Trouver un poste qui correspond vraiment, sans envoyer trente CV.",
+  "start_url": "index.php",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4F6F8",
+  "theme_color": "#17356B",
+  "lang": "fr",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

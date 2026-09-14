@@ -1,0 +1,3 @@
+# L'en-tete Authorization n'atteint pas PHP par defaut : sans cette ligne, un
+# client natif (Bearer) est toujours « non connecte ».
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
