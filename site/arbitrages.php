@@ -202,6 +202,24 @@
     </div>
   </div>
 
+  <h2 id="hackavp">Le recadrage HackAVP (11–14 septembre)</h2>
+  <p>Le brief du hackathon n'était pas sur la table quand le deck, le swipe recruteur et les offres fictives ont été construits. Sa lecture, puis la revue contradictoire qui a suivi, changent l'ordre de tout :</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Ce que le brief impose</th><th>Où on en est</th><th>Décision</th></tr></thead>
+    <tbody>
+      <tr><td>① Un profil entre (CV, formulaire)</td><td>Solide : import PDF audité sur huit CV, OCR pour scans et photos, guide, JSON Resume</td><td>Rien à ajouter</td></tr>
+      <tr><td>② Matching explicable sur les <b>AVP réellement ouverts</b></td><td>Le moteur est bon, il tourne sur 22 offres inventées</td><td>Embarquer le corpus (<code>all_avps.jsonl</code>, sans clé, plus l'historique) et le référentiel de 84 métiers / 409 compétences ; matching lexical + structurel d'abord, <code>/search</code> de l'OPT en signal optionnel</td></tr>
+      <tr><td>③ Quatre documents générés</td><td>Rien</td><td><b>Le produit.</b> Quatre requêtes séquentielles avec barre de progression, pas de file ni de worker ; un modèle de langage rédige, il ne décide pas des compétences manquantes</td></tr>
+      <tr><td>④ Candidature transmissible</td><td>Rien</td><td>PDF côté serveur, envoi par Brevo (le port 25 sortant est fermé chez l'hébergeur), archive</td></tr>
+      <tr><td>Le jury joue l'employeur</td><td>Côté recruteur construit (deck entreprise, match à deux oui)</td><td><b>Gelé.</b> Un candidat choisit, une candidature part</td></tr>
+      <tr><td>Track SaaS ou onPrem souverain (20 pts)</td><td>Hébergé à Sydney</td><td>Non tranché : demander le 16 comment les 20 points de <i>chaque</i> track sont notés avant de décider. Un tunnel Cloudflare n'est pas souverain</td></tr>
+      <tr><td>Équipes de 1 à 5</td><td>Neuf</td><td>À trancher le 16</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">
+    <p><b>Neuf AVP ouverts, c'est un deck qui se vide en quarante secondes.</b> Le deck se nourrit donc de l'historique, étiqueté sans ambiguïté (« clos le … — pour t'entraîner », candidature désactivée), et le pitch se retourne : <i>choisir vite, candidater bien</i>. Le swipe est l'entonnoir ; le dossier de candidature est le produit. La vidéo passera trente secondes sur le premier et trois minutes sur le second.</p>
+  </div>
+
   <h2 id="valider">Trois décisions qui vous appartiennent</h2>
   <p>Les points marqués <span class="badge warn">⚑</span> plus haut changent le travail de tout le monde. Ils sont écrits dans le wiki parce que la recommandation est nette et unanime, mais ils doivent être validés en réunion avant le sprint 1 :</p>
   <ol>

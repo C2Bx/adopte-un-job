@@ -13,7 +13,7 @@ premier hackathon dédié à l'emploi dans la fonction publique en Nouvelle-Cal�
 | Dossier | Contenu |
 |---|---|
 | `beta/` | L'application : React 19 + TypeScript strict, Vite. Sortie 100 % statique, empaquetable pour les magasins (Capacitor). |
-| `api/` | L'API : PHP 8, MySQL 8, un seul point d'entrée `index.php`. Sessions par jeton opaque, mots de passe Argon2id, journal d'accès, export et suppression de compte. |
+| `api/` | L'API : PHP 8, MySQL 8, un seul point d'entrée `index.php`. Sessions par jeton opaque, mots de passe Argon2id, journal d'accès, export et suppression de compte. Routes, erreurs et sécurité : [`api/README.md`](api/README.md). |
 | `prototype/` | Le prototype d'origine (PHP + JS, `localStorage`), référence de mise en forme et mode démonstration sans compte. |
 | `site/` | Le site de documentation du projet : produit, matching, extraction, arbitrages, techno… |
 | `scripts/` | Migration du schéma, amorçage, recette de l'API (28 appels), **banc d'essai de la lecture de CV** sur un corpus. |

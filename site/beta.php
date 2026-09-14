@@ -50,7 +50,8 @@
   <dl class="kv">
     <dt>Front</dt><dd>React 19 + TypeScript strict, construit par Vite. Sortie 100 % statique : aucune page PHP, ce qui la rend empaquetable telle quelle pour les magasins d'applications</dd>
     <dt>Données</dt><dd>Plus rien dans le navigateur. Tout passe par l'<a href="api.php">API</a> et la base de production</dd>
-    <dt>Poids</dt><dd>250 ko de code (78 ko compressés). pdf.js est dans un morceau séparé de 455 ko, téléchargé <b>uniquement</b> quand quelqu'un dépose un CV</dd>
+    <dt>Poids</dt><dd>250 ko de code (78 ko compressés). pdf.js est dans un morceau séparé de 455 ko, téléchargé <b>uniquement</b> quand quelqu'un dépose un CV ; l'OCR (moteur, cœur WebAssembly de 4 Mo, modèle de 1,1 Mo) uniquement quand ce CV est une image ou un scan</dd>
+    <dt>Code source</dt><dd><a href="https://github.com/C2Bx/adopte-un-job">github.com/C2Bx/adopte-un-job</a> — public depuis le 14 septembre. Bêta, API, prototype, ce site et les bancs d'essai. Aucune configuration réelle : des <code>config.example.php</code> à copier</dd>
     <dt>Prototype</dt><dd><a href="app/index.php">Toujours en place</a>, en <code>localStorage</code>, avec ses données inventées. Il reste la référence de mise en forme et le mode démonstration sans compte</dd>
   </dl>
 
@@ -62,7 +63,7 @@
       <tr><td><b>Swipe</b></td><td>Le deck. Glissé gauche/droite, quatre actions dans les coins (retour, non, plus tard, oui), carte en pages qu'on tourne au doigt, filtres, feuille de détail.</td></tr>
       <tr><td><b>Intérêts</b></td><td>Tout ce qui a été décidé, en trois onglets. Sur grand écran, la liste à gauche et le détail à droite ; en dessous, une feuille.</td></tr>
       <tr><td><b>Messages</b></td><td>Une conversation par match. Elle s'ouvre après le match, jamais avant.</td></tr>
-      <tr><td><b>Profil</b></td><td>Import de CV, formulaire en cinq étapes, guide chiffré, fiche de relecture. Enregistrement différé, sans bouton « enregistrer ».</td></tr>
+      <tr><td><b>Profil</b></td><td>Import de CV — PDF, scan ou photo, lus dans l'appareil —, formulaire en cinq étapes, guide chiffré, fiche de relecture. Enregistrement différé, sans bouton « enregistrer ».</td></tr>
     </tbody>
   </table></div>
 
@@ -81,7 +82,9 @@
 
   <h2 id="reste">Ce qui n'est pas fait</h2>
   <ul>
-    <li>Le <b>côté entreprise</b> : l'API sait créer une offre, lister les candidats et répondre, mais aucun écran de la bêta ne le fait. C'est le prochain gros morceau.</li>
+    <li>Les <b>fonctions ③ et ④ du HackAVP</b> — les quatre documents (lettre, CV recentré, restitution du matching, préparation d'entretien) et la candidature transmissible. Elles valent 15 points sur 100 et n'existent pas. C'est le chantier prioritaire, avant tout polish. Voir <a href="arbitrages.php#hackavp">le recadrage</a>.</li>
+    <li>Les <b>données réelles</b> : le deck tourne encore sur 22 offres inventées. Les AVP ouverts à l'OPT-NC et le référentiel de 84 métiers les remplacent.</li>
+    <li>Le <b>côté entreprise</b> : l'API sait créer une offre, lister les candidats et répondre, mais aucun écran ne le fait — et c'est désormais <b>gelé</b> : le jury du HackAVP joue l'employeur, il n'y a pas de second « oui » à obtenir.</li>
     <li>Le <b>fichier</b> du CV n'est pas stocké : seuls les métadonnées et le résultat de la lecture remontent.</li>
     <li>Les <b>notifications</b> sont en base mais ne sont pas poussées.</li>
     <li>L'<b>empaquetage Capacitor</b>. Rien ne s'y oppose techniquement : la bêta est déjà statique et installable.</li>

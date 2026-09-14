@@ -100,9 +100,9 @@
         <td><span class="badge no">Attention</span><br>licence contaminante ou commerciale</td>
       </tr>
       <tr>
-        <td><b>Tesseract</b>, <b>PaddleOCR</b>, <b>docTR</b></td>
-        <td>Reconnaissance de texte pour les CV scannés ou photographiés. Tesseract est le plus simple à installer, les deux autres sont meilleurs sur les mises en page complexes.</td>
-        <td><span class="badge no">Écarté en v1</span><br>qualité non bornée, on bascule sur le formulaire</td>
+        <td><b>Tesseract</b> (tesseract.js), <b>PaddleOCR</b>, <b>docTR</b></td>
+        <td>Reconnaissance de texte pour les CV scannés ou photographiés. Tesseract tourne en WebAssembly dans le navigateur, donc sans que le document sorte ; les deux autres sont meilleurs sur les mises en page complexes mais demandent un serveur.</td>
+        <td><span class="badge ok">Adopté</span><br>tesseract.js 6, auto-hébergé, Apache 2.0 — voir <a href="extraction.php#ocr">la lecture de CV</a></td>
       </tr>
     </tbody>
   </table></div>

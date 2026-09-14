@@ -132,16 +132,20 @@
   </ol>
   <p class="note">Deux règles qui viennent d'erreurs réelles : <b>on n'invente jamais de mois</b> (une année seule reste une année, pas « janvier 2019 »), et <b>aucune date n'est conservée sur une formation</b> (l'année d'obtention révèle l'âge). L'extraction ne remplit rien toute seule : elle propose, avec l'extrait du CV d'où vient chaque information, et l'utilisateur décoche ce qui est faux.</p>
 
-  <h2 id="pieges">Deux pièges de mise en production</h2>
+  <h2 id="pieges">Trois pièges de mise en production</h2>
   <ul>
+    <li><b>L'en-tête <code>Authorization</code> n'atteint pas PHP.</b> Apache le retire avant de passer la main, sauf consigne explicite. Un client qui s'authentifie par <code>Bearer</code> — l'application native, ou n'importe quel script — était donc toujours « non connecté », sans erreur, pendant que le navigateur, lui, passait par le cookie et ne voyait rien. La bêta ne tenait que par le cookie. Une ligne de <code>.htaccess</code> dans <code>api/</code> (<code>SetEnvIf Authorization</code>) le corrige ; <code>CGIPassAuth</code>, la directive officielle, fait tomber le serveur en 500 ici. Découvert le 14 septembre en testant l'OCR par script.</li>
     <li><b>Le serveur ne connaît pas <code>.mjs</code></b> et le sert en <code>text/plain</code>. Un module chargé avec ce type est refusé par le navigateur, sans message exploitable : le lecteur de PDF marchait en local et pas en ligne. Un <code>.htaccess</code> d'une ligne dans <code>/avp/beta/</code> le corrige.</li>
     <li><b><code>iconv('//TRANSLIT')</code> dépend de la bibliothèque C du serveur.</b> « Développement web » y devenait la clé <code>d-veloppement-web</code> : une compétence fantôme, distincte de la vraie. Le référentiel se serait fragmenté en silence, et le score avec. Toute normalisation de texte passe désormais par une table de translittération explicite.</li>
   </ul>
 
   <h2 id="reste">Ce qui n'est pas fait</h2>
+  <p>La référence des routes, des codes d'erreur et de la sécurité est dans le dépôt : <a href="https://github.com/C2Bx/adopte-un-job/blob/main/api/README.md">api/README.md</a>. L'audit du 14 septembre y a listé treize points transversaux (limite de débit, origine des requêtes, secrets hors du code, rotation de session…) et un ordre pour les traiter.</p>
   <ul>
+    <li>Le <b>choix de l'utilisateur</b> après lecture de CV n'est pas enregistré : <code>resume_extractions.accepted</code> reste vide, parce que le dépôt est journalisé avant la relecture et jamais mis à jour après. On sait ce que le moteur a lu, pas ce qui a été gardé — c'est pourtant la mesure de qualité du moteur. Un <code>PUT</code> à la validation suffit.</li>
+    <li><b>Aucune limite de débit</b>, nulle part. Force brute possible sur la connexion, et surtout facture ouverte le jour où la génération de documents appellera un modèle. Préalable à tout le chantier ③.</li>
     <li>Le <b>fichier</b> du CV n'est pas stocké. La lecture se fait dans l'appareil, avec pdf.js empaqueté dans l'application — pas chargé d'un CDN, pour que ça marche hors ligne et sans dépendre d'une politique de sécurité de contenu. Seuls les métadonnées et le résultat de l'extraction remontent, pour pouvoir retraiter plus tard. Stocker le fichier demandera un stockage objet et des liens signés de courte durée, jamais un accès direct.</li>
-    <li>Le <b>côté recruteur</b> existe dans l'API mais pas encore dans <a href="beta.php">la bêta</a> : création d'offre, deck des candidats, réponse aux matchs.</li>
+    <li>Le <b>côté recruteur</b> existe dans l'API — création d'offre, deck des candidats, match à deux oui, rendez-vous — et est <b>gelé</b> depuis le recadrage HackAVP : le jury joue l'employeur. On n'y investit ni sécurité ni tests ; à retirer du routeur avant la mise en production.</li>
     <li>Plusieurs <b>champs d'offre</b> que le prototype affiche n'existent pas en base : horaires, avantages, processus de recrutement, nombre de vues, ville et distance. Les ajouter demande une migration, un formulaire de dépôt côté entreprise, et une table à part pour les vues.</li>
     <li>Les <b>notifications</b> sont en base mais ne sont pas encore poussées. C'est l'une des raisons d'empaqueter avec Capacitor : le web les gère mal sur iOS.</li>
     <li>L'<b>empaquetage</b> lui-même. La bêta est déjà statique et installable, donc rien ne s'y oppose techniquement.</li>

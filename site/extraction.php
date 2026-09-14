@@ -81,6 +81,32 @@
   <h2 id="banc">Le banc d'essai</h2>
   <p>Le dossier de CV sert de corpus permanent : un script passe les huit documents dans le fichier <b>réellement servi</b> et sort un tableau champ par champ. À relancer après chaque modification. C'est lui qui a attrapé les régressions introduites en cours de route — un motif trop large qui mangeait « Fév. 2023 », un seuil resserré qui perdait un bandeau de nom.</p>
 
+  <h2 id="ocr">Scans et photos : la même chaîne, une source de plus</h2>
+  <p>Ce qui rend la lecture possible n'est pas le PDF : c'est une liste de <b>fragments de texte avec leur position et leur taille</b>. Un moteur de reconnaissance optique produit exactement ça — des mots avec leur boîte — et la suite de la chaîne (colonnes, bandeau d'identité, rubriques) ne voit pas la différence. Depuis le 14 septembre, la bêta accepte donc une image (JPG, PNG, WebP) et bascule d'elle-même sur l'OCR quand un PDF n'a pas de couche texte.</p>
+  <dl class="kv">
+    <dt>Moteur</dt><dd>Tesseract en WebAssembly (tesseract.js 6), modèle français « fast » de 1,1 Mo. Tout est servi par l'application — moteur, cœur, modèle — pas par un CDN : la promesse « rien ne sort » vaut aussi pour la trace de qui utilise l'app. Chargé à la demande, jamais à l'ouverture.</dd>
+    <dt>Aucun modèle de langage</dt><dd>Lire des pixels et comprendre du texte sont deux tâches. La première est de la reconnaissance de formes, résolue depuis vingt ans ; la seconde, ce sont nos règles. Un modèle multimodal lirait mieux une photo de travers, mais il inventerait une année qui n'est pas sur le document, dans une phrase parfaitement formée — et le CV partirait chez un tiers.</dd>
+    <dt>Confiance</dt><dd>Tesseract donne un score par mot. La relecture l'affiche ; sous 70 %, <b>rien n'est coché d'office</b>. Un mot lu avec peine ne devient pas un prénom.</dd>
+    <dt>Temps</dt><dd>5 à 7 secondes par page sur un ordinateur, le double ou le triple sur un téléphone. C'est l'utilisateur qui paie, en batterie — c'est ce qui rend le zéro coût possible.</dd>
+  </dl>
+
+  <p>Tesseract seul ne suffisait pas. Quatre corrections, toutes issues d'un échec observé :</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Ce qui se passait</th><th>Ce qui a été fait</th></tr></thead>
+    <tbody>
+      <tr><td>Les titres de rubrique en <b>blanc sur bandeau de couleur</b> (« EXPÉRIENCE », « SCOLARITÉ ») étaient lus « OLARITÉ », ou pas du tout. Sans la rubrique, tous les diplômes devenaient des expériences.</td><td>Les zones sombres en forme de bandeau sont détectées (tuiles de 24 px, composantes connexes), <b>inversées</b> et relues — empilées dans une seule image, parce qu'un appel au moteur coûte une seconde d'amorçage quelle que soit la taille. Et une fin de mot de cinq lettres seule sur sa ligne (« OLARITÉ ») est remise d'aplomb.</td></tr>
+      <tr><td>Le <b>nom en très gros</b> était pris pour un dessin par la segmentation automatique, et le moteur lit mal des lettres de 70 px — il est fait pour du texte de corps.</td><td>Seconde passe en « texte épars » sur le tiers haut, à échelle réduite puis réelle. Une relecture sûre <b>remplace</b> le bruit lu au même endroit : « DARKAM » à 92 % prend la place du « 1} » de la première passe.</td></tr>
+      <tr><td>Une icône ou un cercle décoratif devenait un mot d'un demi-écran de haut — le seul candidat au bandeau d'identité.</td><td>Un signe deux fois plus haut que le texte doit avoir deux lettres ; cinq fois plus haut, c'est un dessin. Et en mode optique, le bandeau d'identité ne se cherche que dans la moitié haute de la page.</td></tr>
+      <tr><td>Un onglet passé en arrière-plan <b>figeait</b> la lecture d'un PDF scanné : le rendu de pdf.js attend <code>requestAnimationFrame</code>, qui ne tourne pas dans un onglet caché.</td><td>Rendu avec l'intention « impression », qui n'attend rien.</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Résultat, sur un CV à deux colonnes avec bandeaux colorés, comparé à sa lecture par la couche texte : <b>scan, PDF scanné et photo simulée</b> (penchée de 2,5°, floue, contraste réduit, posée sur une table) donnent exactement les mêmes champs — identité, téléphone, trois expériences, quatre formations, niveau. Sur le corpus de huit CV en mode scan, quatre sont au niveau du texte ; les autres montrent les limites réelles : une police <b>filaire</b> ou <b>extra-grasse</b> pour le nom, un pictogramme qui devient une initiale. Là, la confiance tombe, rien n'est coché, et l'utilisateur relit.</p>
+
+  <div class="note">
+    <p><b>Ce qu'elle ne saura pas faire, et qu'on ne cherchera pas :</b> une photo avec une ombre portée ou un reflet, un CV manuscrit, un HEIC d'iPhone (le navigateur ne le décode pas — exporter en JPG). Le PDF reste le chemin recommandé ; l'OCR est un filet, pas la porte d'entrée. Sur téléphone natif, la reconnaissance du système (ML Kit, Vision) sera meilleure et gratuite — elle produit les mêmes fragments.</p>
+  </div>
+
   <div class="callout">
     <p style="margin-bottom:0"><b>La lecture se vérifie à l'écran, pas dans le code.</b> Chaque information proposée affiche l'extrait du CV d'où elle vient, et se décoche. Le justificatif doit être lisible : une fenêtre de quatre-vingts caractères qui traverse deux rubriques et se coupe en plein mot ne justifie rien. Et « lu dans » ne s'affiche que devant un vrai extrait — devant une explication, c'est un mensonge de libellé.</p>
   </div>
