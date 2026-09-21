@@ -95,7 +95,7 @@ export function ImportCV({ profil, onProfil, onRelecture }: Props) {
       void api.deposeCV({
         nom: f.name, mime: f.type || (pdf ? 'application/pdf' : 'image/*'), octets: f.size,
         moteur: r.mode === 'ocr' ? 'tesseract' : 'pdfjs',
-        version: r.mode === 'ocr' ? '6.0.1' : '5.6.205',
+        version: r.mode === 'ocr' ? '6.0.1' : '6.3.289',
         brut: { ...r.trouve, _confiance: r.confiance }, retenu: {},
       }).catch(() => { /* le dépôt du journal ne doit pas bloquer la relecture */ })
     } catch (e) {
