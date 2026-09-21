@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/securite.php';
 
 /* ------------------------------------------------------------------ sorties */
 
@@ -18,6 +19,8 @@ function envoie(mixed $data, int $code = 200): never
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
+    entetesSecurite();
+    cors();
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
@@ -34,7 +37,14 @@ function corps(): array
 {
     static $c = null;
     if ($c === null) {
-        $brut = file_get_contents('php://input') ?: '';
+        // Un corps JSON n'a aucune raison de depasser le mega-octet : au-dela,
+        // c'est une erreur de client ou une tentative d'epuiser la memoire.
+        if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 1_048_576) {
+            erreur('corps_trop_grand', 'Le corps de la requête dépasse 1 Mo.', 413);
+        }
+        // En ligne de commande (recette sans serveur), le corps arrive par stdin.
+        $flux = fopen(PHP_SAPI === 'cli' ? 'php://stdin' : 'php://input', 'rb');
+        $brut = $flux ? (string) stream_get_contents($flux, 1_048_577) : '';
         $c = $brut === '' ? [] : (json_decode($brut, true) ?: []);
         if (!is_array($c)) {
             $c = [];
@@ -105,6 +115,9 @@ function jeton(): string
     if (preg_match('/^Bearer\s+([a-f0-9]{64})$/i', $h, $m)) {
         return strtolower($m[1]);
     }
+    if (preg_match('/^Bearer\s+(aj_[a-f0-9]{8}\.[a-f0-9]{40})$/i', $h, $m)) {
+        return strtolower($m[1]);                  // une cle d'API tierce
+    }
     $c = $_COOKIE[COOKIE] ?? '';
     return preg_match('/^[a-f0-9]{64}$/', $c) ? $c : '';
 }
@@ -120,8 +133,12 @@ function utilisateur(): ?array
     if ($t === '') {
         return null;
     }
+    if (str_starts_with($t, 'aj_')) {
+        $u = utilisateurParCleApi($t);
+        return $u;
+    }
     $st = db()->prepare(
-        'SELECT u.id, u.email, u.role, u.status, s.token
+        'SELECT u.id, u.email, u.role, u.status, s.token, s.ua_hash
            FROM sessions s JOIN users u ON u.id = s.user_id
           WHERE s.token = ? AND s.expires_at > ?'
     );
@@ -130,6 +147,14 @@ function utilisateur(): ?array
     if (!$r || $r['status'] !== 'actif') {
         return null;
     }
+    /* Un jeton vole rejoue depuis un autre navigateur ne passe pas. Le
+       navigateur d'un meme utilisateur ne change pas d'agent en cours de
+       session ; une mise a jour du navigateur invalide la session, c'est le
+       prix accepte. */
+    if ($r['ua_hash'] !== null && $r['ua_hash'] !== empreinteUa()) {
+        return null;
+    }
+    unset($r['ua_hash']);
     db()->prepare('UPDATE sessions SET last_seen = ? WHERE token = ?')->execute([maintenant(), $t]);
     $u = $r;
     return $u;
@@ -147,8 +172,19 @@ function exigeConnexion(?string $role = null): array
     return $u;
 }
 
+function empreinteUa(): string
+{
+    return substr(md5($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 32);
+}
+
 function ouvreSession(int $userId): string
 {
+    // Rotation : la session courante, si elle existe, est remplacee. Un jeton
+    // pose avant l'authentification ne survit pas a celle-ci.
+    $ancien = jeton();
+    if ($ancien !== '' && !str_starts_with($ancien, 'aj_')) {
+        db()->prepare('DELETE FROM sessions WHERE token = ?')->execute([$ancien]);
+    }
     $t = bin2hex(random_bytes(32));
     db()->prepare(
         'INSERT INTO sessions (token, user_id, created_at, last_seen, expires_at, ua_hash)
@@ -156,12 +192,12 @@ function ouvreSession(int $userId): string
     )->execute([
         $t, $userId, maintenant(), maintenant(),
         gmdate('Y-m-d H:i:s', time() + SESSION_J * 86400),
-        substr(md5($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 32),
+        empreinteUa(),
     ]);
     // Secure + SameSite=Lax : le cookie ne part pas sur une requete inter-sites.
     setcookie(COOKIE, $t, [
         'expires'  => time() + SESSION_J * 86400,
-        'path'     => '/avp/app/',
+        'path'     => COOKIE_PATH,
         'secure'   => true,
         'httponly' => true,
         'samesite' => 'Lax',

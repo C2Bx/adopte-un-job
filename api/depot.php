@@ -33,6 +33,10 @@ function candidatPourScore(PDO $pdo, int $id): ?array
         'permis'         => $c['permis'] === null ? null : (int) $c['permis'],
         'teletravail'    => $c['teletravail'],
         'ouverture'      => $c['ouverture'],
+        // referentiel OPT : metiers vises (codes) et competences rattachees
+        'metiers_opt'    => colonne($pdo, 'SELECT code_metier FROM candidate_opt_metiers WHERE user_id = ?', $id),
+        'competences_opt' => competencesOptDuCandidat($pdo, $id),
+        'mots'           => motsDuCandidat($pdo, $id),
     ];
 }
 
@@ -60,6 +64,10 @@ function profilComplet(PDO $pdo, int $id): array
     $cmp->execute([$id]);
     $met = $pdo->prepare('SELECT o.slug FROM candidate_occupations co JOIN occupations o ON o.id = co.occupation_id WHERE co.user_id = ?');
     $met->execute([$id]);
+    $mo = $pdo->prepare('SELECT m.code_metier AS code, m.nom, f.libelle AS famille FROM candidate_opt_metiers cm JOIN opt_metiers m ON m.code_metier = cm.code_metier LEFT JOIN opt_familles f ON f.id = m.famille_id WHERE cm.user_id = ? ORDER BY m.nom');
+    $mo->execute([$id]);
+    $co = $pdo->prepare('SELECT co.code_competence AS code, c.nom, co.source, co.libelle_source AS depuis FROM candidate_opt_competences co JOIN opt_competences c ON c.code = co.code_competence WHERE co.user_id = ? ORDER BY c.nom');
+    $co->execute([$id]);
 
     return [
         'prenom'      => $c['prenom'] ?? '',
@@ -75,7 +83,9 @@ function profilComplet(PDO $pdo, int $id): array
         'zones'       => colonne($pdo, 'SELECT zone FROM candidate_zones WHERE user_id = ?', $id),
         'contrats'    => colonne($pdo, 'SELECT contract FROM candidate_contracts WHERE user_id = ?', $id),
         'metiers'     => $met->fetchAll(PDO::FETCH_COLUMN),
+        'metiersOpt'  => $mo->fetchAll(),
         'competences' => $cmp->fetchAll(PDO::FETCH_COLUMN),
+        'competencesOpt' => $co->fetchAll(),
         'langues'     => $lng->fetchAll(),
         'experiences' => $exp->fetchAll(),
         'formations'  => $for->fetchAll(),
@@ -93,7 +103,9 @@ function candidatVuParEntreprise(PDO $pdo, int $id, bool $apresMatch): array
     $public = [
         'id'          => $id,
         'metiers'     => $p['metiers'],
+        'metiersOpt'  => $p['metiersOpt'],
         'competences' => $p['competences'],
+        'competencesOpt' => array_map(static fn ($x) => ['code' => $x['code'], 'nom' => $x['nom']], $p['competencesOpt']),
         'experiences' => array_map(static fn ($e) => [
             'poste'   => $e['poste'],
             'secteur' => $e['secteur'],
@@ -155,6 +167,18 @@ function garnisOffre(PDO $pdo, array $o): array
         }
     }
     $o['occupation_id'] = $o['occupation_id'] === null ? null : (int) $o['occupation_id'];
+    // Les phrases de competences de l'AVP : colonne JSON si elle est la,
+    // sinon relues depuis la fiche JobPosting.
+    if (isset($o['competences_texte']) && is_string($o['competences_texte'])) {
+        $o['competences_texte'] = json_decode($o['competences_texte'], true) ?: [];
+    }
+    $o['competences_texte'] = is_array($o['competences_texte'] ?? null) ? $o['competences_texte'] : [];
+    if (!$o['competences_texte'] && !empty($o['json_data'])) {
+        $j = is_string($o['json_data']) ? (json_decode($o['json_data'], true) ?: []) : $o['json_data'];
+        $o['competences_texte'] = competencesTexteAvp($j);
+    }
+    $o['familles'] = isset($o['familles']) && is_string($o['familles']) ? (json_decode($o['familles'], true) ?: []) : ($o['familles'] ?? []);
+    $o['nb_agents_encadres'] = isset($o['nb_agents_encadres']) && $o['nb_agents_encadres'] !== null ? (int) $o['nb_agents_encadres'] : null;
     $o['salaire_min'] = $o['salaire_min'] === null ? null : (int) $o['salaire_min'];
     $o['salaire_max'] = $o['salaire_max'] === null ? null : (int) $o['salaire_max'];
     $o['formation_min'] = $o['formation_min'] === null ? null : (int) $o['formation_min'];
@@ -164,9 +188,48 @@ function garnisOffre(PDO $pdo, array $o): array
 /** L'offre telle qu'on la montre : pas de colonnes internes, pas d'identifiants d'auteur. */
 function offrePublique(array $o): array
 {
+    $j = [];
+    if (!empty($o['json_data'])) {
+        $j = is_string($o['json_data']) ? (json_decode($o['json_data'], true) ?: []) : $o['json_data'];
+    }
+    $expire = $o['expires_at'] ?? null;
+    $jours = null;
+    if ($expire) {
+        $jours = (int) floor((strtotime($expire . ' UTC') - time()) / 86400);
+    }
+    $ct = $o['competences_texte'] ?? [];
+    if (is_string($ct)) {
+        $ct = json_decode($ct, true) ?: [];
+    }
     return [
         'id'          => (int) $o['id'],
+        'source'      => $o['source'] ?? 'app',
+        'reference'   => $o['external_id'] ?? null,
+        'url'         => $o['url'] ?? null,
         'titre'       => $o['titre'],
+        'ville'       => $o['ville'] ?? null,
+        'province'    => $o['province'] ?? null,
+        'direction'   => $o['direction'] ?? null,
+        'familles'    => is_string($o['familles'] ?? null) ? (json_decode($o['familles'], true) ?: []) : ($o['familles'] ?? []),
+        'codeMetier'  => $o['code_metier'] ?? null,
+        'metierOpt'   => $j['relevantOccupation']['name'] ?? null,
+        'codeRome'    => $o['code_rome'] ?? null,
+        'employmentType' => $o['employment_type'] ?? null,
+        'nbAgentsEncadres' => isset($o['nb_agents_encadres']) && $o['nb_agents_encadres'] !== null ? (int) $o['nb_agents_encadres'] : null,
+        'competencesTexte' => array_map(static fn ($x) => ['texte' => $x['texte'], 'type' => $x['type']], $ct),
+        'responsabilites' => array_values(array_map('strval', (array) ($j['responsibilities'] ?? []))),
+        'conditions'  => $j['workHours'] ?? null,
+        'avantages'   => $j['jobBenefits'] ?? null,
+        'exigencesPhysiques' => $j['physicalRequirement'] ?? null,
+        'qualifications' => $j['qualifications'] ?? null,
+        'experienceTexte' => $j['experienceRequirements'] ?? null,
+        'unite'       => $j['employmentUnit']['name'] ?? null,
+        'lieu'        => $j['jobLocation']['name'] ?? null,
+        'adresse'     => $j['jobLocation']['address']['streetAddress'] ?? null,
+        'datePublication' => $j['datePosted'] ?? ($o['published_at'] ?? null),
+        'expire'      => $expire,
+        'joursRestants' => $jours,
+        'statut'      => $o['statut'] ?? null,
         'entreprise'  => $o['entreprise'] ?? null,
         'secteur'     => $o['secteur'] ?? null,
         'taille'      => $o['taille'] ?? null,
@@ -246,7 +309,7 @@ function manquesProfil(PDO $pdo, int $id): array
     if (!$p['dispo']) {
         $m[] = 'Ta date de disponibilité';
     }
-    if (!$p['metiers']) {
+    if (!$p['metiers'] && !$p['metiersOpt']) {
         $m[] = 'Le ou les métiers que tu vises';
     }
     if (!$p['contrats']) {
