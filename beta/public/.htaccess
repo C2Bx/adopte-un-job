@@ -6,3 +6,16 @@ AddType application/octet-stream .traineddata
 <IfModule mod_deflate.c>
   SetEnvIfNoCase Request_URI \.traineddata$ no-gzip
 </IfModule>
+
+# En-tetes de securite de l'application (l'API pose les siens). La CSP autorise
+# ce que la beta fait vraiment : ses propres scripts et styles (React pose des
+# styles en attribut, d'ou 'unsafe-inline' sur style-src seulement), des
+# workers pdf.js et Tesseract charges en blob, du WebAssembly, des images en
+# data:/blob: (apercu du CV), et l'API sur la meme origine.
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "no-referrer"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+</IfModule>

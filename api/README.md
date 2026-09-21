@@ -247,6 +247,9 @@ Audit du 21 septembre 2026, tout point de l'audit du 14 traité :
   liste blanche CORS (`AVP_ORIGINES`, `capacitor://localhost` pour le natif).
 - **En-têtes** : `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
   `Permissions-Policy`, CSP sur les réponses de l'API, `Cache-Control: no-store`.
+  La page de l'application pose les siens elle-même (`beta/dist/index.php`,
+  généré à la construction) : sur l'hébergement mutualisé, nginx sert les
+  fichiers statiques et ignore le `.htaccess`.
 - **Secrets hors du code et hors du docroot** (`private/avp.env`) ; le fichier
   `config.php` de production ne contient aucune valeur.
 - **Fichiers de CV chiffrés** (AES-256-GCM, clé dans l'env, IV et tag par

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/index-php.mjs",
     "preview": "vite preview",
     "ocr": "node scripts/ocr-assets.mjs",
     "postinstall": "node scripts/ocr-assets.mjs"

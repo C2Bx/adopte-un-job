@@ -89,7 +89,7 @@ ajoute un signal sémantique au score.
 cd beta
 npm install        # installe aussi les fichiers OCR dans public/ocr (postinstall)
 npm run dev        # http://localhost:5173/avp/beta/ — l'API est proxifiée (voir vite.config.ts)
-npm run build      # dist/ à déposer sous /avp/beta/ du site
+npm run build      # dist/ à déposer sous /avp/beta/ du site (index.php : la page pose ses en-têtes de sécurité, voir beta/scripts/index-php.mjs)
 ```
 
 ### Recette
