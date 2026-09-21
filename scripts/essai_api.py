@@ -56,6 +56,27 @@ def appel(methode, route, corps=None, token="", query=None, attendu=200, brut=Fa
         return {}
 
 
+def depose(route, token, nom, contenu, mime, attendu=201):
+    """Envoi multipart (fichier de CV). Seulement en HTTPS : la ligne de
+    commande ne sait pas fabriquer $_FILES ; on note l'appel comme saute."""
+    global n, ecarts
+    n += 1
+    if not BASE:
+        print(f"  saut  POST   {route:38} (multipart : HTTPS seulement)")
+        return None
+    import requests
+    r = requests.post(BASE, params={"r": route}, files={"fichier": (nom, contenu, mime)},
+                      headers={"Authorization": "Bearer " + token}, verify=False, timeout=90)
+    ok = r.status_code == attendu
+    if not ok:
+        ecarts += 1
+    print(f"  {'ok ' if ok else 'ECART'} POST   {route:38} {r.status_code}" + ("" if ok else f" (attendu {attendu}) {r.text[:200]}"))
+    try:
+        return r.json()
+    except Exception:
+        return {}
+
+
 def ligne(t):
     print("\n== " + t)
 
@@ -111,6 +132,12 @@ r = appel("PUT", f"profil/cv/{cv_id}", {"retenu": {"prenom": "Camille"}, "actif"
 assert r["cv"]["lecture"]["retenu"] == {"prenom": "Camille"}, "accepted non enregistré"
 r = appel("GET", "profil/cv", token=tc)
 assert r["actif"]["id"] == cv_id
+# le vrai fichier : chiffre au depot, refuse s'il n'est ni PDF ni image
+MINI_PDF = b"%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n"
+fichier = depose("profil/cv/fichier", tc, "cv.pdf", MINI_PDF, "application/pdf")
+if fichier is not None:
+    assert fichier["cv"]["fichier"] is True and fichier["cv"]["actif"] is True, "le fichier depose devient le CV actif"
+    depose("profil/cv/fichier", tc, "cv.txt", b"pas un cv", "text/plain", attendu=415)
 
 r = appel("GET", "deck", token=tc)
 deck = r["offres"]
@@ -175,7 +202,11 @@ match_id = r["candidature"]["match"]
 assert r["candidature"]["candidat"]["prenom"] == "Camille", "le contact s'ouvre à la présélection"
 pdf = appel("GET", f"candidatures/{cand2}/cv.pdf", token=t2, brut=True)
 assert pdf.startswith("%PDF"), "le CV généré doit être un PDF"
-appel("GET", f"candidatures/{cand2}/cv-original", token=t2, attendu=404)   # aucun fichier déposé (CLI)
+if BASE:
+    orig = appel("GET", f"candidatures/{cand2}/cv-original", token=t2, brut=True)
+    assert orig.startswith("%PDF"), "le CV d'origine doit revenir dechiffre, tel que depose"
+else:
+    appel("GET", f"candidatures/{cand2}/cv-original", token=t2, attendu=404)   # aucun fichier depose (CLI)
 r = appel("GET", f"candidatures/{cand2}/suggestions", token=t1)
 assert len(r["suggestions"]) == 3
 

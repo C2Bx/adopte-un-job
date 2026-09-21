@@ -111,7 +111,9 @@ function tableauDeBord(PDO $pdo, int $orgId, ?int $jobId, int $jours): array
     $parSource = $rep("SELECT v.source AS v, COUNT(*) AS n FROM job_views v JOIN jobs j ON j.id = v.job_id WHERE {OU} AND v.created_at >= ? GROUP BY v.source ORDER BY n DESC");
 
     // ---- competences les plus souvent manquantes chez les candidats (depuis le detail des scores)
-    $st = $pdo->prepare("SELECT ms.detail FROM match_scores ms JOIN jobs j ON j.id = ms.job_id JOIN applications a ON a.job_id = ms.job_id AND a.candidate_id = ms.candidate_id WHERE $ou AND a.created_at >= ? LIMIT 500");
+    // La photographie prise a la candidature d'abord ; le cache des scores
+    // (efface a chaque synchronisation ou modification de profil) en secours.
+    $st = $pdo->prepare("SELECT COALESCE(a.detail, ms.detail) AS detail FROM applications a JOIN jobs j ON j.id = a.job_id LEFT JOIN match_scores ms ON ms.job_id = a.job_id AND ms.candidate_id = a.candidate_id WHERE $ou AND a.created_at >= ? AND a.statut <> 'retiree' LIMIT 500");
     $st->execute([...$pj, $depuis]);
     $manques = [];
     $forces = [];

@@ -232,6 +232,10 @@ if (route('DELETE', 'auth/compte', $seg, $methode) !== false) {
     $pdo->prepare('DELETE FROM resume_extractions WHERE resume_id IN (SELECT id FROM resumes WHERE user_id = ?)')->execute([$id]);
     $pdo->prepare('UPDATE applications SET statut = "retiree", message = NULL, updated_at = ? WHERE candidate_id = ? AND statut NOT IN ("acceptee","refusee")')->execute([maintenant(), $id]);
     $pdo->prepare('UPDATE api_keys SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL')->execute([maintenant(), $id]);
+    // un compte RH quitte son organisation : elle ne doit plus le lister
+    $pdo->prepare('DELETE FROM company_members WHERE user_id = ?')->execute([$id]);
+    $pdo->prepare('UPDATE entretiens SET statut = "annule", updated_at = ? WHERE statut IN ("propose","confirme") AND (candidate_id = ? OR propose_par = ?)')
+        ->execute([maintenant(), $id, $id]);
     trace($id, 'suppression_compte', 'user', $id);
     envoie(['ok' => true, 'message' => 'Compte anonymisé. Les données personnelles ont été effacées.']);
 }
@@ -486,7 +490,7 @@ if (route('GET', 'offres', $seg, $methode) !== false) {
                 (SELECT COUNT(*) FROM matches m WHERE m.job_id = j.id) AS matchs,
                 (SELECT COUNT(*) FROM job_views v WHERE v.job_id = j.id) AS vues
            FROM jobs j JOIN companies c ON c.id = j.company_id
-          WHERE j.company_id = ? ORDER BY j.statut = "publiee" DESC, j.published_at DESC, j.created_at DESC'
+          WHERE j.company_id = ? ORDER BY j.statut = "publiee" DESC, en_attente DESC, candidatures DESC, j.published_at DESC, j.created_at DESC'
     );
     $st->execute([(int) $org['id']]);
     $out = [];

@@ -40,6 +40,15 @@ function derniereLecture(PDO $pdo, int $resumeId): ?array
     return $st->fetch() ?: null;
 }
 
+/** Le CV actif du candidat (ligne de resumes), s'il y en a un. Defini ici,
+    car cv.php est charge avant candidatures.php qui s'en sert aussi. */
+function cvActif(PDO $pdo, int $userId): ?array
+{
+    $st = $pdo->prepare('SELECT * FROM resumes WHERE user_id = ? AND is_active = 1 ORDER BY id DESC LIMIT 1');
+    $st->execute([$userId]);
+    return $st->fetch() ?: null;
+}
+
 function cvDuCandidat(PDO $pdo, int $userId, int $id): array
 {
     $st = $pdo->prepare('SELECT * FROM resumes WHERE id = ? AND user_id = ?');

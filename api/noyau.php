@@ -39,8 +39,15 @@ function corps(): array
     if ($c === null) {
         // Un corps JSON n'a aucune raison de depasser le mega-octet : au-dela,
         // c'est une erreur de client ou une tentative d'epuiser la memoire.
-        if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 1_048_576) {
+        // Un envoi de fichier (multipart) est deja decoupe par PHP dans $_FILES,
+        // avec sa propre limite (upload_max_filesize) : php://input y est vide.
+        $multipart = str_starts_with((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'multipart/form-data');
+        if (!$multipart && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 1_048_576) {
             erreur('corps_trop_grand', 'Le corps de la requête dépasse 1 Mo.', 413);
+        }
+        if ($multipart) {
+            $c = [];
+            return $c;
         }
         // En ligne de commande (recette sans serveur), le corps arrive par stdin.
         $flux = fopen(PHP_SAPI === 'cli' ? 'php://stdin' : 'php://input', 'rb');

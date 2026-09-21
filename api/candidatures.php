@@ -52,14 +52,6 @@ function evenement(PDO $pdo, int $appId, ?int $acteur, string $type, array $payl
         ->execute([$appId, $acteur, $type, json_encode($payload, JSON_UNESCAPED_UNICODE), maintenant()]);
 }
 
-/** Le CV actif du candidat (ligne de resumes), s'il y en a un avec fichier. */
-function cvActif(PDO $pdo, int $userId): ?array
-{
-    $st = $pdo->prepare('SELECT * FROM resumes WHERE user_id = ? AND is_active = 1 ORDER BY id DESC LIMIT 1');
-    $st->execute([$userId]);
-    return $st->fetch() ?: null;
-}
-
 /**
  * Cree (ou reactive) la candidature d'un candidat sur une offre. Rend la
  * ligne. Appele par POST candidatures et par le swipe « oui ».
@@ -81,15 +73,18 @@ function candidate(PDO $pdo, int $candId, array $o, string $message = ''): array
     if ($exist && $exist['statut'] !== 'retiree') {
         return $exist;
     }
+    // Photographie du score au moment du geste : le tableau de bord la lit,
+    // meme apres que le cache des scores a ete efface.
+    $detail = $e ? json_encode($e['detail'], JSON_UNESCAPED_UNICODE) : null;
     if ($exist) {
-        $pdo->prepare('UPDATE applications SET statut = "envoyee", message = ?, resume_id = ?, qualite = ?, updated_at = ?, decided_at = NULL, decided_by = NULL WHERE id = ?')
-            ->execute([mb_substr($message, 0, 2000) ?: null, $cv['id'] ?? null, $e['qualite'] ?? null, maintenant(), (int) $exist['id']]);
+        $pdo->prepare('UPDATE applications SET statut = "envoyee", message = ?, resume_id = ?, qualite = ?, detail = ?, updated_at = ?, decided_at = NULL, decided_by = NULL WHERE id = ?')
+            ->execute([mb_substr($message, 0, 2000) ?: null, $cv['id'] ?? null, $e['qualite'] ?? null, $detail, maintenant(), (int) $exist['id']]);
         $appId = (int) $exist['id'];
     } else {
         $pdo->prepare(
-            'INSERT INTO applications (job_id, candidate_id, statut, resume_id, message, qualite, created_at, updated_at)
-             VALUES (?,?,"envoyee",?,?,?,?,?)'
-        )->execute([(int) $o['id'], $candId, $cv['id'] ?? null, mb_substr($message, 0, 2000) ?: null, $e['qualite'] ?? null, maintenant(), maintenant()]);
+            'INSERT INTO applications (job_id, candidate_id, statut, resume_id, message, qualite, detail, created_at, updated_at)
+             VALUES (?,?,"envoyee",?,?,?,?,?,?)'
+        )->execute([(int) $o['id'], $candId, $cv['id'] ?? null, mb_substr($message, 0, 2000) ?: null, $e['qualite'] ?? null, $detail, maintenant(), maintenant()]);
         $appId = (int) $pdo->lastInsertId();
     }
     // le swipe suit : le deck ne doit plus proposer cette offre

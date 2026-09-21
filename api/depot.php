@@ -124,11 +124,15 @@ function candidatVuParEntreprise(PDO $pdo, int $id, bool $apresMatch): array
     if (!$apresMatch) {
         return $public;
     }
+    // Le contact s'ouvre : prenom, nom, telephone et l'e-mail du compte.
+    $st = $pdo->prepare('SELECT email FROM users WHERE id = ? AND status = "actif"');
+    $st->execute([$id]);
     return $public + [
         'prenom'    => $p['prenom'],
         'nom'       => $p['nom'],
         'initiale'  => $p['initiale'],
         'telephone' => $p['telephone'],
+        'email'     => ($st->fetchColumn() ?: null),
     ];
 }
 

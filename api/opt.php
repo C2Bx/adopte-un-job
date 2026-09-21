@@ -91,16 +91,20 @@ function dateSql(?string $iso): ?string
 
 function organisationOpt(PDO $pdo): int
 {
-    $st = $pdo->prepare('SELECT id FROM companies WHERE slug = ?');
+    $st = $pdo->prepare('SELECT id, invite_code FROM companies WHERE slug = ?');
     $st->execute(['opt-nc']);
-    $id = $st->fetchColumn();
-    if ($id !== false) {
-        return (int) $id;
+    $org = $st->fetch();
+    if ($org) {
+        // Les RH de l'OPT rejoignent leur organisation par ce code : il doit exister.
+        if (empty($org['invite_code'])) {
+            $pdo->prepare('UPDATE companies SET invite_code = ? WHERE id = ?')->execute([codeInvitation(), (int) $org['id']]);
+        }
+        return (int) $org['id'];
     }
     $pdo->prepare(
-        'INSERT INTO companies (name, slug, sector, size, website, pitch, source, created_at) VALUES (?,?,?,?,?,?,?,?)'
+        'INSERT INTO companies (name, slug, invite_code, sector, size, website, pitch, source, created_at) VALUES (?,?,?,?,?,?,?,?,?)'
     )->execute([
-        'Office des postes et télécommunications de Nouvelle-Calédonie', 'opt-nc', 'Service public', '200+',
+        'Office des postes et télécommunications de Nouvelle-Calédonie', 'opt-nc', codeInvitation(), 'Service public', '200+',
         'https://www.opt.nc',
         'Établissement public : postes, services financiers et télécommunications. Environ 1 000 agents, 12 familles de métiers.',
         'opt', maintenant(),

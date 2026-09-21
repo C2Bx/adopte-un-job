@@ -367,8 +367,20 @@ if (route('POST', 'admin/sync/avp', $seg, $methode) !== false) {
     envoie(['synchronisation' => $r, 'quand' => maintenant()]);
 }
 
+/* L'etat de la synchronisation est public (chiffres seulement). Avec le jeton
+   de synchronisation, la reponse ajoute le code d'invitation de l'organisation
+   OPT-NC : c'est ainsi qu'un premier compte RH la rejoint. */
 if (route('GET', 'admin/sync/avp', $seg, $methode) !== false) {
     $st = $pdo->query('SELECT COUNT(*) AS n, MAX(synced_at) AS derniere, SUM(statut = "publiee") AS ouverts FROM jobs WHERE source = "opt"');
     $r = $st->fetch();
-    envoie(['avpOpt' => (int) $r['n'], 'ouverts' => (int) $r['ouverts'], 'derniereSynchro' => $r['derniere'], 'cleApiOpt' => OPT_API_KEY !== '']);
+    $rep = ['avpOpt' => (int) $r['n'], 'ouverts' => (int) $r['ouverts'], 'derniereSynchro' => $r['derniere'], 'cleApiOpt' => OPT_API_KEY !== ''];
+    $tok = $_SERVER['HTTP_X_SYNC_TOKEN'] ?? '';
+    if (SYNC_TOKEN !== '' && hash_equals(SYNC_TOKEN, $tok)) {
+        $st = $pdo->prepare('SELECT id, name, invite_code FROM companies WHERE slug = ?');
+        $st->execute(['opt-nc']);
+        if ($o = $st->fetch()) {
+            $rep['organisationOpt'] = ['id' => (int) $o['id'], 'nom' => $o['name'], 'codeInvitation' => $o['invite_code']];
+        }
+    }
+    envoie($rep);
 }
