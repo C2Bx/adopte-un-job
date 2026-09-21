@@ -212,10 +212,23 @@
       <tr><td>③ Quatre documents générés</td><td>Rien</td><td><b>Le produit.</b> Quatre requêtes séquentielles avec barre de progression, pas de file ni de worker ; un modèle de langage rédige, il ne décide pas des compétences manquantes</td></tr>
       <tr><td>④ Candidature transmissible</td><td>Rien</td><td>PDF côté serveur, envoi par Brevo (le port 25 sortant est fermé chez l'hébergeur), archive</td></tr>
       <tr><td>Le jury joue l'employeur</td><td>Côté recruteur construit (deck entreprise, match à deux oui)</td><td><b>Gelé.</b> Un candidat choisit, une candidature part</td></tr>
+      <tr><td>Le jury joue l'employeur — <i>revu le 21</i></td><td>Un vrai côté organisation</td><td><b>Dégelé, et retourné.</b> Le recruteur ne swipe plus : il reçoit des candidatures anonymes, présélectionne, propose des entretiens, lit un tableau de bord partagé par toute son organisation. Le second « oui » est la présélection, pas un swipe</td></tr>
       <tr><td>Track SaaS ou onPrem souverain (20 pts)</td><td>Hébergé à Sydney</td><td>Non tranché : demander le 16 comment les 20 points de <i>chaque</i> track sont notés avant de décider. Un tunnel Cloudflare n'est pas souverain</td></tr>
       <tr><td>Équipes de 1 à 5</td><td>Neuf</td><td>À trancher le 16</td></tr>
     </tbody>
   </table></div>
+  <h3 id="etat21">Où on en est le 21 septembre</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Fonction</th><th>État</th></tr></thead>
+    <tbody>
+      <tr><td>① Profil</td><td><b>Fait.</b> CV lu dans l'appareil (PDF, scan, photo), formulaire, métier visé et compétences rattachés au référentiel OPT-NC, fichier déposé chiffré, CV généré, JSON Resume.</td></tr>
+      <tr><td>② Matching sur les AVP réels</td><td><b>Fait.</b> 23 AVP synchronisés depuis le dataset officiel, référentiel 84 métiers / 409 compétences, score v2 (structurel + lexical + explicite, écarts sans élimination, confiance à part), mêmes filtres que la recherche de l'OPT, recherche plein texte, offres closes pour s'entraîner. Le signal <code>/search</code> attend une clé.</td></tr>
+      <tr><td>③ Quatre documents</td><td><b>Deux sur quatre.</b> CV recentré sur le poste (PDF) et restitution du matching (l'explication du score, des deux côtés). Manquent la lettre de motivation et la préparation d'entretien. Aucun modèle de langage n'est branché : ce qui est généré l'est par règles.</td></tr>
+      <tr><td>④ Candidature transmissible</td><td><b>Forme applicative faite.</b> Un oui est une candidature ; elle arrive chez l'organisation, anonyme puis complète (contact, CV recentré, CV d'origine), avec des propositions de messages et des créneaux d'entretien. Pas encore un fichier unique à envoyer hors de l'application, et aucun e-mail ne part (file prête).</td></tr>
+      <tr><td>Sécurité</td><td><b>Les treize points de l'audit du 14 traités</b> : débit, origine, en-têtes, secrets hors docroot, rotation de session, chiffrement des fichiers, jeton hors <code>localStorage</code>, corps borné, clés d'API. Recette de 90 appels, 0 écart, en local et en production.</td></tr>
+    </tbody>
+  </table></div>
+
   <div class="note">
     <p><b>Neuf AVP ouverts, c'est un deck qui se vide en quarante secondes.</b> Le deck se nourrit donc de l'historique, étiqueté sans ambiguïté (« clos le … — pour t'entraîner », candidature désactivée), et le pitch se retourne : <i>choisir vite, candidater bien</i>. Le swipe est l'entonnoir ; le dossier de candidature est le produit. La vidéo passera trente secondes sur le premier et trois minutes sur le second.</p>
   </div>
@@ -224,7 +237,7 @@
   <p>Les points marqués <span class="badge warn">⚑</span> plus haut changent le travail de tout le monde. Ils sont écrits dans le wiki parce que la recommandation est nette et unanime, mais ils doivent être validés en réunion avant le sprint 1 :</p>
   <ol>
     <li><b>Abandonner React Native pour du web seul.</b> Si l'un de vous tenait au mobile natif comme objectif d'apprentissage, c'est le moment de le dire.</li>
-    <li><b>Retirer le swipe au recruteur.</b> C'est la moitié du concept affiché. Assumez-le : le slogan reste vrai côté candidat, et le produit devient utilisable côté entreprise.</li>
+    <li><b>Retirer le swipe au recruteur.</b> C'est la moitié du concept affiché. Assumez-le : le slogan reste vrai côté candidat, et le produit devient utilisable côté entreprise. <i>Fait le 21 : le recruteur traite des candidatures, il ne swipe pas.</i></li>
     <li><b>Choisir un secteur pilote.</b> Une piste évidente : votre propre campus — stages, alternance, premiers emplois. Vous avez accès aux deux côtés du marché.</li>
   </ol>
 

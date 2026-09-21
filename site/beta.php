@@ -44,26 +44,39 @@
 
   <div class="eyebrow">04 ter — Technique</div>
   <h1 class="title">La bêta</h1>
-  <p class="chapo">L'application réelle, en ligne sur <a href="beta/">zako.nc/avp/beta/</a>. Elle remplace progressivement le prototype : même produit, mais avec des comptes, une base et un score calculé par le serveur.</p>
+  <p class="chapo">L'application réelle, en ligne sur <a href="beta/">zako.nc/avp/beta/</a>. Deux côtés : le candidat qui swipe les AVP réels de l'OPT-NC et candidate, l'organisation qui reçoit, présélectionne, propose des entretiens et lit son tableau de bord. Même produit que le prototype, avec des comptes, une base, un score calculé par le serveur.</p>
 
   <h2 id="pile">Ce que c'est</h2>
   <dl class="kv">
     <dt>Front</dt><dd>React 19 + TypeScript strict, construit par Vite. Sortie 100 % statique : aucune page PHP, ce qui la rend empaquetable telle quelle pour les magasins d'applications</dd>
-    <dt>Données</dt><dd>Plus rien dans le navigateur. Tout passe par l'<a href="api.php">API</a> et la base de production</dd>
-    <dt>Poids</dt><dd>250 ko de code (78 ko compressés). pdf.js est dans un morceau séparé de 455 ko, téléchargé <b>uniquement</b> quand quelqu'un dépose un CV ; l'OCR (moteur, cœur WebAssembly de 4 Mo, modèle de 1,1 Mo) uniquement quand ce CV est une image ou un scan</dd>
-    <dt>Code source</dt><dd><a href="https://github.com/C2Bx/adopte-un-job">github.com/C2Bx/adopte-un-job</a> — public depuis le 14 septembre. Bêta, API, prototype, ce site et les bancs d'essai. Aucune configuration réelle : des <code>config.example.php</code> à copier</dd>
+    <dt>Données</dt><dd>Plus rien dans le navigateur. Tout passe par l'<a href="api.php">API</a> et la base de production ; les offres sont les AVP réels du dataset public de l'OPT-NC, le référentiel est le sien (84 métiers, 409 compétences)</dd>
+    <dt>Poids</dt><dd>313 ko de code (94 ko compressés). pdf.js est dans un morceau séparé de 455 ko, téléchargé <b>uniquement</b> quand quelqu'un dépose un CV ; l'OCR (moteur, cœur WebAssembly de 4 Mo, modèle de 1,1 Mo) uniquement quand ce CV est une image ou un scan</dd>
+    <dt>Code source</dt><dd><a href="https://github.com/C2Bx/adopte-un-job">github.com/C2Bx/adopte-un-job</a> — public depuis le 14 septembre, version 2 (deux rôles) le 21. Bêta, API, prototype, ce site et les bancs d'essai. Aucune configuration réelle : des <code>config.example.php</code> à copier</dd>
     <dt>Prototype</dt><dd><a href="app/index.php">Toujours en place</a>, en <code>localStorage</code>, avec ses données inventées. Il reste la référence de mise en forme et le mode démonstration sans compte</dd>
   </dl>
 
-  <h2 id="ecrans">Les écrans</h2>
+  <h2 id="ecrans">Les écrans du candidat</h2>
   <div class="tablewrap"><table>
     <thead><tr><th>Écran</th><th>Ce qu'il fait</th></tr></thead>
     <tbody>
-      <tr><td><b>Accueil</b></td><td>Création de compte et connexion. Douze caractères minimum, sans autre règle : la longueur protège mieux qu'une majuscule imposée, et se retient.</td></tr>
-      <tr><td><b>Swipe</b></td><td>Le deck. Glissé gauche/droite, quatre actions dans les coins (retour, non, plus tard, oui), carte en pages qu'on tourne au doigt, filtres, feuille de détail.</td></tr>
-      <tr><td><b>Intérêts</b></td><td>Tout ce qui a été décidé, en trois onglets. Sur grand écran, la liste à gauche et le détail à droite ; en dessous, une feuille.</td></tr>
-      <tr><td><b>Messages</b></td><td>Une conversation par match. Elle s'ouvre après le match, jamais avant.</td></tr>
-      <tr><td><b>Profil</b></td><td>Import de CV — PDF, scan ou photo, lus dans l'appareil —, formulaire en cinq étapes, guide chiffré, fiche de relecture. Enregistrement différé, sans bouton « enregistrer ».</td></tr>
+      <tr><td><b>Accueil</b></td><td>Création de compte et connexion, candidat ou recruteur (avec un code d'invitation, ou en créant son organisation). Douze caractères minimum, sans autre règle. Mot de passe oublié : le code est mis en file, l'envoi d'e-mails n'est pas encore branché et l'écran le dit.</td></tr>
+      <tr><td><b>Swipe</b></td><td>Le deck des AVP ouverts, scorés et triés. Une barre de recherche et <b>les mêmes filtres que la recherche de l'OPT</b> (villes, provinces, familles, directions, télétravail, encadrement, débutant), avec le nombre d'offres derrière chaque puce. Un bouton pour s'entraîner sur les offres closes. Glissé gauche/droite, quatre actions dans les coins, carte en pages, feuille de détail avec les écarts nommés. <b>Un oui est une candidature</b> : une feuille le confirme et dit ce que l'employeur verra.</td></tr>
+      <tr><td><b>Candidatures</b></td><td>Envoyée, vue, présélectionnée, entretien proposé, acceptée, refusée. Le nombre d'écarts avec ses critères, le CV envoyé, le retrait. Plus tard et écartés restent là, révocables.</td></tr>
+      <tr><td><b>Messages</b></td><td>Une conversation par présélection, jamais avant. Trois débuts de message proposés, par règles, à adapter.</td></tr>
+      <tr><td><b>Agenda</b></td><td>Les créneaux proposés — on en confirme un, les autres s'annulent —, ceux à venir, le passé. Heures locales, fichier <code>.ics</code> pour son propre calendrier.</td></tr>
+      <tr><td><b>Profil</b></td><td>Import de CV — PDF, scan ou photo, lus dans l'appareil, puis déposés chiffrés si on le veut —, formulaire en cinq étapes, métier visé et compétences dans les mots du référentiel OPT-NC (rattachement automatique, à vérifier), guide chiffré, relecture, Mes CV (fichier, CV généré, JSON Resume). Enregistrement différé, sans bouton.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="ecrans-rh">Les écrans de l'organisation</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Écran</th><th>Ce qu'il fait</th></tr></thead>
+    <tbody>
+      <tr><td><b>Tableau</b></td><td>Le tableau de bord de l'organisation — tous ses membres, tous ses AVP — sur 7, 30, 90 ou 365 jours. Treize indicateurs avec leur définition au survol, courbes par jour, entonnoir de la vue à l'embauche, candidatures par état, compétences qui manquent le plus, répartitions, classement des offres, activité de l'équipe, export CSV.</td></tr>
+      <tr><td><b>Offres</b></td><td>Les AVP synchronisés (ouverts et clos) avec leurs compteurs, triés par ce qu'il y a à traiter ; publier une offre à soi.</td></tr>
+      <tr><td><b>Candidatures</b></td><td>Classées par compatibilité, <b>anonymes</b> — métiers, compétences, parcours sans employeur, zones, contrats — jusqu'à la présélection. Ouvrir une candidature la marque vue. Présélectionner ouvre le contact (prénom, nom, e-mail, téléphone), le CV recentré sur le poste (PDF généré) et le CV d'origine (déchiffré à la demande), et propose trois premiers messages. Puis : proposer un entretien, accepter, refuser.</td></tr>
+      <tr><td><b>Messages</b>, <b>Agenda</b></td><td>Les mêmes que côté candidat, à l'échelle de l'organisation : l'agenda montre les entretiens proposés par n'importe quel membre.</td></tr>
+      <tr><td><b>Organisation</b></td><td>Le nom, le code d'invitation à partager (renouvelable), les membres et leurs rôles.</td></tr>
     </tbody>
   </table></div>
 
@@ -82,13 +95,11 @@
 
   <h2 id="reste">Ce qui n'est pas fait</h2>
   <ul>
-    <li>Les <b>fonctions ③ et ④ du HackAVP</b> — les quatre documents (lettre, CV recentré, restitution du matching, préparation d'entretien) et la candidature transmissible. Elles valent 15 points sur 100 et n'existent pas. C'est le chantier prioritaire, avant tout polish. Voir <a href="arbitrages.php#hackavp">le recadrage</a>.</li>
-    <li>Les <b>données réelles</b> : le deck tourne encore sur 22 offres inventées. Les AVP ouverts à l'OPT-NC et le référentiel de 84 métiers les remplacent.</li>
-    <li>Le <b>côté entreprise</b> : l'API sait créer une offre, lister les candidats et répondre, mais aucun écran ne le fait — et c'est désormais <b>gelé</b> : le jury du HackAVP joue l'employeur, il n'y a pas de second « oui » à obtenir.</li>
-    <li>Le <b>fichier</b> du CV n'est pas stocké : seuls les métadonnées et le résultat de la lecture remontent.</li>
-    <li>Les <b>notifications</b> sont en base mais ne sont pas poussées.</li>
-    <li>L'<b>empaquetage Capacitor</b>. Rien ne s'y oppose techniquement : la bêta est déjà statique et installable.</li>
-    <li>Quelques champs d'offre que le prototype affiche <b>n'existent pas en base</b> — horaires, avantages, processus de recrutement, nombre de vues, ville et distance. Les ajouter est une migration, pas du texte à écrire dans le front.</li>
+    <li>Sur les <b>quatre documents de la fonction ③</b>, deux existent — le CV recentré sur le poste et la restitution du matching (l'explication du score, dans la feuille de détail et dans la fiche RH) — et deux manquent : la lettre de motivation et la préparation d'entretien. La <b>candidature transmissible (④)</b> existe sous sa forme applicative : elle arrive chez l'organisation avec le dossier ; elle n'est pas encore un fichier unique qu'on envoie ailleurs.</li>
+    <li><b>Aucun e-mail ne part</b> : vérification, réinitialisation, notifications sont en file. Les notifications sont à l'écran, pas poussées.</li>
+    <li>Pas de <b>clé OPT-NC</b> : les AVP viennent du dataset public, le signal sémantique de la recherche officielle est inactif.</li>
+    <li>L'<b>empaquetage Capacitor</b>. Rien ne s'y oppose techniquement : la bêta est déjà statique et installable, et le jeton sait vivre sans cookie.</li>
+    <li>Un parcours <b>à deux comptes sur la même machine</b> n'est pas prévu : une session à la fois par navigateur.</li>
   </ul>
 
 </main>

@@ -64,7 +64,7 @@ define('OPT_API_KEY', $cfg('OPT_API_KEY', ''));
 const OPT_API_BASE = 'https://api.opt.nc';
 const HF_AVPS_URL  = 'https://huggingface.co/datasets/opt-nc/odata-avps/resolve/main/data/all_avps.jsonl';
 
-/** DEV SEULEMENT : derriere un proxy qui reecrit le TLS (Kerio), les appels
+/** DEV SEULEMENT : derriere un proxy d'entreprise qui reecrit le TLS, les appels
     sortants echouent sur le certificat. Jamais a 1 en production. */
 define('SSL_INSECURE', $cfg('AVP_SSL_INSECURE', '') === '1');
 

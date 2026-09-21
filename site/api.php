@@ -44,111 +44,121 @@
 
   <div class="eyebrow">04 bis — Technique</div>
   <h1 class="title">L'API et la base</h1>
-  <p class="chapo">La bêta ne stocke plus rien dans le navigateur. Tout passe par une API PHP et une base MySQL en production. Cette page dit ce qui existe, et pourquoi chaque choix a été fait plutôt qu'un autre.</p>
+  <p class="chapo">Une API REST en PHP, une base MySQL, deux rôles. Tout ce que l'application fait, elle le fait par cette API — et n'importe qui d'autre peut le faire aussi, avec une clé. Cette page dit ce qui existe au 21 septembre, et pourquoi chaque choix a été fait plutôt qu'un autre.</p>
 
   <h2 id="ou">Où ça tourne</h2>
   <dl class="kv">
-    <dt>Bêta</dt><dd><a href="beta/">zako.nc/avp/beta/</a> — React 19 + TypeScript, construit par Vite, servi en fichiers statiques</dd>
-    <dt>API</dt><dd><code>zako.nc/avp/app/api/index.php/&lt;route&gt;</code> — PHP 8, un seul point d'entrée</dd>
-    <dt>Base</dt><dd><code>avp_prod</code>, MySQL 8.4 sur un hébergement mutualisé, 29 tables</dd>
-    <dt>Prototype</dt><dd><a href="app/index.php">zako.nc/avp/app/</a> — conservé tel quel, en <code>localStorage</code>, jusqu'à ce que la bêta atteigne la parité</dd>
+    <dt>Bêta</dt><dd><a href="beta/">zako.nc/avp/beta/</a> — React 19 + TypeScript, construit par Vite, servi en fichiers statiques. Deux jeux d'écrans selon le rôle.</dd>
+    <dt>API</dt><dd><code>zako.nc/avp/app/api/index.php/&lt;route&gt;</code> — PHP 8, un point d'entrée, un fichier par domaine. Documentation vivante : <a href="app/api/index.php?r=openapi.json">openapi.json</a> (OpenAPI 3.1).</dd>
+    <dt>Base</dt><dd>MySQL 8.4 sur un hébergement mutualisé, 46 tables. Les secrets vivent hors du code et hors du docroot.</dd>
+    <dt>Données</dt><dd>Les <b>23 AVP réels</b> du dataset public de l'OPT-NC (<a href="https://huggingface.co/datasets/opt-nc/odata-avps">opt-nc/odata-avps</a>, schema.org JobPosting), synchronisés par une tâche planifiée ; le référentiel officiel des métiers (12 familles, 84 métiers, 409 compétences, 1 988 liens pondérés).</dd>
+    <dt>Prototype</dt><dd><a href="app/index.php">zako.nc/avp/app/</a> — conservé tel quel, en <code>localStorage</code>, comme démonstration sans compte.</dd>
   </dl>
 
-  <h2 id="schema">Le schéma, et ce qu'il refuse de stocker</h2>
-  <p>Trois principes expliquent la forme des tables. Ils ne sont pas décoratifs : chacun a écarté une colonne que le schéma « naturel » aurait contenue.</p>
+  <h2 id="roles">Deux rôles, une organisation</h2>
+  <p>Un compte est <b>candidat</b> ou <b>recruteur</b>. Un recruteur n'agit jamais seul : il appartient à une <b>organisation</b>, qu'il rejoint par un code d'invitation ou qu'il crée. <b>Plusieurs comptes RH partagent les mêmes AVP, les mêmes candidatures et le même tableau de bord</b> — c'est la réalité d'un service recrutement, pas un compte par personne avec ses offres à lui. L'organisation OPT-NC est créée par la synchronisation ; son code d'invitation est remis à celui qui détient le jeton de synchronisation.</p>
+  <p class="note">Trois rôles internes : propriétaire (modifie l'organisation, renouvelle le code, gère les membres), recruteur (traite les candidatures), lecteur (regarde le tableau de bord). Un compte supprimé quitte son organisation et ses entretiens s'annulent.</p>
 
+  <h2 id="schema">Le schéma, et ce qu'il refuse de stocker</h2>
   <ol class="steps">
-    <li><b>Ce qui est interdit au score n'est pas stocké.</b> Ni date de naissance, ni photo, ni adresse. La table <code>candidate_educations</code> n'a <b>aucune colonne de date</b> : l'année d'obtention d'un diplôme révèle l'âge, qui est un critère de discrimination interdit. Le niveau suffit à comparer.</li>
-    <li><b>Le masquage avant match est une règle serveur.</b> Le nom, le téléphone et le nom complet vivent dans <code>candidates</code> mais ne sortent jamais de l'API tant qu'il n'y a pas de match. Masquer dans l'interface serait une faille : il suffit d'ouvrir les outils de développement.</li>
-    <li><b>Les tables de conformité existent depuis le premier jour.</b> <code>consents</code> trace le consentement, sa finalité et sa version ; <code>audit_logs</code> enregistre qui a consulté quelle donnée personnelle. Ajoutées après coup, elles obligent à reprendre tout le schéma — et il n'existe alors aucune trace des mois précédents.</li>
+    <li><b>Ce qui est interdit au score n'est pas stocké.</b> Ni date de naissance, ni photo, ni adresse. La table <code>candidate_educations</code> n'a <b>aucune colonne de date</b> : l'année d'obtention d'un diplôme révèle l'âge, critère de discrimination interdit. Le niveau suffit à comparer.</li>
+    <li><b>Le masquage avant présélection est une règle serveur.</b> Prénom, nom, e-mail, téléphone et dossier vivent en base mais ne sortent de l'API qu'à la présélection. Masquer dans l'interface serait une faille : il suffit d'ouvrir les outils de développement.</li>
+    <li><b>Le fichier de CV est chiffré.</b> AES-256-GCM, clé dans l'environnement, un vecteur et une étiquette par fichier, stockage hors du docroot. Une fuite du disque ne livre rien ; une fuite de la base non plus.</li>
+    <li><b>Les tables de conformité existent depuis le premier jour.</b> <code>consents</code> trace le consentement et sa version ; <code>audit_logs</code> enregistre qui a consulté quelle donnée personnelle, avec une empreinte salée de l'adresse plutôt que l'adresse.</li>
   </ol>
 
   <div class="tablewrap">
   <table>
     <thead><tr><th>Famille</th><th>Tables</th><th>Ce qu'elle porte</th></tr></thead>
     <tbody>
-      <tr><td>Comptes</td><td><code>users</code>, <code>sessions</code>, <code>companies</code>, <code>company_members</code></td><td>L'authentification seule. Le métier vit ailleurs. Une entreprise peut avoir plusieurs recruteurs, et un recruteur peut changer d'entreprise.</td></tr>
-      <tr><td>Référentiels</td><td><code>occupations</code>, <code>occupation_links</code>, <code>skills</code>, <code>skill_aliases</code></td><td>18 métiers, 46 liens de proximité, 83 compétences canoniques et leurs orthographes. <code>occupation_links</code> est la table qui rend la reconversion calculable.</td></tr>
-      <tr><td>Candidats</td><td><code>candidates</code> + 7 tables de liaison</td><td>Zones, contrats, métiers visés, compétences, langues, expériences, formations. Le <code>resume.json</code> validé est stocké tel quel, en JSON : on le lit en entier, on n'y fait pas de requêtes.</td></tr>
-      <tr><td>Documents</td><td><code>resumes</code>, <code>resume_extractions</code></td><td>La sortie brute de l'extraction est conservée avec la version du moteur : c'est ce qui permet de retraiter un CV plus tard sans redemander le fichier.</td></tr>
-      <tr><td>Offres</td><td><code>jobs</code>, <code>job_skills</code>, <code>job_languages</code></td><td>La distinction <b>exigé / souhaité</b> est structurante : un « exigé » manquant écarte, un « souhaité » manquant coûte des points. Les confondre fausse tout le classement.</td></tr>
-      <tr><td>Interactions</td><td><code>swipes</code>, <code>match_scores</code>, <code>matches</code>, <code>messages</code>, <code>appointments</code>, <code>notifications</code></td><td>Une décision par sens, avec une contrainte d'unicité pour que le réseau ne double pas un vote. Un match n'existe que si les deux ont dit oui.</td></tr>
+      <tr><td>Comptes</td><td><code>users</code>, <code>sessions</code>, <code>password_resets</code>, <code>api_keys</code>, <code>rate_limits</code></td><td>L'authentification seule. Sessions opaques renouvelées à la connexion ; clés d'API à secret haché ; compteurs de débit par route.</td></tr>
+      <tr><td>Organisations</td><td><code>companies</code>, <code>company_members</code></td><td>Une organisation, ses membres et leur rôle interne, son code d'invitation, sa source (<code>opt</code> ou <code>app</code>).</td></tr>
+      <tr><td>Référentiel OPT-NC</td><td><code>opt_familles</code>, <code>opt_metiers</code>, <code>opt_competences</code>, <code>opt_metier_competences</code>, <code>opt_niveaux</code>, <code>opt_competence_alias</code></td><td>Le référentiel officiel, chargé depuis sa release SQLite. <code>opt_metier_competences</code> porte le poids et le niveau requis : c'est ce qui rend le score structurel calculable.</td></tr>
+      <tr><td>Candidats</td><td><code>candidates</code> + 9 tables de liaison dont <code>candidate_opt_metiers</code>, <code>candidate_opt_competences</code></td><td>Zones, contrats, métiers visés (maison et OPT), compétences (libres et rattachées au référentiel, avec la source du rattachement), langues, expériences, formations.</td></tr>
+      <tr><td>Documents</td><td><code>resumes</code>, <code>resume_extractions</code></td><td>Le fichier chiffré et sa lecture : ce que le moteur a lu (<code>payload</code>) et ce que l'utilisateur a gardé (<code>accepted</code>) — la mesure de qualité du moteur.</td></tr>
+      <tr><td>Offres</td><td><code>jobs</code>, <code>job_skills</code>, <code>job_languages</code>, <code>job_views</code></td><td>Les AVP avec leur identité OPT (référence, code métier, code ROME, direction, familles, ville, province, type d'emploi, texte de recherche plein texte, JSON d'origine) et les offres publiées dans l'application. Les vues sont comptées une fois par personne, par offre et par jour.</td></tr>
+      <tr><td>Candidatures</td><td><code>applications</code>, <code>application_events</code>, <code>swipes</code>, <code>match_scores</code>, <code>matches</code>, <code>messages</code>, <code>entretiens</code>, <code>notifications</code>, <code>email_queue</code></td><td>Une candidature et son histoire (qui a fait quoi, quand), la photographie du score au moment du geste, le match ouvert à la présélection, la conversation, les créneaux d'entretien, les e-mails en file (jamais envoyés pour l'instant).</td></tr>
       <tr><td>Conformité</td><td><code>consents</code>, <code>audit_logs</code></td><td>Consentement daté et versionné ; journal des accès aux données personnelles.</td></tr>
     </tbody>
   </table>
   </div>
 
   <h2 id="score">Le score est calculé par le serveur, et nulle part ailleurs</h2>
-  <p>Le moteur a été porté de la maquette vers <code>api/score.php</code>, à l'identique sur le fond. Un score calculé dans le navigateur se modifie dans le navigateur — la démonstration pouvait se le permettre, la bêta non.</p>
+  <p>Le moteur vit dans <code>api/score.php</code>, version <code>v2</code>. Un score calculé dans le navigateur se modifie dans le navigateur.</p>
   <ul>
-    <li><b>Deux scores directionnels</b>, jamais moyennés. La qualité d'un match est le <b>minimum</b> des deux : une offre parfaite pour l'entreprise et médiocre pour le candidat n'est pas un demi-bon match.</li>
-    <li><b>La confiance est séparée du score.</b> 80&nbsp;% sur trois critères renseignés ne vaut pas 80&nbsp;% sur dix, et l'écran le dit.</li>
-    <li><b>Inconnu n'est pas non.</b> Un critère non renseigné sort du calcul et le poids restant est renormalisé, au lieu de compter zéro.</li>
-    <li><b>La proximité entre métiers vient de la base</b>, pas d'une constante dans le code : elle est écrite, justifiée, et donc discutable. Une distance devinée par un modèle ne se discute pas.</li>
-    <li>Les scores sont mis en cache dans <code>match_scores</code> avec la version de l'algorithme, et <b>invalidés</b> dès qu'un profil ou une offre change.</li>
+    <li><b>Deux regards, jamais moyennés.</b> Ce que l'employeur regarde (compétences, expérience, formation, disponibilité) et ce que le candidat regarde (métier visé, contrat, salaire, conditions). La compatibilité est le <b>minimum</b> des deux.</li>
+    <li><b>Les compétences combinent trois signaux.</b> Le <b>référentiel OPT</b> pondéré via le code métier de l'AVP (ce que ce métier attend, officiellement), le <b>lexique de l'AVP</b> lui-même (les mots porteurs de ses phrases, face aux mots du candidat), et les compétences explicites de l'offre quand il y en a. Un candidat qui n'a pas rattaché ses compétences au référentiel n'est pas pénalisé : la couverture lexicale prend le relais.</li>
+    <li><b>Rien n'élimine.</b> Un contrat, une zone, un télétravail qui ne collent pas sont des <b>écarts</b> : chacun retire 20 %, plancher 30 %, et l'écran les nomme. N'importe quel profil peut candidater à n'importe quel poste ; l'employeur décide avec le score et les écarts sous les yeux.</li>
+    <li><b>La confiance est séparée du score.</b> 80 % sur trois critères renseignés ne vaut pas 80 % sur dix, et l'écran le dit.</li>
+    <li><b>Inconnu n'est pas non.</b> Un critère non renseigné sort du calcul et le poids restant est renormalisé.</li>
+    <li>Avec une clé OPT-NC, la recherche sémantique officielle (<code>POST /avps/search</code>) ajoute un signal ; sans, rien ne manque au calcul. Le cache (<code>match_scores</code>) est invalidé dès qu'un profil ou un AVP change ; la <b>photographie du score au moment de la candidature</b> est conservée à part, pour le tableau de bord.</li>
   </ul>
 
   <h2 id="routes">Les routes</h2>
+  <p>Toutes en JSON, deux formes d'URL (<code>index.php/route</code> ou <code>?r=route</code>), trois façons de s'authentifier : cookie <code>HttpOnly</code> pour le navigateur, <code>Bearer</code> pour l'application native, clé <code>aj_…</code> pour une intégration. Le détail — paramètres, réponses, codes — est dans <a href="app/api/index.php?r=openapi.json">openapi.json</a>. Voici la carte.</p>
   <div class="tablewrap">
   <table>
-    <thead><tr><th>Route</th><th>Ce qu'elle fait</th></tr></thead>
+    <thead><tr><th>Domaine</th><th>Routes</th><th>Ce qu'elles font</th></tr></thead>
     <tbody>
-      <tr><td><code>POST auth/inscription</code><br><code>POST auth/connexion</code><br><code>POST auth/deconnexion</code><br><code>GET auth/moi</code></td><td>Argon2id, jeton opaque révocable en base plutôt qu'un jeton auto-porté. Même message et même temps de réponse pour « compte inconnu » et « mot de passe faux » : les distinguer revient à publier la liste des comptes.</td></tr>
-      <tr><td><code>GET auth/export</code><br><code>DELETE auth/compte</code></td><td>Livrés avec la version 1, pas après. La suppression <b>anonymise</b> plutôt qu'elle n'efface : les statistiques du projet survivent, plus aucune donnée personnelle ne subsiste. Apple exige d'ailleurs la suppression depuis l'application dès qu'on permet d'en créer un compte.</td></tr>
-      <tr><td><code>GET referentiels</code></td><td>Zones, contrats, métiers, compétences, niveaux de diplôme et de langue.</td></tr>
-      <tr><td><code>GET profil</code><br><code>PUT profil</code><br><code>POST profil/cv</code></td><td>Le profil complet, pour son propriétaire uniquement. Une compétence inconnue du référentiel n'est pas perdue : elle y entre. Le référentiel se construit avec l'usage.</td></tr>
-      <tr><td><code>GET entreprise</code> · <code>PUT entreprise</code><br><code>GET/POST/PUT/DELETE offres</code></td><td>Côté recruteur. Fermer une offre ne la supprime pas : des matchs et des conversations en dépendent.</td></tr>
-      <tr><td><code>GET deck</code><br><code>GET deck/{offre}</code></td><td>Le deck du candidat, et celui du recruteur pour une offre. <b>Répond 409 <code>profil_incomplet</code></b> avec la liste des manques tant que le profil ne permet pas de calculer un score.</td></tr>
-      <tr><td><code>POST swipes</code><br><code>DELETE swipes/{offre}</code></td><td>Une décision, parmi <b>trois</b> : oui, non, plus tard. Forcer « plus tard » dans l'un des deux autres fausse l'historique. Le match n'est créé — et les deux parties notifiées — que si l'autre sens a déjà dit oui. La suppression permet de revenir sur une décision : la réécrire ne suffirait pas, la carte reviendrait au deck en restant décidée. Refusée si un match existe déjà.</td></tr>
-      <tr><td><code>GET interets</code></td><td>Tout ce que le candidat a décidé, avec l'offre et son score. Sans cette route, l'écran ne pouvait montrer que les matchs — donc presque toujours rien, puisqu'un match demande aussi le oui de l'entreprise. Un score absent du cache est <b>recalculé à la volée</b> : le cache est vidé à chaque modification du profil, et c'est voulu — un score périmé ment.</td></tr>
-      <tr><td><code>GET matchs</code> · <code>GET matchs/{id}</code><br><code>GET/POST matchs/{id}/messages</code><br><code>POST matchs/{id}/rdv</code> · <code>POST rdv/{id}</code></td><td>Messagerie et rendez-vous, ouverts après le match et jamais avant.</td></tr>
-      <tr><td><code>GET notifications</code><br><code>POST notifications/lu</code></td><td>File de notifications par utilisateur.</td></tr>
+      <tr><td>Compte</td><td><code>auth/inscription</code> · <code>auth/connexion</code> · <code>auth/moi</code> · <code>auth/motdepasse</code> · <code>auth/sessions</code> · <code>auth/reinit</code> · <code>auth/verification</code> · <code>auth/export</code> · <code>DELETE auth/compte</code> · <code>cles</code></td><td>Argon2id, hachage factice pour répondre en temps constant, rotation de session, limites de débit. Réinitialisation et vérification d'e-mail existent, les codes sont mis en file : aucun e-mail ne part. Export et anonymisation dès la version 1.</td></tr>
+      <tr><td>Référentiel</td><td><code>referentiels</code> · <code>metiers</code> · <code>metiers/{code}</code> · <code>competences?q=</code></td><td>Les 84 métiers par famille avec le nombre d'AVP ouverts, les compétences attendues d'un métier avec leur poids, la recherche dans les 409.</td></tr>
+      <tr><td>Profil et CV</td><td><code>profil</code> · <code>profil/cv</code> · <code>profil/cv/fichier</code> · <code>profil/cv/{id}</code> · <code>profil/cv.pdf</code> · <code>profil/jsonresume</code></td><td>Le profil, avec le rattachement automatique des compétences libres au référentiel. La lecture faite dans l'appareil est journalisée ; le fichier est déposé à part (multipart, 10 Mo, type lu dans les octets), chiffré. Le CV généré depuis le profil, et <b>le profil en JSON Resume</b> — le CV en résumé JSON, première des API utilitaires demandées.</td></tr>
+      <tr><td>AVP</td><td><code>avp</code> · <code>avp/filtres</code> · <code>avp/{id}</code> · <code>avp/{id}/vue</code> · <code>avp/{id}/candidats</code> · <code>admin/sync/avp</code></td><td>Le catalogue public avec recherche plein texte et <b>les mêmes filtres que la recherche de l'OPT</b> (ville, province, famille, direction, contrat, encadrement, télétravail, débutant), les facettes avec leur compte, la synchronisation par jeton.</td></tr>
+      <tr><td>Deck et candidatures</td><td><code>deck</code> · <code>swipes</code> · <code>interets</code> · <code>candidatures</code> · <code>candidatures/{id}/statut</code> · <code>candidatures/{id}/cv.pdf</code> · <code>candidatures/{id}/cv-original</code> · <code>candidatures/{id}/suggestions</code></td><td>Le deck scoré, avec les mêmes filtres et un mode « offres closes » pour s'entraîner. <b>Un oui est une candidature.</b> Côté organisation : anonyme, puis <code>vue</code>, puis <b>présélection</b> — qui ouvre le contact, le match, le CV recentré sur le poste et le fichier d'origine — puis entretien, acceptée ou refusée. Trois débuts de message pour chaque côté, par règles.</td></tr>
+      <tr><td>Messages et agenda</td><td><code>matchs</code> · <code>matchs/{id}/messages</code> · <code>agenda</code> · <code>candidatures/{id}/entretiens</code> · <code>entretiens/{id}</code> · <code>entretiens/{id}/ics</code></td><td>La conversation s'ouvre à la présélection, jamais avant. L'organisation propose 1 à 6 créneaux, le candidat en confirme un (les autres s'annulent), chacun télécharge l'<code>.ics</code>. L'agenda de l'organisation montre les entretiens de tous ses membres.</td></tr>
+      <tr><td>Organisation</td><td><code>organisation</code> · <code>organisation/rejoindre</code> · <code>organisation/membres</code> · <code>organisation/invitation</code> · <code>offres</code></td><td>Créer, rejoindre par code, gérer les membres et leurs rôles, renouveler le code, publier des offres en plus des AVP synchronisés.</td></tr>
+      <tr><td>Tableau de bord</td><td><code>organisation/tableau</code> · <code>organisation/tableau/{offre}</code> · <code>organisation/tableau.csv</code></td><td>Treize indicateurs définis dans la réponse (vues, candidatures, conversion, à traiter, présélections, refus, délais, score moyen…), séries par jour, entonnoir, répartitions, compétences manquantes et présentes, classement des offres, activité de l'équipe. Sur 7, 30, 90 ou 365 jours. Le CSV va dans un tableur ou Power BI.</td></tr>
     </tbody>
   </table>
   </div>
 
   <div class="callout">
-    <p style="margin-bottom:0"><b>Le jeton est doublé, volontairement.</b> Cookie <code>httpOnly</code> pour le navigateur, en-tête <code>Authorization: Bearer</code> pour l'application empaquetée — une application native n'a pas de cookie de session. Les deux sont acceptés par le serveur, donc le même code client fonctionne dans les deux mondes.</p>
+    <p style="margin-bottom:0"><b>Le jeton est triplé, volontairement.</b> Cookie <code>HttpOnly</code> pour le navigateur, en-tête <code>Authorization: Bearer</code> pour l'application empaquetée, clé d'API révocable pour un tableur, un robot ou un partenaire. Les trois passent par le même code serveur, donc les mêmes contrôles.</p>
   </div>
 
-  <h2 id="verrou">Le verrou du deck</h2>
-  <p>Tant que le profil ne permet pas de calculer un score, le deck reste fermé. Le verrou est posé <b>aux deux bouts</b> : l'écran liste ce qui manque et mène au champ à corriger, l'API refuse <code>deck</code> et <code>swipes</code> avec un 409 et la même liste. Un verrou posé uniquement dans l'interface s'ouvre avec les outils de développement.</p>
-  <p class="note">Ce qu'on afficherait sans profil ne serait pas « moins précis » : ce serait un ordre au hasard présenté comme une pertinence. C'est la raison du verrou, pas la complétude pour elle-même.</p>
+  <h2 id="securite">La sécurité, point par point</h2>
+  <p>L'audit du 14 septembre listait treize manques. Tous sont traités au 21 :</p>
+  <ul>
+    <li><b>Limites de débit</b> par route (connexion, inscription, réinitialisation, dépôt de fichier, messages, synchronisation) et globale (240 requêtes par minute et par adresse), en base, avec <code>Retry-After</code>.</li>
+    <li><b>Vérification d'origine</b> (<code>Origin</code>, <code>Sec-Fetch-Site</code>) sur toute écriture ; liste blanche CORS, y compris <code>capacitor://localhost</code> pour le natif.</li>
+    <li><b>En-têtes de sécurité</b> sur chaque réponse : <code>X-Content-Type-Options</code>, <code>X-Frame-Options</code>, <code>Referrer-Policy</code>, <code>Permissions-Policy</code>, CSP, <code>Cache-Control: no-store</code>.</li>
+    <li><b>Secrets hors du code et hors du docroot</b> ; le <code>config.php</code> de production ne contient aucune valeur.</li>
+    <li><b>Rotation de session</b> à la connexion, empreinte du navigateur vérifiée, fermeture des autres sessions au changement de mot de passe.</li>
+    <li><b>Fichiers chiffrés</b>, type lu dans les octets, taille bornée, supprimés avec le compte. Le jeton n'est plus dans <code>localStorage</code> côté navigateur (mémoire seulement ; <code>localStorage</code> sous Capacitor, faute de cookie).</li>
+    <li><b>Corps borné</b> à 1 Mo pour le JSON, 10 Mo pour un fichier ; requêtes préparées partout ; contrôle d'appartenance sur chaque identifiant.</li>
+  </ul>
+  <p>Ce qui reste, par ordre d'importance : l'envoi d'e-mails (file prête, fournisseur à choisir) ; deux utilisateurs MySQL (lecture-écriture et DDL) ; la clé OPT-NC ; une limite de débit par compte en plus de l'adresse ; un journal applicatif centralisé.</p>
 
   <h2 id="recette">La recette, et ce qu'elle a trouvé</h2>
-  <p>Un script rejoue un parcours complet — inscription candidat et recruteur, verrou, profil, entreprise, offre, deck des deux côtés, swipes croisés, match, message, rendez-vous, droits, export, suppression : <b>28 appels, 0 écart</b>. Il vérifie notamment que le deck du recruteur n'expose <b>aucun</b> champ personnel avant le match, et qu'il les expose après.</p>
-  <p>Deux défauts réels sont sortis de cette recette, et aucun n'aurait été visible à l'œil :</p>
+  <p>Un script rejoue le parcours complet des deux côtés — candidat, deux RH d'une même organisation, profil et rattachement OPT, deck verrouillé puis ouvert, filtres, candidature, lecture anonyme puis présélection, dossier avec dépôt réel du fichier, entretiens, messages, tableau de bord, clés, garde-fous, export, suppression : <b>90 appels, 0 écart</b>, en local sans serveur web et contre la production. Puis la bêta a été parcourue à la main dans un navigateur, sur la production, avec deux comptes de test supprimés à la fin.</p>
+  <p>Ce que cette recette a attrapé, et que l'œil n'aurait pas vu :</p>
   <ul>
-    <li><b><code>iconv('//TRANSLIT')</code> mange les accents</b> selon la bibliothèque C du serveur. « Développement web » y devenait la clé <code>d-veloppement-web</code>, une compétence fantôme distincte de la vraie. Le référentiel se serait fragmenté en silence, et le score avec. Remplacé par une table de translittération explicite.</li>
-    <li><b>Un alias résolu était recréé en double</b> : « dev web » devenait une compétence séparée de « Développement web ». La résolution se fait maintenant en trois passes ordonnées — slug canonique, alias connu, création.</li>
+    <li><b>Une fonction au mauvais endroit.</b> Chaque fichier de domaine exécute ses routes au chargement ; <code>cvActif()</code> vivait dans un fichier chargé après celui qui l'appelait. Le dépôt de fichier tombait en 500 sur la production seulement — la recette en ligne de commande ne sait pas fabriquer un envoi multipart. Elle le fait maintenant, en HTTPS.</li>
+    <li><b>Une course dans l'enregistrement du profil.</b> La réponse du serveur à une première modification écrasait la seconde, faite pendant l'attente. Deux zones cochées vite, une seule enregistrée. Corrigé en fusionnant la réponse dans l'état courant.</li>
+    <li><b>Un tableau de bord qui s'effaçait.</b> Les compétences manquantes se lisaient dans le cache des scores, vidé à chaque synchronisation et à chaque modification de profil. Le score est maintenant photographié au moment de la candidature.</li>
+    <li><b>Une organisation sans porte.</b> L'organisation OPT-NC, créée par la synchronisation, n'avait pas de code d'invitation : aucun RH ne pouvait la rejoindre.</li>
+    <li>Un pare-feu applicatif refuse un <code>POST</code> sans corps : la commande de synchronisation envoie <code>{}</code>.</li>
   </ul>
 
   <h2 id="cv">La lecture de CV</h2>
   <p class="note">Le détail, l'audit sur huit CV réels et le banc d'essai sont sur la page <a href="extraction.php">Lecture de CV</a>.</p>
-  <p>Elle vit entièrement côté client, et c'est un choix de conception, pas une facilité : le CV ne quitte jamais l'appareil. Deux étapes, et aucun modèle de langage — ce qui n'est pas trouvé reste vide.</p>
-  <ol class="steps">
-    <li><b>Le texte avec sa mise en page.</b> La gouttière entre colonnes est cherchée là où le moins de fragments la traversent, pas au milieu de la page : la colonne de droite d'un CV commence rarement à 50&nbsp;%. Sans ça, un CV sur deux colonnes s'entrelace et tout le reste devient faux.</li>
-    <li><b>Les rubriques donnent le sens.</b> « EXPÉRIENCE », « SCOLARITÉ » : suivre les titres est bien plus fiable que de deviner ligne par ligne. Hors rubrique, une date isolée est ignorée — « prix Pépites 2024 » n'est ni un emploi ni un diplôme.</li>
-  </ol>
-  <p class="note">Deux règles qui viennent d'erreurs réelles : <b>on n'invente jamais de mois</b> (une année seule reste une année, pas « janvier 2019 »), et <b>aucune date n'est conservée sur une formation</b> (l'année d'obtention révèle l'âge). L'extraction ne remplit rien toute seule : elle propose, avec l'extrait du CV d'où vient chaque information, et l'utilisateur décoche ce qui est faux.</p>
+  <p>Elle vit côté client, et c'est un choix de conception : le CV est lu dans l'appareil, sans modèle de langage — ce qui n'est pas trouvé reste vide, et tout est relu champ par champ. Le fichier lui-même n'est envoyé qu'ensuite, si l'utilisateur le veut, chiffré, pour être remis à l'organisation qui le présélectionne avec un CV recentré sur le poste.</p>
 
-  <h2 id="pieges">Trois pièges de mise en production</h2>
+  <h2 id="pieges">Pièges de mise en production</h2>
   <ul>
-    <li><b>L'en-tête <code>Authorization</code> n'atteint pas PHP.</b> Apache le retire avant de passer la main, sauf consigne explicite. Un client qui s'authentifie par <code>Bearer</code> — l'application native, ou n'importe quel script — était donc toujours « non connecté », sans erreur, pendant que le navigateur, lui, passait par le cookie et ne voyait rien. La bêta ne tenait que par le cookie. Une ligne de <code>.htaccess</code> dans <code>api/</code> (<code>SetEnvIf Authorization</code>) le corrige ; <code>CGIPassAuth</code>, la directive officielle, fait tomber le serveur en 500 ici. Découvert le 14 septembre en testant l'OCR par script.</li>
-    <li><b>Le serveur ne connaît pas <code>.mjs</code></b> et le sert en <code>text/plain</code>. Un module chargé avec ce type est refusé par le navigateur, sans message exploitable : le lecteur de PDF marchait en local et pas en ligne. Un <code>.htaccess</code> d'une ligne dans <code>/avp/beta/</code> le corrige.</li>
-    <li><b><code>iconv('//TRANSLIT')</code> dépend de la bibliothèque C du serveur.</b> « Développement web » y devenait la clé <code>d-veloppement-web</code> : une compétence fantôme, distincte de la vraie. Le référentiel se serait fragmenté en silence, et le score avec. Toute normalisation de texte passe désormais par une table de translittération explicite.</li>
+    <li><b>L'en-tête <code>Authorization</code> n'atteint pas PHP.</b> Apache le retire avant de passer la main. Une ligne de <code>.htaccess</code> (<code>SetEnvIf Authorization</code>) le corrige ; <code>CGIPassAuth</code>, la directive officielle, fait tomber le serveur en 500 ici.</li>
+    <li><b>Le serveur ne connaît pas <code>.mjs</code></b> et le sert en <code>text/plain</code> : le lecteur de PDF marchait en local et pas en ligne. Un <code>.htaccess</code> d'une ligne dans <code>/avp/beta/</code>.</li>
+    <li><b><code>iconv('//TRANSLIT')</code> dépend de la bibliothèque C du serveur.</b> « Développement web » y devenait <code>d-veloppement-web</code>. Table de translittération explicite.</li>
+    <li><b>L'ordre des <code>require</code> compte</b> et <b>la garde du corps JSON ne doit pas voir un multipart</b> — voir la recette ci-dessus.</li>
   </ul>
 
   <h2 id="reste">Ce qui n'est pas fait</h2>
-  <p>La référence des routes, des codes d'erreur et de la sécurité est dans le dépôt : <a href="https://github.com/C2Bx/adopte-un-job/blob/main/api/README.md">api/README.md</a>. L'audit du 14 septembre y a listé treize points transversaux (limite de débit, origine des requêtes, secrets hors du code, rotation de session…) et un ordre pour les traiter.</p>
+  <p>La référence complète est dans le dépôt : <a href="https://github.com/C2Bx/adopte-un-job/blob/main/api/README.md">api/README.md</a>.</p>
   <ul>
-    <li>Le <b>choix de l'utilisateur</b> après lecture de CV n'est pas enregistré : <code>resume_extractions.accepted</code> reste vide, parce que le dépôt est journalisé avant la relecture et jamais mis à jour après. On sait ce que le moteur a lu, pas ce qui a été gardé — c'est pourtant la mesure de qualité du moteur. Un <code>PUT</code> à la validation suffit.</li>
-    <li><b>Aucune limite de débit</b>, nulle part. Force brute possible sur la connexion, et surtout facture ouverte le jour où la génération de documents appellera un modèle. Préalable à tout le chantier ③.</li>
-    <li>Le <b>fichier</b> du CV n'est pas stocké. La lecture se fait dans l'appareil, avec pdf.js empaqueté dans l'application — pas chargé d'un CDN, pour que ça marche hors ligne et sans dépendre d'une politique de sécurité de contenu. Seuls les métadonnées et le résultat de l'extraction remontent, pour pouvoir retraiter plus tard. Stocker le fichier demandera un stockage objet et des liens signés de courte durée, jamais un accès direct.</li>
-    <li>Le <b>côté recruteur</b> existe dans l'API — création d'offre, deck des candidats, match à deux oui, rendez-vous — et est <b>gelé</b> depuis le recadrage HackAVP : le jury joue l'employeur. On n'y investit ni sécurité ni tests ; à retirer du routeur avant la mise en production.</li>
-    <li>Plusieurs <b>champs d'offre</b> que le prototype affiche n'existent pas en base : horaires, avantages, processus de recrutement, nombre de vues, ville et distance. Les ajouter demande une migration, un formulaire de dépôt côté entreprise, et une table à part pour les vues.</li>
-    <li>Les <b>notifications</b> sont en base mais ne sont pas encore poussées. C'est l'une des raisons d'empaqueter avec Capacitor : le web les gère mal sur iOS.</li>
-    <li>L'<b>empaquetage</b> lui-même. La bêta est déjà statique et installable, donc rien ne s'y oppose techniquement.</li>
+    <li><b>Aucun e-mail n'est envoyé.</b> Vérification, réinitialisation, notifications : tout est en file. Choisir un fournisseur et un domaine est une décision, pas un patch.</li>
+    <li><b>Pas de clé OPT-NC.</b> Les AVP viennent du dataset public, à jour à chaque synchronisation ; le signal sémantique de la recherche officielle est branché mais inactif sans clé.</li>
+    <li>Les <b>notifications</b> sont en base et à l'écran, pas poussées. C'est l'une des raisons d'empaqueter avec Capacitor.</li>
+    <li>L'<b>empaquetage</b> lui-même. La bêta est déjà statique et installable, rien ne s'y oppose.</li>
   </ul>
 
 </main>
