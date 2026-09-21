@@ -8,6 +8,9 @@ import {
   ETAPES, NIVEAUX, anneesExperience, completude, conseils, force, manques,
 } from '../regles'
 import { ImportCV } from './ImportCV'
+import { MesCV } from './MesCV'
+import { profilEnvoi } from '../regles'
+import type { CompetenceOpt, MetierOpt } from '../types'
 import { ErreurApi } from '../types'
 import type { Experience, Formation, Profil, Referentiels } from '../types'
 
@@ -19,6 +22,13 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
   const [etat, setEtat] = useState<Etat>('repos')
   const [relecture, setRelecture] = useState(false)
   const premier = useRef(true)
+  // Le serveur rattache les compétences au référentiel et le renvoie : on
+  // reprend sa version sans redéclencher un enregistrement.
+  const depuisServeur = useRef(false)
+  // Le profil tel qu'il est au dernier rendu : une réponse du serveur qui
+  // arrive après une nouvelle saisie ne doit pas l'écraser.
+  const courant = useRef(profil)
+  courant.current = profil
 
   useEffect(() => {
     void api.referentiels().then(setRef).catch(() => setRef(null))
@@ -34,13 +44,22 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
   // Enregistrement différé : on attend que la frappe s'arrête.
   useEffect(() => {
     if (premier.current) { premier.current = false; return }
+    if (depuisServeur.current) { depuisServeur.current = false; return }
     setEtat('envoi')
+    const envoye = profil
     const t = window.setTimeout(() => {
-      void api.enregistreProfil(profil)
-        .then(() => setEtat('ok'))
+      void api.enregistreProfil(profilEnvoi(envoye))
+        .then((p) => {
+          setEtat('ok')
+          // Si l'utilisateur a modifié entre-temps, on fusionne dans sa version
+          // et on laisse l'enregistrement suivant repartir.
+          depuisServeur.current = courant.current === envoye
+          onProfil({ ...courant.current, competencesOpt: p.competencesOpt, metiersOpt: p.metiersOpt })
+        })
         .catch(() => setEtat('erreur'))
     }, 800)
     return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profil])
 
   const maj = (bout: Partial<Profil>) => onProfil({ ...profil, ...bout })
@@ -68,6 +87,7 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
             </div>
 
             <ImportCV profil={profil} onProfil={onProfil} onRelecture={setRelecture} />
+            {!relecture && <MesCV />}
 
             {!relecture && <>
             <div className="petapes">
@@ -229,10 +249,18 @@ function CeQueTuCherches({ p, maj, ref_ }: { p: Profil; maj: (b: Partial<Profil>
   return (
     <>
       <label className="pf">
-        <span className="pl">Métiers visés — trois au maximum</span>
-        <Puces id="f-metiers" liste={ref_?.metiers ?? []} valeurs={p.metiers} max={3} onChange={(metiers) => maj({ metiers })} />
-        <span className="pa">Ce que tu <b>vises</b>, pas ce que tu as fait. Le score compare l’offre à ton projet.</span>
+        <span className="pl">Métiers visés à l’OPT-NC — trois au maximum</span>
+        <MetiersOptChoix id="f-metiers" liste={ref_?.metiersOpt ?? []} familles={ref_?.familles ?? []}
+          valeurs={p.metiersOpt} onChange={(metiersOpt) => maj({ metiersOpt })} />
+        <span className="pa">
+          Les 84 métiers du référentiel de l’OPT-NC, par famille. Ce que tu <b>vises</b>, pas ce que tu as fait :
+          le score compare chaque AVP à ton projet, métier par métier.
+        </span>
       </label>
+      <details className="pf">
+        <summary className="pl">Autres métiers (hors OPT-NC)</summary>
+        <Puces id="f-metiers-autres" liste={ref_?.metiers ?? []} valeurs={p.metiers} max={3} onChange={(metiers) => maj({ metiers })} />
+      </details>
 
       <label className="pf">
         <span className="pl">Ouverture</span>
@@ -395,6 +423,8 @@ function Competences({ p, maj, ref_ }: { p: Profil; maj: (b: Partial<Profil>) =>
         </div>
       </div>
 
+      <CompetencesOptBloc p={p} maj={maj} />
+
       <div className="prep">
         <div className="prep-t">
           <h3>Langues</h3>
@@ -452,7 +482,7 @@ function Relecture({ p }: { p: Profil }) {
           <span className="fp-pastille">{(p.prenom || '?').charAt(0).toUpperCase()}</span>
           <div>
             <b>{p.prenom || 'Prénom'}{p.initiale ? ` ${p.initiale.toUpperCase()}.` : ''}</b>
-            <span>{p.metiers.length ? p.metiers.join(' · ') : 'métier visé à renseigner'}</span>
+            <span>{p.metiersOpt.length ? p.metiersOpt.map((m) => m.nom).join(' · ') : (p.metiers.length ? p.metiers.join(' · ') : 'métier visé à renseigner')}</span>
           </div>
           {ans !== null && <span className="fp-ans">{ans}<small>AN{ans > 1 ? 'S' : ''}</small></span>}
         </div>
@@ -496,6 +526,12 @@ function Relecture({ p }: { p: Profil }) {
             <div className="fp-tags">{p.competences.map((c) => <span key={c}>{c}</span>)}</div>
           </div>
         )}
+        {p.competencesOpt.length > 0 && (
+          <div className="fp-sec">
+            <h4>Dans le référentiel OPT-NC</h4>
+            <div className="fp-tags">{p.competencesOpt.map((c) => <span key={c.code} title={c.depuis ? `lu dans : ${c.depuis}` : undefined}>{c.nom}</span>)}</div>
+          </div>
+        )}
 
         {p.langues.length > 0 && (
           <div className="fp-sec">
@@ -512,6 +548,113 @@ function Relecture({ p }: { p: Profil }) {
         discrimination connu.
       </div>
     </>
+  )
+}
+
+/* Le choix d'un métier OPT : une liste déroulante par famille, des puces
+   pour ce qui est retenu. Quatre-vingt-quatre puces à l'écran ne se lisent
+   pas ; une liste groupée, si. */
+function MetiersOptChoix({ id, liste, familles, valeurs, onChange }: {
+  id: string
+  liste: MetierOpt[]
+  familles: { id: string; libelle: string }[]
+  valeurs: MetierOpt[]
+  onChange: (v: MetierOpt[]) => void
+}) {
+  const [choix, setChoix] = useState('')
+  const parFamille = useMemo(() => {
+    const m = new Map<string, MetierOpt[]>()
+    for (const x of liste) {
+      const k = x.familleLibelle ?? x.famille ?? 'Autres'
+      if (!m.has(k)) m.set(k, [])
+      m.get(k)!.push(x)
+    }
+    return [...m.entries()]
+  }, [liste])
+  return (
+    <div id={id} tabIndex={-1}>
+      <div className="pchips">
+        {valeurs.map((m) => (
+          <span className="pchip on lib" key={m.code}>
+            {m.nom}
+            <button type="button" aria-label="Retirer" onClick={() => onChange(valeurs.filter((x) => x.code !== m.code))}>✕</button>
+          </span>
+        ))}
+        {valeurs.length === 0 && <span className="pvide">Aucun métier visé — sans lui, le score ne sait pas où tu veux aller.</span>}
+      </div>
+      {valeurs.length < 3 && (
+        <select
+          value={choix}
+          onChange={(e) => {
+            const m = liste.find((x) => x.code === e.target.value)
+            if (m && !valeurs.some((v) => v.code === m.code)) onChange([...valeurs, m])
+            setChoix('')
+          }}
+          aria-label="Ajouter un métier"
+        >
+          <option value="">Ajouter un métier…</option>
+          {parFamille.map(([f, ms]) => (
+            <optgroup label={f} key={f}>
+              {ms.map((m) => <option key={m.code} value={m.code}>{m.nom}{m.avpOuverts ? ` (${m.avpOuverts} AVP)` : ''}</option>)}
+            </optgroup>
+          ))}
+        </select>
+      )}
+      {familles.length > 0 && valeurs.length > 0 && (
+        <span className="pa">Famille{valeurs.length > 1 ? 's' : ''} : {[...new Set(valeurs.map((v) => v.familleLibelle ?? v.famille))].join(', ')}</span>
+      )}
+    </div>
+  )
+}
+
+/* Les compétences telles que l'OPT les nomme. Ce qui est rattaché l'a été par
+   les mots : on le montre, avec la source, et on laisse ajouter ou retirer. */
+function CompetencesOptBloc({ p, maj }: { p: Profil; maj: (b: Partial<Profil>) => void }) {
+  const [q, setQ] = useState('')
+  const [trouve, setTrouve] = useState<{ code: string; nom: string }[]>([])
+  useEffect(() => {
+    if (q.trim().length < 3) { setTrouve([]); return }
+    const t = window.setTimeout(() => {
+      void api.competencesOpt(q.trim()).then((d) => setTrouve(d.competences)).catch(() => setTrouve([]))
+    }, 300)
+    return () => window.clearTimeout(t)
+  }, [q])
+  const ajoute = (c: { code: string; nom: string }) => {
+    if (p.competencesOpt.some((x) => x.code === c.code)) return
+    maj({ competencesOpt: [...p.competencesOpt, { code: c.code, nom: c.nom, source: 'saisie' }] })
+    setQ('')
+  }
+  const retire = (c: CompetenceOpt) => maj({ competencesOpt: p.competencesOpt.filter((x) => x.code !== c.code) })
+  return (
+    <div className="prep">
+      <div className="prep-t"><h3>Dans les mots de l’OPT-NC</h3></div>
+      <p className="pa" style={{ marginTop: 0 }}>
+        Les AVP sont écrits avec les 409 compétences du référentiel. Tes compétences y sont rattachées
+        automatiquement par leurs mots — vérifie, retire ce qui est faux, ajoute ce qui manque.
+      </p>
+      <div className="pchips">
+        {p.competencesOpt.length === 0
+          ? <span className="pvide">Rien de rattaché pour l’instant : enregistre d’abord tes compétences.</span>
+          : p.competencesOpt.map((c) => (
+            <span className={`pchip on${c.source === 'saisie' ? '' : ' lib'}`} key={c.code}
+              title={c.depuis ? `rattachée depuis « ${c.depuis} »` : 'ajoutée par toi'}>
+              {c.nom}
+              <button type="button" aria-label="Retirer" onClick={() => retire(c)}>✕</button>
+            </span>
+          ))}
+      </div>
+      <div className="psaisie">
+        <input type="text" value={q} placeholder="chercher dans le référentiel (3 lettres)"
+          onChange={(e) => setQ(e.target.value)} aria-label="Chercher une compétence OPT" />
+      </div>
+      {trouve.length > 0 && (
+        <div className="pchips">
+          {trouve.filter((c) => !p.competencesOpt.some((x) => x.code === c.code)).slice(0, 12).map((c) => (
+            <button type="button" className="pchip" key={c.code} onClick={() => ajoute(c)}>+ {c.nom}</button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -3,7 +3,7 @@
    l'extrait du CV d'où ça vient, et l'utilisateur décoche ce qui est faux. Une
    lecture automatique se trompe, et un profil faux est pire qu'un profil vide. */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { api } from '../api'
 import type { Extraction, Trouvaille } from '../extraction'
 import { NIVEAUX } from '../regles'
@@ -57,6 +57,8 @@ export function ImportCV({ profil, onProfil, onRelecture }: Props) {
   const [etat, setEtat] = useState<Etat>({ phase: 'repos' })
   const [extrait, setExtrait] = useState<Extraction | null>(null)
   const [retenus, setRetenus] = useState<Set<string>>(new Set())
+  // l'identifiant du CV côté serveur : c'est lui qui reçoit le choix final
+  const cvId = useRef<number | null>(null)
 
   const depose = async (f: File) => {
     const pdf = /\.pdf$/i.test(f.name) || f.type === 'application/pdf'
@@ -92,12 +94,19 @@ export function ImportCV({ profil, onProfil, onRelecture }: Props) {
       const sur = r.mode === 'texte' || (r.confiance ?? 0) >= CONFIANCE_MIN
       setRetenus(new Set(sur ? Object.keys(r.trouve) : []))
       setEtat({ phase: 'repos' })
+      /* Le résultat de la lecture monte tout de suite ; le fichier suit, chiffré
+         sur le serveur, pour partir avec les candidatures. Ni l'un ni l'autre
+         ne bloque la relecture. */
+      cvId.current = null
       void api.deposeCV({
         nom: f.name, mime: f.type || (pdf ? 'application/pdf' : 'image/*'), octets: f.size,
         moteur: r.mode === 'ocr' ? 'tesseract' : 'pdfjs',
         version: r.mode === 'ocr' ? '6.0.1' : '6.3.289',
         brut: { ...r.trouve, _confiance: r.confiance }, retenu: {},
-      }).catch(() => { /* le dépôt du journal ne doit pas bloquer la relecture */ })
+      }).then((d) => {
+        cvId.current = d.cv.id
+        return api.deposeFichierCV(f, d.cv.id)
+      }).catch(() => { /* le dépôt ne doit pas bloquer la relecture */ })
     } catch (e) {
       setEtat({ phase: 'erreur', message: e instanceof Error ? e.message : 'Lecture impossible.' })
     }
@@ -122,6 +131,10 @@ export function ImportCV({ profil, onProfil, onRelecture }: Props) {
         p[cle] = v
       }
     }
+    // Ce que l'utilisateur a gardé : la seule mesure de qualité du moteur.
+    const retenu: Record<string, unknown> = {}
+    for (const cle of retenus) retenu[cle] = t[cle]
+    if (cvId.current) void api.retenuCV(cvId.current, retenu, true).catch(() => { /* journal seulement */ })
     onProfil(p)
     setExtrait(null)
     onRelecture(false)
@@ -185,8 +198,8 @@ export function ImportCV({ profil, onProfil, onRelecture }: Props) {
       <div className="pvoie">
         <b>J’ai un CV</b>
         <span>
-          Dépose un PDF, une photo ou un scan : il est lu dans l’appareil, rien n’est
-          envoyé. Tu relis ensuite ce qui a été trouvé, champ par champ.
+          Dépose un PDF, une photo ou un scan : il est <b>lu dans l’appareil</b>, puis conservé chiffré pour
+          être remis au recruteur qui te présélectionne. Tu relis ce qui a été trouvé, champ par champ.
         </span>
         <label className="btn-fichier">
           Choisir un fichier

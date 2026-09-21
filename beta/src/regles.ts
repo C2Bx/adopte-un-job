@@ -2,7 +2,7 @@
    Elles doublent celles de api/depot.php : c'est le serveur qui fait foi, mais
    sans copie ici l'utilisateur ne saurait ce qui manque qu'après un refus. */
 
-import type { Profil } from './types'
+import type { Profil, ProfilEnvoi } from './types'
 
 export const ETAPES = ['Qui tu es', 'Ce que tu cherches', 'Ton parcours', 'Compétences', 'Relecture']
 
@@ -27,6 +27,7 @@ export const REQUIS: Exigence[] = [
 export function rempli(p: Profil, cle: keyof Profil): boolean {
   if (cle === 'competences') return p.competences.length >= 3
   if (cle === 'experiences') return p.experiences.length > 0 || p.formations.length > 0
+  if (cle === 'metiers') return p.metiers.length > 0 || p.metiersOpt.length > 0
   const v = p[cle]
   if (Array.isArray(v)) return v.length > 0
   return Boolean(v)
@@ -102,13 +103,17 @@ export function conseils(p: Profil): Conseil[] {
   c.sort((x, y) => y.gain - x.gain)
 
   // Ceux-ci ne rapportent aucun point : ils changent le deck.
-  if (p.ouverture === 'strict' && p.metiers.length === 1) {
+  if (p.ouverture === 'strict' && p.metiers.length + p.metiersOpt.length === 1) {
     c.push({ gain: 0, etape: 1, quoi: 'Passe en « ouvert aux métiers proches »',
-      pourquoi: 'Un seul métier en mode strict, c’est le deck le plus étroit possible. L’ouverture ajoute les métiers accessibles depuis ton parcours, étiquetés comme tels.' })
+      pourquoi: 'Un seul métier en mode strict : les autres métiers de la même famille passent après. L’ouverture les classe par compatibilité, sans distinction.' })
   }
   if (p.zones.length === 1) {
     c.push({ gain: 0, etape: 0, quoi: 'Accepte une zone de plus',
-      pourquoi: 'La zone est un filtre dur : une offre hors zone n’apparaît jamais, quel que soit ton score.' })
+      pourquoi: 'Une offre hors de tes zones reste visible, mais l’écart pèse sur son score et s’affiche en clair.' })
+  }
+  if (p.competencesOpt.length < 3 && p.competences.length >= 3) {
+    c.push({ gain: 0, etape: 3, quoi: 'Rapproche tes compétences du référentiel OPT-NC',
+      pourquoi: 'Les AVP sont décrits avec les 409 compétences du référentiel. Celles qui s’y rattachent comptent dans le score structurel ; les autres ne pèsent que par leurs mots.' })
   }
   return c
 }
@@ -117,8 +122,17 @@ export const profilVide: Profil = {
   prenom: '', initiale: '', nom: '', telephone: '',
   dispo: null, teletravail: 'peu importe', ouverture: 'strict',
   salaireMin: null, permis: null, formation: null,
-  zones: [], contrats: [], metiers: [], competences: [],
+  zones: [], contrats: [], metiers: [], metiersOpt: [], competences: [], competencesOpt: [],
   langues: [], experiences: [], formations: [],
+}
+
+/** Ce que PUT profil attend : les codes des métiers OPT, pas les objets. */
+export function profilEnvoi(p: Profil): ProfilEnvoi {
+  return {
+    ...p,
+    metiersOpt: p.metiersOpt.map((m) => m.code),
+    competencesOptSaisies: p.competencesOpt.filter((c) => c.source === 'saisie').map((c) => c.code),
+  }
 }
 
 export const NIVEAUX: Record<number, string> = { 1: 'Bac', 2: 'Bac+2', 3: 'Bac+3', 4: 'Bac+5' }

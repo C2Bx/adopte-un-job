@@ -8,13 +8,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import { BlocPoste, BlocPourquoi, BlocScore, Detail, Feuille } from './Deck'
+import { dateLocale, formatHeure } from './Agenda'
 import { ErreurApi } from '../types'
-import type { Interet, MatchLigne, Message, Profil } from '../types'
+import type { Interet, MatchLigne, Message, Profil, StatutCandidature } from '../types'
+
+/* Ce que vaut chaque statut de candidature, dans les mots du candidat. */
+const STATUTS: Record<StatutCandidature, { nom: string; classe: string }> = {
+  envoyee: { nom: 'Candidature envoyée — pas encore ouverte', classe: 'attente' },
+  vue: { nom: 'Candidature ouverte par l’organisation', classe: 'attente' },
+  preselection: { nom: 'Présélectionné — ton contact et ton dossier sont transmis', classe: 'match' },
+  entretien: { nom: 'Entretien proposé — voir l’agenda', classe: 'match' },
+  acceptee: { nom: 'Candidature acceptée', classe: 'match' },
+  refusee: { nom: 'Candidature non retenue', classe: 'refus' },
+  retiree: { nom: 'Candidature retirée', classe: '' },
+}
 
 type Onglet = 'oui' | 'plus_tard' | 'non'
 
 const ONGLETS: { cle: Onglet; nom: string }[] = [
-  { cle: 'oui', nom: 'Intéressé' },
+  { cle: 'oui', nom: 'Candidatures' },
   { cle: 'plus_tard', nom: 'Plus tard' },
   { cle: 'non', nom: 'Écartés' },
 ]
@@ -30,6 +42,17 @@ function depuis(quand: string): string {
   if (s < 86400) return `il y a ${Math.round(s / 3600)} h`
   if (s < 172800) return 'hier'
   return `le ${new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
+}
+
+/* Le serveur date en UTC ; on affiche l'heure locale, et le jour s'il n'est
+   pas celui d'aujourd'hui. */
+function heureMessage(utc: string): string {
+  const d = dateLocale(utc)
+  if (Number.isNaN(d.getTime())) return ''
+  const h = formatHeure(d)
+  return d.toDateString() === new Date().toDateString()
+    ? h
+    : `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${h}`
 }
 
 const teinte = (q: number) => (q >= 75 ? 'var(--yes)' : q >= 50 ? 'var(--accent)' : 'var(--no)')
@@ -66,8 +89,15 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
   const [erreur, setErreur] = useState<string | null>(null)
   const large = useLarge()
 
+  // Les messages n'ont besoin que des matchs ; les intérêts n'existent que
+  // pour un candidat (l'organisation n'a pas de deck).
   const charge = useCallback(async () => {
     try {
+      if (vue === 'messages') {
+        setMatchs(await api.matchs())
+        setInterets([])
+        return
+      }
       const [i, m] = await Promise.all([api.interets(), api.matchs()])
       setInterets(i)
       setMatchs(m)
@@ -76,7 +106,7 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
       setMatchs([])
       setErreur(e instanceof ErreurApi ? e.message : 'Liste indisponible.')
     }
-  }, [])
+  }, [vue])
 
   useEffect(() => { void charge() }, [charge])
 
@@ -93,10 +123,23 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
 
   const redecide = async (x: Interet, d: Onglet) => {
     try {
-      await api.swipe(x.id, d)
-      setInterets((l) => (l ?? []).map((y) => (y.id === x.id ? { ...y, decision: d } : y)))
+      const r = await api.swipe(x.id, d)
+      setInterets((l) => (l ?? []).map((y) => (y.id === x.id ? { ...y, decision: d, candidature: r.candidature ?? y.candidature } : y)))
     } catch (e) {
       setErreur(e instanceof ErreurApi ? e.message : 'La décision n’a pas été enregistrée.')
+    }
+  }
+
+  /* Retirer une candidature déjà ouverte : elle reste dans la liste, avec son
+     nouveau statut — l'organisation le voit aussi. */
+  const retire = async (x: Interet) => {
+    if (!x.candidature) return
+    if (!window.confirm('Retirer cette candidature ? L’organisation en sera informée.')) return
+    try {
+      await api.statutCandidature(x.candidature.id, 'retiree')
+      setInterets((l) => (l ?? []).map((y) => (y.id === x.id ? { ...y, candidature: { ...y.candidature!, statut: 'retiree' } } : y)))
+    } catch (e) {
+      setErreur(e instanceof ErreurApi ? e.message : 'Le retrait n’a pas été enregistré.')
     }
   }
 
@@ -112,14 +155,15 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
         <div className="pad">
           <h2>Messages</h2>
           <p className="lead">
-            Une conversation s’ouvre après un match, jamais avant : on n’écrit pas à
-            quelqu’un qui n’a pas dit oui.
+            Une conversation s’ouvre à la présélection, jamais avant : le candidat a
+            dit oui en candidatant, l’organisation dit oui en le présélectionnant.
           </p>
+          {erreur && <div className="pal manque"><b>Ça n’a pas marché</b>{erreur}</div>}
           {matchs === null && <p className="pa">Chargement…</p>}
           {matchs?.length === 0 && (
             <div className="vide">
               <b>Aucune conversation</b>
-              Il faut deux oui pour ouvrir un fil. Continue à swiper.
+              Il faut une candidature et une présélection pour ouvrir un fil.
             </div>
           )}
           {(matchs ?? []).map((m) => (
@@ -127,7 +171,7 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
               <span className="sc">{m.qualite}<small>%</small></span>
               <span>
                 <h3>{m.titre}</h3>
-                <span className="meta">{m.entreprise ?? `candidat #${m.candidate_id}`}</span>
+                <span className="meta">{m.entreprise ?? (m.prenom ? `${m.prenom} ${m.initiale ?? ''}`.trim() : `candidat #${m.candidate_id}`)}</span>
               </span>
               {m.non_lus > 0 && <span className="nonlus">{m.non_lus}</span>}
             </button>
@@ -148,10 +192,10 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
     <div className="screen" id="ec-interets">
       <div className="pad pad-i">
         <div className="col-liste">
-        <h2>Mes intérêts</h2>
+        <h2>Mes candidatures</h2>
         <p className="lead">
-          Ce que tu as décidé, et de quoi revenir dessus. Un geste aussi rapide qu’un
-          swipe doit être réversible.
+          Un « oui » est une candidature : elle part anonyme, l’organisation ouvre ton contact et ton
+          dossier si elle te présélectionne. Ce que tu as écarté ou mis de côté reste ici, révocable.
         </p>
 
         {erreur && <div className="pal manque"><b>Problème</b>{erreur}</div>}
@@ -175,7 +219,7 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
           <div className="vide">
             <b>Rien ici</b>
             {onglet === 'oui'
-              ? 'Les offres que tu retiens apparaîtront ici, avec leur suite.'
+              ? 'Tes candidatures apparaîtront ici, avec leur suite : ouverte, présélectionnée, entretien.'
               : onglet === 'plus_tard'
                 ? 'Mettre de côté, c’est décider plus tard — pas décider non.'
                 : 'Les offres passées restent consultables : une décision se revoit.'}
@@ -200,18 +244,30 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
                 <div className="quand">
                   Décidé {depuis(x.quand)}{sc === null ? '' : ` · score d’alors ${sc} %`}
                 </div>
-                {x.match
-                  ? <span className="etat match">C’est un match — l’entreprise t’a aussi retenu</span>
+                {x.candidature
+                  ? <span className={`etat ${STATUTS[x.candidature.statut].classe}`}>{STATUTS[x.candidature.statut].nom}</span>
                   : x.decision === 'oui'
-                    ? <span className="etat attente">En attente de réponse de l’entreprise</span>
+                    ? <span className="etat attente">Geste enregistré (offre close, entraînement)</span>
                     : null}
+                {x.score?.ecarts && x.score.ecarts.length > 0 && (
+                  <span className="etat" style={{ color: 'var(--no)' }}>{x.score.ecarts.length} écart{x.score.ecarts.length > 1 ? 's' : ''} avec tes critères</span>
+                )}
                 <div className="actes" onClick={(e) => e.stopPropagation()}>
-                  <button className="fort" onClick={() => void reviens(x)}>Remettre dans le deck</button>
-                  {ONGLETS.filter((o) => o.cle !== x.decision).map((o) => (
-                    <button key={o.cle} onClick={() => void redecide(x, o.cle)}>
-                      {o.cle === 'oui' ? 'Ça m’intéresse' : o.cle === 'non' ? 'Écarter' : 'Plus tard'}
-                    </button>
-                  ))}
+                  {x.candidature && ['preselection', 'entretien', 'acceptee'].includes(x.candidature.statut)
+                    ? <>
+                        <a className="fort" href={api.urlCvCandidature(x.candidature.id)} target="_blank" rel="noreferrer">CV envoyé (PDF)</a>
+                        <button onClick={() => void retire(x)}>Retirer ma candidature</button>
+                      </>
+                    : x.candidature && x.candidature.statut === 'refusee'
+                      ? <button className="fort" onClick={() => void reviens(x)}>Retirer de la liste</button>
+                      : <>
+                          <button className="fort" onClick={() => void reviens(x)}>{x.decision === 'oui' ? 'Annuler et remettre dans le deck' : 'Remettre dans le deck'}</button>
+                          {ONGLETS.filter((o) => o.cle !== x.decision).map((o) => (
+                            <button key={o.cle} onClick={() => void redecide(x, o.cle)}>
+                              {o.cle === 'oui' ? (x.statut === 'publiee' ? 'Candidater' : 'M’entraîner') : o.cle === 'non' ? 'Écarter' : 'Plus tard'}
+                            </button>
+                          ))}
+                        </>}
                 </div>
               </div>
               <span className="chev" aria-hidden="true">
@@ -270,11 +326,18 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
   )
 }
 
-function Conversation({ match, onRetour }: { match: MatchLigne; onRetour: () => void }) {
+export function Conversation({ match, onRetour }: { match: MatchLigne; onRetour: () => void }) {
   const [messages, setMessages] = useState<Message[] | null>(null)
   const [texte, setTexte] = useState('')
   const [envoi, setEnvoi] = useState(false)
+  const [suggestions, setSuggestions] = useState<string[]>([])
   const bas = useRef<HTMLDivElement>(null)
+
+  /* Trois propositions de premier message, par règles, à partir du poste et
+     du score. À modifier avant d'envoyer : ce sont des débuts, pas des lettres. */
+  useEffect(() => {
+    void api.suggestionsMatch(match.id).then((d) => setSuggestions(d.suggestions)).catch(() => setSuggestions([]))
+  }, [match.id])
 
   const charge = useCallback(async () => {
     try {
@@ -321,12 +384,21 @@ function Conversation({ match, onRetour }: { match: MatchLigne; onRetour: () => 
           {(messages ?? []).map((m) => (
             <div className={`bulle${m.moi ? ' moi' : ''}`} key={m.id}>
               {m.corps}
-              <time>{m.quand.slice(11, 16)}</time>
+              <time>{heureMessage(m.quand)}</time>
             </div>
           ))}
           <div ref={bas} />
         </div>
 
+        {suggestions.length > 0 && (messages?.length ?? 0) < 4 && (
+          <div className="conv-sugg">
+            {suggestions.map((sg) => (
+              <button type="button" key={sg} onClick={() => setTexte(sg)} title="Reprendre ce texte, à modifier">
+                {sg.length > 70 ? sg.slice(0, 68) + '…' : sg}
+              </button>
+            ))}
+          </div>
+        )}
         <form className="conv-saisie" onSubmit={(e) => void envoie(e)}>
           <input
             type="text" value={texte} placeholder="Écrire un message"

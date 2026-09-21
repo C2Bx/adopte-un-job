@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './design.css'
 import './beta.css'
+import './v2.css'
 import { App } from './App'
 
 const racine = document.getElementById('racine')

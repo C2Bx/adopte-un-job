@@ -1,6 +1,8 @@
 /* La coquille : barre du haut, écrans, navigation.
-   Un seul état de session vit ici et descend aux écrans — un contexte serait
-   du cérémonial pour cinq écrans qui partagent trois valeurs. */
+   Un seul état de session vit ici et descend aux écrans. Deux jeux d'onglets,
+   selon le rôle : le candidat swipe, candidate, discute, a un agenda et un
+   profil ; l'organisation a un tableau de bord, ses offres, ses candidatures,
+   l'agenda, les messages et sa page d'organisation. */
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from './api'
@@ -10,42 +12,57 @@ import { Connexion } from './ecrans/Connexion'
 import { EcranProfil } from './ecrans/Profil'
 import { EcranDeck } from './ecrans/Deck'
 import { EcranMatchs } from './ecrans/Matchs'
+import { EcranAgenda } from './ecrans/Agenda'
+import { EcranTableau } from './ecrans/Tableau'
+import { EcranCandidaturesRH, EcranOffres, EcranOrganisation } from './ecrans/Recruteur'
 
-export type Onglet = 'swipe' | 'interets' | 'messages' | 'profil'
+export type Onglet = 'swipe' | 'interets' | 'messages' | 'agenda' | 'profil' | 'tableau' | 'offres' | 'candidatures' | 'organisation'
 
-const ONGLETS: { cle: Onglet; icone: string; nom: string }[] = [
+const ONGLETS_CANDIDAT: { cle: Onglet; icone: string; nom: string }[] = [
   { cle: 'swipe', icone: 'i-swipe', nom: 'Swipe' },
-  { cle: 'interets', icone: 'i-heart', nom: 'Intérêts' },
+  { cle: 'interets', icone: 'i-heart', nom: 'Candidatures' },
   { cle: 'messages', icone: 'i-chat', nom: 'Messages' },
+  { cle: 'agenda', icone: 'i-agenda', nom: 'Agenda' },
   { cle: 'profil', icone: 'i-user', nom: 'Profil' },
 ]
+const ONGLETS_RH: { cle: Onglet; icone: string; nom: string }[] = [
+  { cle: 'tableau', icone: 'i-tableau', nom: 'Tableau' },
+  { cle: 'offres', icone: 'i-swipe', nom: 'Offres' },
+  { cle: 'candidatures', icone: 'i-heart', nom: 'Candidatures' },
+  { cle: 'messages', icone: 'i-chat', nom: 'Messages' },
+  { cle: 'agenda', icone: 'i-agenda', nom: 'Agenda' },
+  { cle: 'organisation', icone: 'i-user', nom: 'Organisation' },
+]
 
-/* Les pastilles de la barre. Règle du prototype : sur « Intérêts », le nombre de
-   matchs en vert s'il y en a, sinon le nombre d'offres en attente de réponse en
-   rouge — la bonne nouvelle passe devant l'attente. Sur « Messages », les
-   messages non lus. Une pastille qui compte quelque chose qu'on ne peut pas
-   traiter n'est qu'un point rouge de plus. */
-interface Badges { interets: number; interetsMatch: boolean; messages: number }
+/* Les pastilles. Candidat : sur « Candidatures », les présélections en vert
+   s'il y en a, sinon les candidatures en attente en rouge ; sur « Messages »,
+   les non-lus. Organisation : sur « Candidatures », ce qui est à traiter. */
+interface Badges { interets: number; interetsMatch: boolean; messages: number; aTraiter: number }
 
 export function App() {
   const [charge, setCharge] = useState(false)
   const [moi, setMoi] = useState<Utilisateur | null>(null)
   const [profil, setProfil] = useState<Profil>(profilVide)
   const [onglet, setOnglet] = useState<Onglet>('swipe')
-  const [badges, setBadges] = useState<Badges>({ interets: 0, interetsMatch: false, messages: 0 })
+  const [offreRH, setOffreRH] = useState<number | undefined>(undefined)
+  const [badges, setBadges] = useState<Badges>({ interets: 0, interetsMatch: false, messages: 0, aTraiter: 0 })
 
-  const rafraichisBadges = useCallback(async () => {
+  const rafraichisBadges = useCallback(async (u: Utilisateur | null) => {
+    if (!u) return
     try {
-      const [i, m] = await Promise.all([api.interets(), api.matchs()])
-      const matchs = i.filter((x) => x.decision === 'oui' && x.match).length
-      const attente = i.filter((x) => x.decision === 'oui' && !x.match).length
-      setBadges({
-        interets: matchs || attente,
-        interetsMatch: matchs > 0,
-        messages: m.reduce((n, x) => n + x.non_lus, 0),
-      })
+      const m = await api.matchs()
+      const nonLus = m.reduce((n, x) => n + x.non_lus, 0)
+      if (u.role === 'candidat') {
+        const i = await api.interets()
+        const presel = i.filter((x) => x.candidature && ['preselection', 'entretien', 'acceptee'].includes(x.candidature.statut)).length
+        const attente = i.filter((x) => x.candidature && ['envoyee', 'vue'].includes(x.candidature.statut)).length
+        setBadges({ interets: presel || attente, interetsMatch: presel > 0, messages: nonLus, aTraiter: 0 })
+      } else {
+        const c = u.organisation ? await api.candidatures() : []
+        setBadges({ interets: 0, interetsMatch: false, messages: nonLus, aTraiter: c.filter((x) => x.statut === 'envoyee' || x.statut === 'vue').length })
+      }
     } catch {
-      setBadges({ interets: 0, interetsMatch: false, messages: 0 })
+      setBadges({ interets: 0, interetsMatch: false, messages: 0, aTraiter: 0 })
     }
   }, [])
 
@@ -70,8 +87,9 @@ export function App() {
       }
       if (!vivant) return
       setMoi(u)
+      if (u && u.role !== 'candidat') setOnglet(u.organisation ? 'tableau' : 'organisation')
       await chargeProfil(u)
-      if (u?.role === 'candidat') await rafraichisBadges()
+      await rafraichisBadges(u)
       if (vivant) setCharge(true)
     })()
     return () => { vivant = false }
@@ -81,7 +99,8 @@ export function App() {
     setMoi(u)
     await chargeProfil(u)
     // Un compte neuf n'a rien à swiper : on l'amène là où il y a à faire.
-    setOnglet(u.role === 'candidat' ? 'profil' : 'swipe')
+    setOnglet(u.role === 'candidat' ? 'profil' : (u.organisation ? 'tableau' : 'organisation'))
+    await rafraichisBadges(u)
   }
 
   const sors = async () => {
@@ -91,11 +110,18 @@ export function App() {
     setOnglet('swipe')
   }
 
-  // Changer d'onglet est le moment naturel pour remettre les compteurs à jour :
-  // pas de sondage, et jamais de pastille périmée sous les yeux.
   const va = (o: Onglet) => {
     setOnglet(o)
-    if (moi?.role === 'candidat') void rafraichisBadges()
+    if (o !== 'candidatures') setOffreRH(undefined)
+    void rafraichisBadges(moi)
+  }
+
+  const rechargeMoi = async () => {
+    try {
+      const u = await api.moi()
+      setMoi(u)
+      await rafraichisBadges(u)
+    } catch { /* on garde l'état courant */ }
   }
 
   if (!charge) {
@@ -104,6 +130,9 @@ export function App() {
   if (!moi) {
     return <Connexion onEntre={entre} />
   }
+
+  const candidat = moi.role === 'candidat'
+  const onglets = candidat ? ONGLETS_CANDIDAT : ONGLETS_RH
 
   return (
     <div className="app">
@@ -115,7 +144,7 @@ export function App() {
             <circle cx="17" cy="14.5" r="3.2" fill="var(--accent)" />
           </svg>
           <b>Adopte un Job</b>
-          <span className="tag-beta">bêta</span>
+          <span className="tag-beta">{candidat ? 'bêta' : (moi.organisation?.nom ?? 'recruteur')}</span>
         </span>
         <span className="spacer" />
         <button className="iconbtn" onClick={() => void sors()} title="Se déconnecter" aria-label="Se déconnecter">
@@ -123,36 +152,36 @@ export function App() {
         </button>
       </header>
 
-      {onglet === 'swipe' && (
+      {candidat && onglet === 'swipe' && (
         <EcranDeck
           profil={profil}
           versProfil={(e) => { setOnglet('profil'); viseEtape(e) }}
-          onDecision={() => { if (moi.role === 'candidat') void rafraichisBadges() }}
+          onDecision={() => void rafraichisBadges(moi)}
         />
       )}
-      {onglet === 'interets' && <EcranMatchs vue="interets" profil={profil} />}
+      {candidat && onglet === 'interets' && <EcranMatchs vue="interets" profil={profil} />}
       {onglet === 'messages' && <EcranMatchs vue="messages" profil={profil} />}
-      {onglet === 'profil' && (
-        <EcranProfil profil={profil} onProfil={setProfil} />
-      )}
+      {onglet === 'agenda' && <EcranAgenda role={moi.role} />}
+      {candidat && onglet === 'profil' && <EcranProfil profil={profil} onProfil={setProfil} />}
 
-      <nav className="nav">
-        {ONGLETS.map((o) => (
-          <button
-            key={o.cle}
-            onClick={() => va(o.cle)}
-            aria-current={onglet === o.cle ? 'page' : undefined}
-          >
+      {!candidat && onglet === 'tableau' && (moi.organisation
+        ? <EcranTableau />
+        : <EcranOrganisation moi={moi} onChange={() => void rechargeMoi()} />)}
+      {!candidat && onglet === 'offres' && <EcranOffres onCandidatures={(id) => { setOffreRH(id); setOnglet('candidatures') }} />}
+      {!candidat && onglet === 'candidatures' && (
+        <EcranCandidaturesRH offre={offreRH} onRetour={offreRH ? () => { setOffreRH(undefined); setOnglet('offres') } : undefined} />
+      )}
+      {!candidat && onglet === 'organisation' && <EcranOrganisation moi={moi} onChange={() => void rechargeMoi()} />}
+
+      <nav className={`nav n${onglets.length}`}>
+        {onglets.map((o) => (
+          <button key={o.cle} onClick={() => va(o.cle)} aria-current={onglet === o.cle ? 'page' : undefined}>
             <svg><use href={`#${o.icone}`} /></svg>
             {o.cle === 'interets' && badges.interets > 0 && (
-              <span className="badge"
-                style={{ background: badges.interetsMatch ? 'var(--yes)' : 'var(--no)' }}>
-                {badges.interets}
-              </span>
+              <span className="badge" style={{ background: badges.interetsMatch ? 'var(--yes)' : 'var(--no)' }}>{badges.interets}</span>
             )}
-            {o.cle === 'messages' && badges.messages > 0 && (
-              <span className="badge">{badges.messages}</span>
-            )}
+            {o.cle === 'candidatures' && badges.aTraiter > 0 && <span className="badge">{badges.aTraiter}</span>}
+            {o.cle === 'messages' && badges.messages > 0 && <span className="badge">{badges.messages}</span>}
             {o.nom}
           </button>
         ))}
