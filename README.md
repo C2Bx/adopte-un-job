@@ -78,10 +78,13 @@ AVP_DB_HOST=… AVP_DB_USER=… AVP_DB_PASS=… AVP_DB_NAME=… python scripts/m
 curl -X POST -H "X-Sync-Token: …" -H "Content-Type: application/json" -d '{}' https://…/api/index.php?r=admin/sync/avp
 ```
 
-`api/config.php` et les `.env` sont ignorés par git. Une tâche planifiée
-rejoue la synchronisation (les AVP expirés se ferment, les nouveaux arrivent).
-Sans clé OPT-NC, les AVP viennent du dataset public ; avec, l'API officielle
-ajoute un signal sémantique au score.
+`api/config.php` et les `.env` sont ignorés par git. La synchronisation est
+rejouée **toutes les six heures** par
+[`.github/workflows/sync-avp.yml`](.github/workflows/sync-avp.yml) — les
+nouveaux AVP arrivent, ceux qui ont disparu du flux se ferment. Le jeton vit
+dans le secret `AVP_SYNC_TOKEN` du dépôt ; la tâche se déclenche aussi à la
+main depuis l'onglet *Actions*. Sans clé OPT-NC, les AVP viennent du dataset
+public ; avec, l'API officielle ajoute un signal sémantique au score.
 
 ### Application
 

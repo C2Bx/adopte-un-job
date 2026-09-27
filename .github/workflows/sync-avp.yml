@@ -1,0 +1,57 @@
+# Synchronisation des AVP de l'OPT-NC.
+#
+# Le dataset public opt-nc/odata-avps est regénéré à chaque mise à jour des
+# offres : sans rappel régulier, le deck se fige et sert un corpus périmé — ce
+# qui se voit immédiatement devant un jury. Cette tâche rejoue la route de
+# synchronisation, qui crée les nouveaux AVP, met à jour les existants et ferme
+# ceux qui ont disparu du flux.
+#
+# Ici plutôt que sur le serveur : aucune machine à maintenir, la tâche survit à
+# un PC éteint, et son exécution est lisible par toute l'équipe.
+#
+# ⚠ Deux limites de GitHub Actions à connaître :
+#   - les tâches planifiées ne tournent que sur la branche par défaut ;
+#   - sur un dépôt public, elles sont suspendues après 60 jours sans activité
+#     (un commit les réactive).
+
+name: Synchroniser les AVP
+
+on:
+  schedule:
+    # Toutes les six heures. Pas à la minute pleine : GitHub y concentre les
+    # déclenchements et les décale d'autant.
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+# Deux synchronisations en parallèle écriraient les mêmes lignes.
+concurrency:
+  group: sync-avp
+  cancel-in-progress: false
+
+jobs:
+  synchroniser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Appeler la route de synchronisation
+        env:
+          JETON: ${{ secrets.AVP_SYNC_TOKEN }}
+          API: https://zako.nc/avp/app/api/index.php
+        run: |
+          if [ -z "$JETON" ]; then
+            echo "::error::Le secret AVP_SYNC_TOKEN n'est pas défini (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          reponse=$(curl -sS --max-time 240 -X POST "$API?r=admin/sync/avp" \
+            -H "X-Sync-Token: $JETON" \
+            -H 'Content-Type: application/json' \
+            -d '{}' \
+            -w '\n%{http_code}')
+          code=$(printf '%s' "$reponse" | tail -n 1)
+          corps=$(printf '%s' "$reponse" | sed '$d')
+          echo "$corps"
+          if [ "$code" != "200" ]; then
+            echo "::error::La synchronisation a répondu $code"
+            exit 1
+          fi
+          echo "$corps" >> "$GITHUB_STEP_SUMMARY"
