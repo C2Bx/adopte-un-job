@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import { api } from '../api'
+import { Spinner } from '../Attente'
 import { ErreurApi } from '../types'
 import type { Utilisateur } from '../types'
 
@@ -106,7 +107,7 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
           {erreur && <div className="pal manque"><b>Ça n’a pas marché</b>{erreur}</div>}
 
           <button className="btn primaire" type="submit" disabled={envoi}>
-            {envoi ? 'Un instant…' : mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'}
+            {envoi ? <><Spinner />Un instant…</> : mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'}
           </button>
         </form>
 

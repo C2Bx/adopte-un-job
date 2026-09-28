@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
 import { manques } from '../regles'
+import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
 import type { Facettes, Filtres, Offre, Profil } from '../types'
 
@@ -251,7 +252,7 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
         </div>
 
         <div className="zone-deck">
-          {offres === null && <div className="empty"><div><p>Chargement des offres…</p></div></div>}
+          {offres === null && <div className="empty"><div><Attente texte="Chargement des offres…" centre /></div></div>}
 
           {offres !== null && !courante && (
             <div className="empty">

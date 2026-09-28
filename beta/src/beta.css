@@ -12,6 +12,28 @@
 .chargement span { max-width: 46ch; }
 .chargement .btn { margin-top: var(--s2); }
 
+/* --------------------------------------------------------------- l'attente
+   Un seul rond, partout : bouton, ligne de texte, ecran de demarrage. Il tient
+   sa couleur de son contexte et sa taille de la police, d'ou l'absence de
+   variantes — sauf « grand », pour un ecran vide ou 1 em serait invisible. */
+.spin {
+  display: inline-block; width: 1em; height: 1em; flex: none; vertical-align: -.125em;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+.spin.grand { width: 30px; height: 30px; border-width: 3px; color: var(--brand); }
+@keyframes spin { to { transform: rotate(1turn); } }
+/* Ralenti, pas supprime : sans mouvement, plus rien ne distingue « ca charge »
+   de « c'est casse ». Quatre fois moins vite suffit a ne plus agresser. */
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 2.8s; } }
+
+.attente { display: flex; align-items: center; gap: var(--s2);
+  color: var(--ink-3); font-size: var(--t-sm); margin: 0; }
+.attente.centre { justify-content: center; padding: var(--s5) 0; }
+/* Dans un bouton, le texte suit le rond : un `gap` n'y ferait rien, le bouton
+   n'est pas une boite flex. */
+.btn .spin, .btn-mini .spin, .psauve .spin { margin-right: .5em; }
+
 /* ------------------------------------------------------------- l'accueil */
 .accueil {
   min-height: 100dvh; background: var(--bg); overflow: auto;

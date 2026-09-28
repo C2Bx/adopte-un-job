@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
 import { BlocPoste, BlocPourquoi, BlocScore, Detail, Feuille } from './Deck'
+import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
 import type { Interet, Profil, StatutCandidature } from '../types'
 
@@ -150,7 +151,7 @@ export function EcranMatchs({ profil }: { profil: Profil }) {
           ))}
         </div>
 
-        {interets === null && <p className="pa">Chargement…</p>}
+        {interets === null && <Attente texte="Chargement…" />}
 
         {interets !== null && liste.length === 0 && (
           <div className="vide">

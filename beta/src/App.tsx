@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from './api'
 import { profilVide } from './regles'
 import type { Profil, Utilisateur } from './types'
+import { Spinner } from './Attente'
 import { Connexion } from './ecrans/Connexion'
 import { EcranProfil } from './ecrans/Profil'
 import { EcranDeck } from './ecrans/Deck'
@@ -102,7 +103,12 @@ export function App() {
   }
 
   if (!charge) {
-    return <div className="chargement" role="status">Chargement…</div>
+    return (
+      <div className="chargement" role="status">
+        <Spinner grand />
+        <span>Chargement…</span>
+      </div>
+    )
   }
   /* Le serveur n'a pas répondu : on ne sait pas si la session est valide, donc
      on ne prétend pas qu'elle ne l'est plus. */

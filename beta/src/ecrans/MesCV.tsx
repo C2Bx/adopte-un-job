@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
+import { Spinner } from '../Attente'
 import { ErreurApi } from '../types'
 import type { CvInfo } from '../types'
 
@@ -79,7 +80,7 @@ export function MesCV() {
 
       <div className="mescv-actions">
         <label className="btn-fichier">
-          {envoi ? 'Envoi…' : actif?.fichier ? 'Remplacer le fichier' : 'Déposer mon CV (fichier)'}
+          {envoi ? <><Spinner />Envoi…</> : actif?.fichier ? 'Remplacer le fichier' : 'Déposer mon CV (fichier)'}
           <input type="file" accept=".pdf,image/*" hidden disabled={envoi}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) void depose(f) }} />
         </label>

@@ -10,6 +10,7 @@ import {
 import { ImportCV } from './ImportCV'
 import { MesCV } from './MesCV'
 import { profilEnvoi } from '../regles'
+import { Spinner } from '../Attente'
 import type { CompetenceOpt, MetierOpt } from '../types'
 import { ErreurApi } from '../types'
 import type { Experience, Formation, Profil, Referentiels } from '../types'
@@ -82,7 +83,7 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
               <div className="pbar"><b style={{ width: `${completude(profil)}%` }} /></div>
               <span className="pc">{completude(profil)} % complété</span>
               <span className={`psauve ${etat}`}>
-                {etat === 'envoi' ? 'enregistrement…' : etat === 'ok' ? 'enregistré' : etat === 'erreur' ? 'non enregistré' : ''}
+                {etat === 'envoi' ? <><Spinner />enregistrement…</> : etat === 'ok' ? 'enregistré' : etat === 'erreur' ? 'non enregistré' : ''}
               </span>
             </div>
 
