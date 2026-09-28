@@ -8,7 +8,7 @@
 import { ErreurApi } from './types'
 import type {
   Candidature, CandidatVu, CvInfo, Entretien, Evenement, Facettes, Filtres, Interet, MatchLigne, Membre,
-  Message, MetierOpt, Offre, Organisation, Profil, ProfilEnvoi, Referentiels, StatutCandidature, Tableau, Utilisateur,
+  Message, MetierOpt, Offre, Organisation, Profil, ProfilEnvoi, Referentiels, Role, StatutCandidature, Tableau, Utilisateur,
 } from './types'
 
 const RACINE = '/avp/app/api/index.php'
@@ -113,6 +113,12 @@ export const api = {
   },
   async moi() {
     const d = await appel<{ utilisateur: Utilisateur | null }>('GET', 'auth/moi')
+    return d.utilisateur
+  },
+  /* Changer de côté sans changer de compte. Le serveur refuse (403) si le
+     compte n'est pas déclaré polyvalent : le bouton n'ouvre aucun droit. */
+  async basculeRole(role: Role) {
+    const d = await appel<{ utilisateur: Utilisateur }>('POST', 'auth/role', { role })
     return d.utilisateur
   },
   reinit: (email: string) => appel<{ ok: boolean; message: string }>('POST', 'auth/reinit', { email }),

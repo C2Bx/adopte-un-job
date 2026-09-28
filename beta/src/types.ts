@@ -11,6 +11,9 @@ export interface Utilisateur {
   role: Role
   emailVerifie?: boolean
   organisation?: { id: number; nom: string; role?: string } | null
+  /** Compte de démonstration autorisé à passer d'un rôle à l'autre. C'est le
+      serveur qui le dit ; le front ne fait qu'afficher le bouton. */
+  peutBasculer?: boolean
 }
 
 export interface Langue {

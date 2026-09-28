@@ -124,6 +124,25 @@ export function App() {
     } catch { /* on garde l'état courant */ }
   }
 
+  /* Passer de l'autre côté sans se déconnecter : le serveur décide qui en a le
+     droit, on se contente de recharger ce qui dépend du rôle. Le profil et les
+     candidatures restent en base — on revient à l'identique en rebasculant. */
+  const [bascule, setBascule] = useState(false)
+  const changeRole = async (role: Utilisateur['role']) => {
+    if (!moi || moi.role === role || bascule) return
+    setBascule(true)
+    try {
+      const u = await api.basculeRole(role)
+      setMoi(u)
+      setOffreRH(undefined)
+      await chargeProfil(u)
+      setOnglet(u.role === 'candidat' ? 'swipe' : (u.organisation ? 'tableau' : 'organisation'))
+      await rafraichisBadges(u)
+    } catch { /* le serveur a refusé : on reste où on est */ } finally {
+      setBascule(false)
+    }
+  }
+
   if (!charge) {
     return <div className="chargement" role="status">Chargement…</div>
   }
@@ -147,6 +166,14 @@ export function App() {
           <span className="tag-beta">{candidat ? 'bêta' : (moi.organisation?.nom ?? 'recruteur')}</span>
         </span>
         <span className="spacer" />
+        {moi.peutBasculer && (
+          <div className="bascule" role="group" aria-label="Changer de rôle">
+            <button aria-pressed={candidat} disabled={bascule}
+              onClick={() => void changeRole('candidat')}>Candidat</button>
+            <button aria-pressed={!candidat} disabled={bascule}
+              onClick={() => void changeRole('recruteur')}>Recruteur</button>
+          </div>
+        )}
         <button className="iconbtn" onClick={() => void sors()} title="Se déconnecter" aria-label="Se déconnecter">
           <svg><use href="#i-sortie" /></svg>
         </button>

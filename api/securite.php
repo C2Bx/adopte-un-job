@@ -239,3 +239,23 @@ function codeInvitation(): string
     }
     return $c;
 }
+
+/* ------------------------------------------------- comptes de demonstration */
+
+/**
+ * Un compte autorise a passer de candidat a recruteur et retour, sans en
+ * recreer un. C'est un confort de demonstration — montrer les deux cotes du
+ * produit sans se deconnecter — et rien d'autre : la liste est fermee, tenue
+ * dans la configuration du serveur, et vide par defaut.
+ *
+ * La constante peut ne pas exister (config.php plus ancien que ce fichier) :
+ * dans ce cas la bascule est simplement indisponible, jamais une erreur 500.
+ */
+function comptePolyvalent(string $email): bool
+{
+    if (!defined('COMPTES_POLYVALENTS')) {
+        return false;
+    }
+    $liste = COMPTES_POLYVALENTS;
+    return is_array($liste) && $liste !== [] && in_array(mb_strtolower(trim($email)), $liste, true);
+}

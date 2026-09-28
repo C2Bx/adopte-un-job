@@ -32,6 +32,8 @@ cp config.example.php config.php
 #   AVP_ORIGINES    origines autorisées (CORS), séparées par des virgules
 #   AVP_FICHIERS_DIR (facultatif, défaut : private/avp-fichiers hors docroot)
 #   OPT_API_KEY     (facultatif : sans clé, les AVP viennent du dataset public Hugging Face)
+#   AVP_COMPTES_POLYVALENTS (facultatif : adresses autorisées à basculer candidat ↔ recruteur,
+#                            séparées par des virgules ; vide = personne, et le bouton n'apparaît pas)
 AVP_DB_HOST=… AVP_DB_USER=… AVP_DB_PASS=… AVP_DB_NAME=… python ../scripts/migre.py
 ```
 
@@ -106,6 +108,14 @@ Ce qui suit est la carte.
 `GET auth/export` (portabilité) · `DELETE auth/compte` (anonymisation : e-mail
 irréversible, fichiers supprimés, candidatures retirées, clés révoquées,
 organisation quittée, entretiens annulés) · `GET/POST cles`, `DELETE cles/{id}`.
+
+`POST auth/role` — `{role: "candidat"|"recruteur"}`. Passe d'un côté à l'autre
+sans se déconnecter, **uniquement** pour les adresses listées dans
+`AVP_COMPTES_POLYVALENTS` ; `403 interdit` pour toutes les autres, quoi que
+demande le client. Rien n'est détruit : profil, candidatures et appartenance à
+une organisation restent en base, on revient à l'identique en rebasculant.
+`GET auth/moi` annonce `peutBasculer: true` sur ces comptes — c'est ce que le
+front lit pour afficher le bouton, et lui seul ne donne aucun droit.
 
 ### Référentiel
 

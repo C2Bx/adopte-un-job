@@ -42,31 +42,137 @@
   color: var(--ink-2); border-radius: var(--r-full); padding: 7px var(--s3); font-size: var(--t-xs); text-align: left; }
 .conv-sugg button:hover { border-color: var(--brand); color: var(--brand); }
 
-/* --- agenda --------------------------------------------------------------- */
-.agenda-groupe { margin-bottom: var(--s6); }
-.agenda-titre { font-size: var(--t-md); display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
-.agenda-titre .n { font-family: var(--font-num); font-size: var(--t-xs); color: var(--ink-3); background: var(--surface-2);
-  border-radius: var(--r-full); padding: 2px 8px; }
-.agenda-jour { font-size: var(--t-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3);
-  margin: var(--s3) 0 var(--s2); }
-.agenda-item { display: grid; grid-template-columns: 64px 1fr; gap: var(--s3); background: var(--surface);
-  border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s3) var(--s4); margin-bottom: var(--s2); }
-.agenda-item.annule, .agenda-item.refuse { opacity: .55; }
-.agenda-item .heure { font-family: var(--font-num); line-height: 1.2; }
-.agenda-item .heure b { display: block; font-size: var(--t-md); }
-.agenda-item .heure small { color: var(--ink-3); font-size: var(--t-xs); }
-.agenda-item h3 { font-size: var(--t-md); margin-bottom: 2px; }
-.agenda-item .meta { font-size: var(--t-sm); color: var(--ink-2); }
-.agenda-item .notes { font-size: var(--t-sm); color: var(--ink-2); margin: var(--s2) 0 0; }
-.agenda-item .actes { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
-.agenda-item .actes button, .agenda-item .actes a { min-height: 36px; padding: 0 var(--s3); border-radius: var(--r-sm);
-  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: var(--t-xs); font-weight: 600;
-  display: inline-flex; align-items: center; text-decoration: none; }
-.agenda-item .actes button.fort { border-color: var(--brand); color: var(--brand); }
-.etat-ent { font-weight: 700; }
-.etat-ent.confirme { color: var(--yes); }
-.etat-ent.propose { color: var(--accent); }
-.etat-ent.annule, .etat-ent.refuse { color: var(--ink-3); }
+/* --- agenda ---------------------------------------------------------------
+   Un agenda se lit par ce qu'il attend de vous : le prochain rendez-vous en
+   tete, avec son compte a rebours, puis la decision a prendre, puis la suite.
+   Tout passe par les jetons de couleur : les deux themes suivent sans regle
+   en plus. */
+
+.ag-tete { display: flex; align-items: flex-start; gap: var(--s4); flex-wrap: wrap; }
+.ag-tete > div { flex: 1 1 260px; }
+
+/* la carte du prochain entretien */
+.ag-hero { display: grid; grid-template-columns: auto 1fr; gap: var(--s4); align-items: start;
+  background: var(--brand); color: var(--brand-ink); border-radius: var(--r-lg);
+  padding: var(--s5); margin-bottom: var(--s5); box-shadow: var(--shadow-card); position: relative;
+  overflow: hidden; }
+/* un halo, pas un degrade sur toute la carte : le texte reste sur un a-plat */
+.ag-hero::after { content: ""; position: absolute; inset: auto -60px -90px auto; width: 240px; height: 240px;
+  border-radius: 50%; background: var(--accent); opacity: .16; pointer-events: none; }
+.ag-hero-date { text-align: center; background: rgba(255,255,255,.12); border-radius: var(--r-md);
+  padding: var(--s3) var(--s4); min-width: 74px; }
+.ag-hero-date b { display: block; font-family: var(--font-num); font-size: var(--t-2xl); line-height: 1; }
+.ag-hero-date span { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .08em; opacity: .85; }
+.ag-hero-corps { min-width: 0; }
+.ag-hero h3 { font-family: var(--font-display); font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking); font-size: var(--t-lg); margin: 2px 0 var(--s1); }
+.ag-hero .ag-avec, .ag-hero .ag-lieu, .ag-hero .ag-notes { color: rgba(255,255,255,.86); }
+.ag-hero .ag-avec b { color: #fff; }
+.ag-quand { display: inline-flex; align-items: center; gap: var(--s2); font-size: var(--t-xs);
+  font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--accent); }
+.ag-pouls { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+.ag-hero.encours .ag-pouls { animation: ag-pouls 1.8s var(--ease) infinite; }
+@keyframes ag-pouls {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,145,43,.55); }
+  70%      { box-shadow: 0 0 0 9px rgba(232,145,43,0); }
+}
+@media (prefers-reduced-motion: reduce) { .ag-hero.encours .ag-pouls { animation: none; } }
+.ag-hero .btn-ag { border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.1); color: #fff; }
+.ag-hero .btn-ag.fort { background: var(--accent); border-color: var(--accent); color: #23160a; }
+
+/* la bande des quinze jours */
+.ag-bande { display: flex; gap: var(--s2); overflow-x: auto; padding-bottom: var(--s2);
+  margin-bottom: var(--s4); scrollbar-width: thin; }
+.ag-pastille { flex: none; width: 46px; display: grid; justify-items: center; gap: 2px;
+  padding: var(--s2) 0 6px; border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--surface); color: var(--ink-3); }
+.ag-pastille .jj { font-size: var(--t-xs); text-transform: uppercase; }
+.ag-pastille .nn { font-family: var(--font-num); font-size: var(--t-md); color: var(--ink-2); }
+.ag-pastille i { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+.ag-pastille.pleine { border-color: var(--brand); }
+.ag-pastille.pleine .nn { color: var(--brand); font-weight: 700; }
+.ag-pastille.pleine i { background: var(--brand); }
+.ag-pastille.attente i { background: var(--accent); }
+/* Aujourd'hui reste lisible meme sans rien ce jour-la : sinon on perd le seul
+   repere qui permette de lire la bande. */
+.ag-pastille.auj { background: var(--brand-soft); border-color: var(--brand); }
+.ag-pastille.auj .jj, .ag-pastille.auj .nn { color: var(--brand); font-weight: 700; }
+.ag-pastille:disabled:not(.auj) { opacity: .45; }
+
+/* une decision a prendre */
+.ag-choix-liste { display: grid; gap: var(--s4); }
+.ag-choix { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: var(--r-md); padding: var(--s4); }
+.ag-choix h3 { font-size: var(--t-md); }
+.ag-consigne { font-size: var(--t-sm); color: var(--ink-2); margin: var(--s2) 0 var(--s3); }
+.ag-creneaux { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.ag-creneau { display: grid; gap: 1px; text-align: left; padding: var(--s3); border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: var(--surface-2); min-height: var(--tap); }
+.ag-creneau .j { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
+.ag-creneau .h { font-family: var(--font-num); font-size: var(--t-md); color: var(--ink); }
+.ag-creneau .r { font-size: var(--t-xs); color: var(--ink-3); }
+.ag-creneau.on { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
+.ag-creneau.on .h { color: var(--brand); font-weight: 700; }
+.ag-creneau.fige { background: var(--surface-2); }
+
+/* la ligne de temps */
+.ag-fil { position: relative; }
+.ag-bloc { position: relative; padding-left: var(--s6); }
+/* le rail : un seul trait continu par bloc de jour, derriere les pastilles */
+.ag-bloc::before { content: ""; position: absolute; left: 7px; top: 10px; bottom: 0; width: 2px;
+  background: var(--line); border-radius: 2px; }
+.ag-bloc:last-child::before { bottom: var(--s5); }
+.ag-jour { display: flex; align-items: center; gap: var(--s2); font-size: var(--t-xs); font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3);
+  margin: var(--s4) 0 var(--s2); position: sticky; top: 0; z-index: 1;
+  background: var(--bg); padding: var(--s2) 0; }
+.ag-jour i { flex: 1; height: 1px; background: var(--line); }
+.ag-item { display: grid; grid-template-columns: 62px 1fr; gap: var(--s3); background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s3) var(--s4);
+  margin-bottom: var(--s2); position: relative; }
+/* la pastille du rail, alignee sur l'heure */
+.ag-item::before { content: ""; position: absolute; left: calc(var(--s6) * -1 + 3px); top: 20px;
+  width: 11px; height: 11px; border-radius: 50%; background: var(--surface);
+  border: 2px solid var(--ink-3); }
+.ag-item.confirme::before { border-color: var(--yes); background: var(--yes); }
+.ag-item.propose::before { border-color: var(--accent); background: var(--accent); }
+.ag-item.termine::before { border-color: var(--brand); background: var(--brand); }
+.ag-item.annule, .ag-item.refuse { opacity: .6; }
+.ag-heure { font-family: var(--font-num); line-height: 1.25; }
+.ag-heure b { display: block; font-size: var(--t-md); color: var(--ink); }
+.ag-heure small { color: var(--ink-3); font-size: var(--t-xs); }
+.ag-corps { min-width: 0; }
+.ag-item h3 { font-size: var(--t-md); margin-bottom: 2px; }
+.ag-avec { font-size: var(--t-sm); color: var(--ink-2); }
+.ag-lieu { font-size: var(--t-sm); color: var(--ink-2); overflow-wrap: anywhere; }
+.ag-notes { font-size: var(--t-sm); color: var(--ink-2); margin-top: var(--s2);
+  padding-left: var(--s3); border-left: 2px solid var(--line); }
+.ag-etat { font-weight: 700; }
+.ag-etat.confirme { color: var(--yes); }
+.ag-etat.propose { color: var(--accent); }
+.ag-etat.annule, .ag-etat.refuse { color: var(--ink-3); }
+.ag-etat.termine { color: var(--brand); }
+
+.ag-actes { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
+.btn-ag { min-height: 38px; padding: 0 var(--s4); border-radius: var(--r-sm); border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink-2); font-size: var(--t-xs); font-weight: 600;
+  display: inline-flex; align-items: center; text-decoration: none; white-space: nowrap; }
+.btn-ag.fort { border-color: var(--brand); background: var(--brand); color: var(--brand-ink); }
+.btn-ag:disabled { opacity: .5; }
+
+.ag-vide { display: grid; justify-items: center; gap: var(--s2); text-align: center;
+  padding: var(--s8) var(--s4); background: var(--surface); border: 1px dashed var(--line);
+  border-radius: var(--r-md); color: var(--ink-3); }
+.ag-vide svg { width: 56px; height: 56px; color: var(--ink-3); opacity: .5; }
+.ag-vide b { font-size: var(--t-md); color: var(--ink-2); }
+.ag-vide span { font-size: var(--t-sm); max-width: 42ch; }
+
+/* Large : l'heure a plus de place, et la carte du prochain respire. */
+@media (min-width: 900px) {
+  .ag-item { grid-template-columns: 74px 1fr; }
+  .ag-hero { padding: var(--s6); gap: var(--s5); }
+}
+
 .pdeux { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
 
 /* --- tableau de bord ------------------------------------------------------ */
@@ -148,3 +254,16 @@
 
 /* Deux pastilles d’état côte à côte (statut + écarts) respirent. */
 .etat + .etat { margin-left: 6px; }
+
+/* --- bascule de role (comptes de demonstration) ---------------------------
+   Deux boutons dans la barre du haut, visibles seulement si l'API declare le
+   compte polyvalent. Discret : ce n'est pas une fonction du produit, c'est un
+   raccourci pour montrer les deux cotes. */
+.bascule { display: inline-flex; gap: 2px; background: var(--surface-2); border-radius: var(--r-full);
+  padding: 3px; margin-right: var(--s2); }
+.bascule button { min-height: 32px; padding: 0 var(--s3); border: none; background: none;
+  border-radius: var(--r-full); font-size: var(--t-xs); font-weight: 600; color: var(--ink-3); }
+.bascule button[aria-pressed="true"] { background: var(--surface); color: var(--brand);
+  box-shadow: var(--shadow-ui); }
+.bascule button:disabled { opacity: .6; }
+@media (max-width: 520px) { .bascule button { padding: 0 var(--s2); } }

@@ -178,7 +178,49 @@ if (route('GET', 'auth/moi', $seg, $methode) !== false) {
     $st = $pdo->prepare('SELECT email_verified_at FROM users WHERE id = ?');
     $st->execute([(int) $u['id']]);
     $out = ['id' => (int) $u['id'], 'email' => $u['email'], 'role' => $u['role'], 'emailVerifie' => $st->fetchColumn() !== null];
+    if (comptePolyvalent((string) $u['email'])) {
+        $out['peutBasculer'] = true;
+    }
     if ($u['role'] !== 'candidat') {
+        $st = $pdo->prepare('SELECT c.id, c.name, m.role FROM company_members m JOIN companies c ON c.id = m.company_id WHERE m.user_id = ? ORDER BY m.created_at LIMIT 1');
+        $st->execute([(int) $u['id']]);
+        $o = $st->fetch();
+        $out['organisation'] = $o ? ['id' => (int) $o['id'], 'nom' => $o['name'], 'role' => $o['role']] : null;
+    }
+    envoie(['utilisateur' => $out]);
+}
+
+/* Changer de cote sans changer de compte : reserve aux comptes declares
+   polyvalents dans la configuration du serveur (COMPTES_POLYVALENTS). Pour
+   tous les autres la route repond 403, quoi que demande le client — c'est le
+   serveur qui decide, pas le bouton.
+
+   Rien n'est detruit au passage : le profil candidat reste en base, les
+   candidatures aussi, l'appartenance a une organisation aussi. On revient a
+   l'etat d'avant en rebasculant. */
+if (route('POST', 'auth/role', $seg, $methode) !== false) {
+    $u = exigeConnexion();
+    if (!comptePolyvalent((string) $u['email'])) {
+        erreur('interdit', 'Ce compte ne peut pas changer de rôle.', 403);
+    }
+    limite('role:' . (int) $u['id'], 20, 3600);
+    $vise = champ('role') === 'recruteur' ? 'recruteur' : 'candidat';
+
+    if ($vise !== $u['role']) {
+        $pdo->prepare('UPDATE users SET role = ? WHERE id = ?')->execute([$vise, (int) $u['id']]);
+        // Le profil candidat doit exister meme apres un aller-retour.
+        if ($vise === 'candidat') {
+            $pdo->prepare('INSERT IGNORE INTO candidates (user_id, updated_at) VALUES (?,?)')
+                ->execute([(int) $u['id'], maintenant()]);
+        }
+        trace((int) $u['id'], 'bascule_role_' . $vise, 'user', (int) $u['id']);
+    }
+
+    $st = $pdo->prepare('SELECT email_verified_at FROM users WHERE id = ?');
+    $st->execute([(int) $u['id']]);
+    $out = ['id' => (int) $u['id'], 'email' => $u['email'], 'role' => $vise,
+            'emailVerifie' => $st->fetchColumn() !== null, 'peutBasculer' => true];
+    if ($vise !== 'candidat') {
         $st = $pdo->prepare('SELECT c.id, c.name, m.role FROM company_members m JOIN companies c ON c.id = m.company_id WHERE m.user_id = ? ORDER BY m.created_at LIMIT 1');
         $st->execute([(int) $u['id']]);
         $o = $st->fetch();

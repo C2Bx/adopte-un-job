@@ -154,11 +154,12 @@ function utilisateur(): ?array
     if (!$r || $r['status'] !== 'actif') {
         return null;
     }
-    /* Un jeton vole rejoue depuis un autre navigateur ne passe pas. Le
-       navigateur d'un meme utilisateur ne change pas d'agent en cours de
-       session ; une mise a jour du navigateur invalide la session, c'est le
-       prix accepte. */
-    if ($r['ua_hash'] !== null && $r['ua_hash'] !== empreinteUa()) {
+    /* Un jeton vole rejoue depuis un autre navigateur ne passe pas. On tolere
+       la montee de version (cf. empreinteUa) et les sessions ouvertes avant
+       cette tolerance, pas le changement de navigateur. */
+    if ($r['ua_hash'] !== null
+        && $r['ua_hash'] !== empreinteUa()
+        && $r['ua_hash'] !== empreinteUaHeritee()) {
         return null;
     }
     unset($r['ua_hash']);
@@ -179,9 +180,24 @@ function exigeConnexion(?string $role = null): array
     return $u;
 }
 
+/**
+ * L'empreinte du navigateur qui a ouvert la session, SANS les numeros de
+ * version : Chrome se met a jour toutes les quatre semaines et Windows reecrit
+ * son jeton de plateforme, si bien qu'une empreinte prise sur la chaine
+ * complete deconnectait tout le monde a intervalle regulier — pour un gain nul,
+ * un numero de version n'identifie personne.
+ */
 function empreinteUa(): string
 {
-    return substr(md5($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 32);
+    $ua = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+    return substr(md5((string) preg_replace('#/[0-9._]+#', '/', $ua)), 0, 32);
+}
+
+/** L'empreinte d'avant cette normalisation : les sessions deja ouvertes la
+    portent, et on ne va pas les fermer pour un changement de regle. */
+function empreinteUaHeritee(): string
+{
+    return substr(md5((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 32);
 }
 
 function ouvreSession(int $userId): string

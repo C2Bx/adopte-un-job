@@ -604,7 +604,12 @@ button { cursor: pointer; }
   }
   .topbar { grid-area: entete; padding: var(--s5) var(--s6) var(--s3); }
   .screen { grid-area: corps; }
-  .sheet, .fiche { left: 92px; }
+  /* Le voile d'une feuille couvre la fenetre ENTIERE sauf le rail : le menu
+     reste atteignable, tout le reste passe derriere — y compris la barre du
+     haut. En absolu il se calait sur .screen, qui commence deja apres le rail
+     et sous la barre : le voile etait decale de 92 px et laissait deux bandes
+     claires. */
+  .sheet { position: fixed; inset: 0 0 0 92px; }
 
   .nav {
     grid-area: rail; grid-template-columns: 1fr; grid-auto-rows: max-content;
