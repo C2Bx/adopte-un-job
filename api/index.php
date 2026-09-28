@@ -162,11 +162,15 @@ if (route('POST', 'auth/connexion', $seg, $methode) !== false) {
 }
 
 if (route('POST', 'auth/deconnexion', $seg, $methode) !== false) {
-    $t = jeton();
-    if ($t !== '') {
-        $pdo->prepare('DELETE FROM sessions WHERE token = ?')->execute([$t]);
+    /* Toutes les sessions presentees, et le cookie sur tous ses chemins : se
+       deconnecter à moitie, c'est rester connecte. Cette route effaçait
+       d'ailleurs le cookie sur /avp/app/ alors que la v2 le pose sur /avp/. */
+    foreach (jetons() as $t) {
+        if (!str_starts_with($t, 'aj_')) {
+            $pdo->prepare('DELETE FROM sessions WHERE token = ?')->execute([$t]);
+        }
     }
-    setcookie(COOKIE, '', ['expires' => time() - 3600, 'path' => '/avp/app/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
+    effaceCookieSession();
     envoie(['ok' => true]);
 }
 

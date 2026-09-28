@@ -116,34 +116,75 @@ function empreinteIp(): string
  * (application native, ou tout client sans cookie). Les deux, jamais l'un
  * seulement : la version en magasin n'aura pas de cookie de session.
  */
-function jeton(): string
+/** Les chemins sur lesquels une version precedente a pose le cookie de
+    session. La v1 le posait sur /avp/app/, la v2 sur /avp/ : les deux
+    s'appliquent aux appels d'API, et un navigateur qui a connu les deux
+    versions porte deux cookies du meme nom. On les fait expirer. */
+const COOKIE_CHEMINS_ANCIENS = ['/avp/app/'];
+
+/**
+ * TOUS les jetons portes par la requete, dans l'ordre ou on veut les essayer.
+ *
+ * Un navigateur peut envoyer plusieurs cookies du MEME nom, poses sur des
+ * chemins differents. Il envoie le plus specifique d'abord, et PHP n'en garde
+ * qu'un dans $_COOKIE : le premier, donc l'ancien. Un compte qui avait une
+ * session du temps de la v1 se retrouvait ainsi deconnecte a chaque
+ * rechargement — le cookie valide existait, il etait masque par le perime.
+ */
+function jetons(): array
 {
+    $liste = [];
     $h = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
     if (preg_match('/^Bearer\s+([a-f0-9]{64})$/i', $h, $m)) {
-        return strtolower($m[1]);
+        $liste[] = strtolower($m[1]);
+    } elseif (preg_match('/^Bearer\s+(aj_[a-f0-9]{8}\.[a-f0-9]{40})$/i', $h, $m)) {
+        $liste[] = strtolower($m[1]);              // une cle d'API tierce
     }
-    if (preg_match('/^Bearer\s+(aj_[a-f0-9]{8}\.[a-f0-9]{40})$/i', $h, $m)) {
-        return strtolower($m[1]);                  // une cle d'API tierce
+    // L'en-tete brut, pas $_COOKIE : c'est lui seul qui porte les doublons.
+    foreach (explode(';', (string) ($_SERVER['HTTP_COOKIE'] ?? '')) as $brut) {
+        $paire = explode('=', trim($brut), 2);
+        if (count($paire) === 2 && $paire[0] === COOKIE
+            && preg_match('/^[a-f0-9]{64}$/', $paire[1])) {
+            $liste[] = strtolower($paire[1]);
+        }
     }
-    $c = $_COOKIE[COOKIE] ?? '';
-    return preg_match('/^[a-f0-9]{64}$/', $c) ? $c : '';
+    return array_values(array_unique($liste));
 }
 
-function utilisateur(): ?array
+/** Le premier jeton presente — pour ce qui n'a pas besoin de les essayer tous
+    (la cle de la limite de debit, par exemple). */
+function jeton(): string
 {
-    static $u = false;
-    if ($u !== false) {
-        return $u;
+    return jetons()[0] ?? '';
+}
+
+/** Pose le cookie de session, et efface au passage ceux des anciens chemins. */
+function poseCookieSession(string $valeur): void
+{
+    $options = ['secure' => true, 'httponly' => true, 'samesite' => 'Lax'];
+    setcookie(COOKIE, $valeur, $options + [
+        'expires' => time() + SESSION_J * 86400,
+        'path'    => COOKIE_PATH,
+    ]);
+    foreach (COOKIE_CHEMINS_ANCIENS as $chemin) {
+        if ($chemin !== COOKIE_PATH) {
+            setcookie(COOKIE, '', $options + ['expires' => time() - 86400, 'path' => $chemin]);
+        }
     }
-    $u = null;
-    $t = jeton();
-    if ($t === '') {
-        return null;
+}
+
+/** Efface le cookie de session sur le chemin courant ET sur les anciens. */
+function effaceCookieSession(): void
+{
+    $options = ['secure' => true, 'httponly' => true, 'samesite' => 'Lax'];
+    foreach (array_unique(array_merge([COOKIE_PATH], COOKIE_CHEMINS_ANCIENS)) as $chemin) {
+        setcookie(COOKIE, '', $options + ['expires' => time() - 86400, 'path' => $chemin]);
     }
-    if (str_starts_with($t, 'aj_')) {
-        $u = utilisateurParCleApi($t);
-        return $u;
-    }
+}
+
+/** Le porteur d'UN jeton de session, ou null si ce jeton ne vaut rien. */
+function utilisateurParSession(string $t): ?array
+{
     $st = db()->prepare(
         'SELECT u.id, u.email, u.role, u.status, s.token, s.ua_hash
            FROM sessions s JOIN users u ON u.id = s.user_id
@@ -164,7 +205,25 @@ function utilisateur(): ?array
     }
     unset($r['ua_hash']);
     db()->prepare('UPDATE sessions SET last_seen = ? WHERE token = ?')->execute([maintenant(), $t]);
-    $u = $r;
+    return $r;
+}
+
+/** On essaie CHAQUE jeton presente : le bon peut etre masque par un cookie
+    perime d'une version precedente (cf. jetons()). */
+function utilisateur(): ?array
+{
+    static $u = false;
+    if ($u !== false) {
+        return $u;
+    }
+    $u = null;
+    foreach (jetons() as $t) {
+        $trouve = str_starts_with($t, 'aj_') ? utilisateurParCleApi($t) : utilisateurParSession($t);
+        if ($trouve) {
+            $u = $trouve;
+            return $u;
+        }
+    }
     return $u;
 }
 
@@ -202,11 +261,14 @@ function empreinteUaHeritee(): string
 
 function ouvreSession(int $userId): string
 {
-    // Rotation : la session courante, si elle existe, est remplacee. Un jeton
-    // pose avant l'authentification ne survit pas a celle-ci.
-    $ancien = jeton();
-    if ($ancien !== '' && !str_starts_with($ancien, 'aj_')) {
-        db()->prepare('DELETE FROM sessions WHERE token = ?')->execute([$ancien]);
+    /* Rotation : les sessions presentees, s'il y en a, sont remplacees. Au
+       pluriel : un navigateur peut porter plusieurs cookies du meme nom, et
+       n'en effacer qu'un laissait l'autre s'accumuler en base a chaque
+       connexion. */
+    foreach (jetons() as $ancien) {
+        if (!str_starts_with($ancien, 'aj_')) {
+            db()->prepare('DELETE FROM sessions WHERE token = ?')->execute([$ancien]);
+        }
     }
     $t = bin2hex(random_bytes(32));
     db()->prepare(
@@ -218,13 +280,8 @@ function ouvreSession(int $userId): string
         empreinteUa(),
     ]);
     // Secure + SameSite=Lax : le cookie ne part pas sur une requete inter-sites.
-    setcookie(COOKIE, $t, [
-        'expires'  => time() + SESSION_J * 86400,
-        'path'     => COOKIE_PATH,
-        'secure'   => true,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
+    // Et les cookies des anciens chemins disparaissent au passage.
+    poseCookieSession($t);
     db()->prepare('UPDATE users SET last_login_at = ? WHERE id = ?')->execute([maintenant(), $userId]);
     return $t;
 }
