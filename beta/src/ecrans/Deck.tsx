@@ -17,9 +17,21 @@ import type { Facettes, Filtres, Offre, Profil } from '../types'
 
 /* Les directions de l'OPT arrivent en capitales sans accents (« DIRECTION DE LA
    POSTE… ») : on les rend lisibles sans prétendre restituer les accents. */
+/* Le référentiel Pyramide de l'OPT écrit ses directions en capitales et sans
+   accents. Les remettre mot à mot : « Systemes d'information » à côté de la
+   famille « Systèmes d'information » se lit comme une faute de notre part. */
+const ACCENTS: Record<string, string> = {
+  generale: 'générale', general: 'général', secretariat: 'secrétariat',
+  telecommunications: 'télécommunications', systemes: 'systèmes',
+  proximite: 'proximité', experience: 'expérience', immobilier: 'immobilier',
+  reseau: 'réseau', reseaux: 'réseaux', batiment: 'bâtiment', bati: 'bâti',
+  comptable: 'comptable', adjointe: 'adjointe', strategie: 'stratégie',
+}
+
 export function libDirection(d: string): string {
   const court = d.replace(/^DIRECTION (DE LA |DE L'|DES |DE |DU |D')?/i, '').toLowerCase()
-  return court.charAt(0).toUpperCase() + court.slice(1)
+  const accentue = court.replace(/[a-zà-ÿ']+/g, (m) => ACCENTS[m] ?? m)
+  return accentue.charAt(0).toUpperCase() + accentue.slice(1)
 }
 
 interface Props {
@@ -27,6 +39,73 @@ interface Props {
   versProfil: (etape: number) => void
   /** Prévient la coquille qu'une décision a changé, pour ses pastilles. */
   onDecision?: () => void
+}
+
+/* Défilement horizontal d'une rangée de puces, à la souris.
+
+   Au doigt le navigateur s'en charge. Sur ordinateur il n'y a rien : la barre
+   de défilement est masquée par le style, et une molette verticale ne bouge
+   pas un conteneur horizontal. La rangée paraissait donc figée — alors que le
+   curseur « grab » et la classe `.dragging` de la feuille de style promettaient
+   un glissé que personne ne branchait côté bêta. */
+function useGlisseHorizontal<T extends HTMLElement>() {
+  const ref = useRef<T>(null)
+  useEffect(() => {
+    const barre = ref.current
+    if (!barre) return
+    let tire: { x: number; left: number; bouge: boolean; id: number } | null = null
+    let finTire = 0
+
+    const bas = (ev: PointerEvent) => {
+      if (ev.pointerType === 'touch') return                     // le doigt fait mieux
+      if ((ev.target as HTMLElement).closest('input, textarea')) return   // on saisit, on ne glisse pas
+      tire = { x: ev.clientX, left: barre.scrollLeft, bouge: false, id: ev.pointerId }
+    }
+    const bouge = (ev: PointerEvent) => {
+      if (!tire) return
+      const dx = ev.clientX - tire.x
+      /* La capture ne se prend qu'après un vrai mouvement : prise au contact,
+         elle détourne le clic vers la barre et la puce visée ne le reçoit
+         jamais. Même piège que sur la carte du deck. */
+      if (!tire.bouge && Math.abs(dx) > 5) {
+        tire.bouge = true
+        barre.classList.add('dragging')
+        try { barre.setPointerCapture(tire.id) } catch { /* pointeur déjà relâché */ }
+      }
+      if (tire.bouge) barre.scrollLeft = tire.left - dx
+    }
+    const fin = () => {
+      if (!tire) return
+      if (tire.bouge) finTire = Date.now()
+      tire = null
+      barre.classList.remove('dragging')
+    }
+    // Un glissé qui s'achève sur une puce ne doit pas la sélectionner.
+    const clic = (ev: MouseEvent) => {
+      if (Date.now() - finTire < 250) { ev.preventDefault(); ev.stopPropagation() }
+    }
+    const molette = (ev: WheelEvent) => {
+      if (Math.abs(ev.deltaY) <= Math.abs(ev.deltaX)) return     // déjà horizontal
+      barre.scrollLeft += ev.deltaY
+      ev.preventDefault()
+    }
+
+    barre.addEventListener('pointerdown', bas)
+    barre.addEventListener('pointermove', bouge)
+    barre.addEventListener('pointerup', fin)
+    barre.addEventListener('pointercancel', fin)
+    barre.addEventListener('click', clic, true)
+    barre.addEventListener('wheel', molette, { passive: false })
+    return () => {
+      barre.removeEventListener('pointerdown', bas)
+      barre.removeEventListener('pointermove', bouge)
+      barre.removeEventListener('pointerup', fin)
+      barre.removeEventListener('pointercancel', fin)
+      barre.removeEventListener('click', clic, true)
+      barre.removeEventListener('wheel', molette)
+    }
+  }, [])
+  return ref
 }
 
 type Decision = 'oui' | 'non' | 'plus_tard'
@@ -38,6 +117,7 @@ const conf = (v: number) => (v >= 90 ? 'élevée' : v >= 60 ? 'moyenne' : 'faibl
 const kf = (n: number) => `${Math.round(n / 1000)} k`
 
 export function EcranDeck({ profil, versProfil, onDecision }: Props) {
+  const barreFiltres = useGlisseHorizontal<HTMLDivElement>()
   const [offres, setOffres] = useState<Offre[] | null>(null)
   const [facettes, setFacettes] = useState<Facettes | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -160,7 +240,7 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   return (
     <div className="screen" id="ec-swipe">
       <div className="stack">
-        <div className="filters filtres-avp">
+        <div className="filters filtres-avp" ref={barreFiltres}>
           <input
             type="search" className="recherche" value={recherche} placeholder="Chercher un poste, un mot, un service…"
             onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher dans les offres"
@@ -249,12 +329,17 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
    sur les offres ouvertes. Une valeur à zéro n'est pas affichée — sauf si
    elle est active, pour ne pas disparaître sous le doigt. */
 function Puces({ f, facettes, bascule }: { f: Filtres; facettes: Facettes; bascule: (k: keyof Filtres, v: string | boolean) => void }) {
-  const chip = (k: keyof Filtres, v: string | boolean, nom: string, n?: number) => {
+  /* `prefixe` qualifie la puce quand son libellé ne suffit pas : « Services
+     bancaires » est à la fois une famille de métiers et une direction de
+     l'OPT, et deux boutons au même nom avec deux comptes différents ne se
+     distinguent pas. */
+  const chip = (k: keyof Filtres, v: string | boolean, nom: string, n?: number, prefixe?: string) => {
     const on = f[k] === v
     if (!on && n !== undefined && n === 0) return null
     return (
-      <button key={`${k}:${String(v)}`} className="chip" aria-pressed={on} onClick={() => bascule(k, v)}>
-        {nom}{n !== undefined && <span className="cpt">{n}</span>}
+      <button key={`${k}:${String(v)}`} className="chip" aria-pressed={on} onClick={() => bascule(k, v)}
+        aria-label={prefixe ? `${prefixe} ${nom}` : undefined}>
+        {prefixe && <i className="pre">{prefixe}</i>}{nom}{n !== undefined && <span className="cpt">{n}</span>}
       </button>
     )
   }
@@ -268,7 +353,7 @@ function Puces({ f, facettes, bascule }: { f: Filtres; facettes: Facettes; bascu
       {chip('encadrement', true, 'Encadrement', facettes.encadrement)}
       {chip('debutant', true, 'Débutant accepté', facettes.debutant)}
       {chip('salaire', true, 'Salaire annoncé', facettes.salaire)}
-      {facettes.direction.slice(0, 4).map((x) => chip('direction', x.valeur, libDirection(x.valeur), x.n))}
+      {facettes.direction.slice(0, 4).map((x) => chip('direction', x.valeur, libDirection(x.valeur), x.n, 'Direction'))}
       {chip('clos', true, 'Offres closes (entraînement)')}
     </>
   )

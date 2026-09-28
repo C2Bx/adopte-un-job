@@ -267,3 +267,10 @@
   box-shadow: var(--shadow-ui); }
 .bascule button:disabled { opacity: .6; }
 @media (max-width: 520px) { .bascule button { padding: 0 var(--s2); } }
+
+/* Le qualificatif d'une puce : « Direction » devant un libelle qui existe
+   aussi comme famille de metiers. Discret, mais il leve l'ambiguite entre
+   deux boutons au meme nom et aux comptes differents. */
+.chip .pre { font-style: normal; font-weight: 600; font-size: var(--t-xs);
+  color: var(--ink-3); margin-right: 6px; }
+.chip[aria-pressed="true"] .pre { color: inherit; opacity: .75; }
