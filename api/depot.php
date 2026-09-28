@@ -93,6 +93,96 @@ function profilComplet(PDO $pdo, int $id): array
 }
 
 
+/**
+ * Les formats de CV acceptes, et l'extension sous laquelle le fichier repart
+ * vers la passerelle. Un CV arrive dans ce que la personne a sous la main :
+ * refuser un .docx parce qu'on ne sait pas le lire nous-memes n'avait plus de
+ * sens des lors que l'analyse se fait ailleurs.
+ *
+ * Ce qui reste refuse, et pourquoi : HTML et SVG (ils portent du script, et un
+ * fichier servi depuis notre domaine devient une faille), les archives autres
+ * que les formats bureautiques (un .zip n'est pas un CV), et tout executable.
+ * Le type est lu dans les OCTETS, jamais dans ce que le client declare.
+ */
+const CV_FORMATS = [
+    'application/pdf'                                                         => 'pdf',
+    'image/jpeg'                                                              => 'jpg',
+    'image/png'                                                               => 'png',
+    'image/webp'                                                              => 'webp',
+    'image/heic'                                                              => 'heic',
+    'image/tiff'                                                              => 'tif',
+    'application/msword'                                                      => 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+    'application/vnd.oasis.opendocument.text'                                 => 'odt',
+    'application/rtf'                                                         => 'rtf',
+    'text/rtf'                                                                => 'rtf',
+    'text/plain'                                                              => 'txt',
+];
+
+/**
+ * L'extension d'un CV depuis son type, pour le nom qu'il portera dans la
+ * passerelle. `finfo` rend `application/zip` pour un .docx et `.odt` quand le
+ * fichier n'annonce pas son sous-type : on tranche alors sur le nom d'origine,
+ * seul cas ou on lui accorde du credit — et seulement pour choisir entre deux
+ * formats bureautiques, jamais pour accepter un fichier refuse.
+ */
+function extensionCv(string $mime, string $nomOrigine): ?string
+{
+    if (isset(CV_FORMATS[$mime])) {
+        return CV_FORMATS[$mime];
+    }
+    if ($mime === 'application/zip' || $mime === 'application/octet-stream') {
+        $ext = strtolower(pathinfo($nomOrigine, PATHINFO_EXTENSION));
+        if (in_array($ext, ['docx', 'odt'], true)) {
+            return $ext;
+        }
+    }
+    return null;
+}
+
+function cvPublic(array $r, ?array $x = null): array
+{
+    return [
+        'id' => (int) $r['id'], 'nom' => $r['filename'], 'mime' => $r['mime'], 'octets' => (int) $r['bytes'],
+        'actif' => (bool) $r['is_active'], 'depose' => $r['created_at'],
+        'fichier' => $r['storage_key'] !== '',
+        'lecture' => $x ? [
+            'moteur' => $x['engine'], 'version' => $x['version'],
+            'lu' => json_decode((string) $x['payload'], true),
+            'retenu' => $x['accepted'] === null ? null : json_decode((string) $x['accepted'], true),
+            'quand' => $x['created_at'],
+        ] : null,
+    ];
+}
+
+function derniereLecture(PDO $pdo, int $resumeId): ?array
+{
+    $st = $pdo->prepare('SELECT * FROM resume_extractions WHERE resume_id = ? ORDER BY id DESC LIMIT 1');
+    $st->execute([$resumeId]);
+    return $st->fetch() ?: null;
+}
+
+/** Le CV actif du candidat (ligne de resumes), s'il y en a un. Ici et non
+    dans cv.php : celui-la porte des routes, et la passerelle d'echange, qui
+    a besoin de cette fonction, ne peut pas les executer en le chargeant. */
+function cvActif(PDO $pdo, int $userId): ?array
+{
+    $st = $pdo->prepare('SELECT * FROM resumes WHERE user_id = ? AND is_active = 1 ORDER BY id DESC LIMIT 1');
+    $st->execute([$userId]);
+    return $st->fetch() ?: null;
+}
+
+function cvDuCandidat(PDO $pdo, int $userId, int $id): array
+{
+    $st = $pdo->prepare('SELECT * FROM resumes WHERE id = ? AND user_id = ?');
+    $st->execute([$id, $userId]);
+    $r = $st->fetch();
+    if (!$r) {
+        erreur('introuvable', 'Ce CV n’existe pas.', 404);
+    }
+    return $r;
+}
+
 /* ---------------------------------------------------------------- l'offre */
 
 function offreParId(PDO $pdo, int $id): ?array

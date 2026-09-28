@@ -58,9 +58,17 @@ function ecritSiChange(string $chemin, string $contenu): bool
     return true;
 }
 
-function partenaires(PDO $pdo): array
+/**
+ * Le dossier d'echange, unique.
+ *
+ * Il y a eu quatre dossiers, un par partenaire, tant qu'on pensait ouvrir un
+ * acces par personne. L'acces FTPS est finalement UN compte partage, chroote
+ * sur un seul dossier : ecrire ailleurs revenait a ecrire ou personne ne
+ * regarde. La table `echange_partenaires` reste en base, inutilisee.
+ */
+function partenaire(): string
 {
-    return $pdo->query('SELECT * FROM echange_partenaires WHERE actif = 1 ORDER BY code')->fetchAll();
+    return defined('ECHANGE_PARTENAIRE') && ECHANGE_PARTENAIRE !== '' ? ECHANGE_PARTENAIRE : 'equipe';
 }
 
 function arboPartenaire(string $code): string
@@ -78,80 +86,99 @@ function arboPartenaire(string $code): string
 /* ============================================================== le sortant */
 
 /**
- * Ecrit, pour chaque partenaire qui y a droit, un JSON Resume par candidat et
- * — si le droit est accorde — le CV genere en PDF. Plus un index.json qui donne
- * la liste et l'empreinte de chaque fichier : un consommateur peut ainsi savoir
- * ce qui a change sans tout relire.
+ * Ecrit dans `sortant/` ce que l'equipe vient chercher :
+ *
+ *   profils/profil-<id>.json   le profil au format JSON Resume
+ *   cv/cv-<id>.<ext>           LE FICHIER TEL QUE LA PERSONNE L'A DEPOSE
+ *   index.json                 la liste, avec l'empreinte de chaque fichier
+ *
+ * Le CV exporte est l'original, pas le PDF que nous fabriquons : c'est lui
+ * qu'une chaine d'extraction doit lire. Il repart dans son format d'origine,
+ * quel qu'il soit.
+ *
+ * **Le numero dans le nom EST le lien au compte.** `cv-42.docx` et
+ * `profil-42.json` sont la meme personne, et un JSON Resume renvoye sous le
+ * nom `profil-42.json` retombera sur elle sans qu'aucune adresse n'ait besoin
+ * d'etre conservee en chemin. `index.json` le redit en clair, et le meme
+ * numero est ecrit dans `meta.candidat` du profil sortant, pour une chaine qui
+ * renommerait les fichiers.
  */
 function exporteSortant(PDO $pdo): array
 {
     $liste = $pdo->query(
         "SELECT u.id, u.email FROM users u
            JOIN candidates c ON c.user_id = u.id
-          WHERE u.role = 'candidat' AND u.status = 'actif'
-            AND c.prenom <> '' ORDER BY u.id"
+          WHERE u.role = 'candidat' AND u.status = 'actif' ORDER BY u.id"
     )->fetchAll();
 
-    $resumes = [];
-    $pdfs = [];
+    $code = partenaire();
+    $base = arboPartenaire($code);
+    $ecrits = 0;
+    $index = [];
+    $vusProfils = [];
+    $vusCv = [];
+
     foreach ($liste as $u) {
-        $p = profilComplet($pdo, (int) $u['id']);
-        $resumes[(int) $u['id']] = json_encode(
-            jsonResume($p, (string) $u['email']),
-            JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
-        );
-        $pdfs[(int) $u['id']] = static fn (): string => cvPdf($p, null, null, true, (string) $u['email']);
+        $uid = (int) $u['id'];
+        $p = profilComplet($pdo, $uid);
+
+        /* Le profil. Il part meme quand il est vide : c'est justement le cas
+           ou quelqu'un attend que le CV soit analyse pour lui. */
+        $resume = jsonResume($p, (string) $u['email']);
+        $resume['meta']['candidat'] = $uid;
+        $contenu = json_encode($resume, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        $nom = "profil-$uid.json";
+        $vusProfils[] = $nom;
+        if (ecritSiChange("$base/sortant/profils/$nom", $contenu)) {
+            $ecrits++;
+            journalEchange($pdo, $code, 'sortant', "profils/$nom", 'ecrit', null, $uid, strlen($contenu));
+        }
+        $index[] = ['fichier' => "profils/$nom", 'candidat' => $uid, 'type' => 'jsonresume',
+                    'sha256' => hash('sha256', $contenu), 'octets' => strlen($contenu)];
+
+        /* Le CV d'origine, dechiffre le temps de l'ecriture. */
+        $cv = cvActif($pdo, $uid);
+        if (!$cv || ($cv['storage_key'] ?? '') === '') {
+            continue;
+        }
+        $clair = litFichier((string) $cv['storage_key'], (string) $cv['enc_iv'], (string) $cv['enc_tag']);
+        if ($clair === null) {
+            journalEchange($pdo, $code, 'sortant', "cv/cv-$uid", 'erreur', 'fichier illisible', $uid);
+            continue;
+        }
+        $ext = extensionCv((string) $cv['mime'], (string) $cv['filename']) ?? 'bin';
+        $nomCv = "cv-$uid.$ext";
+        $vusCv[] = $nomCv;
+        if (ecritSiChange("$base/sortant/cv/$nomCv", $clair)) {
+            $ecrits++;
+            journalEchange($pdo, $code, 'sortant', "cv/$nomCv", 'ecrit', null, $uid, strlen($clair));
+        }
+        $index[] = ['fichier' => "cv/$nomCv", 'candidat' => $uid, 'type' => 'cv-origine',
+                    'mime' => $cv['mime'], 'depose_le' => $cv['created_at'] ?? null,
+                    'sha256' => hash('sha256', $clair), 'octets' => strlen($clair)];
     }
 
-    $bilan = [];
-    foreach (partenaires($pdo) as $part) {
-        $code = (string) $part['code'];
-        $base = arboPartenaire($code);
-        $ecrits = 0;
-        $index = [];
-
-        if ((int) $part['lit_profils'] === 1) {
-            foreach ($resumes as $uid => $contenu) {
-                $nom = "profil-$uid.json";
-                if (ecritSiChange("$base/sortant/profils/$nom", $contenu)) {
-                    $ecrits++;
-                    journalEchange($pdo, $code, 'sortant', "profils/$nom", 'ecrit', null, $uid, strlen($contenu));
-                }
-                $index[] = ['fichier' => "profils/$nom", 'candidat' => $uid,
-                            'sha256' => hash('sha256', $contenu), 'octets' => strlen($contenu)];
-            }
-            // Ce qui ne correspond plus a un compte actif s'en va.
-            foreach (glob("$base/sortant/profils/profil-*.json") ?: [] as $f) {
-                if (preg_match('/profil-(\d+)\.json$/', $f, $m) && !isset($resumes[(int) $m[1]])) {
-                    @unlink($f);
-                    journalEchange($pdo, $code, 'sortant', basename($f), 'ecrit', 'retire : compte inactif');
-                }
+    /* Ce qui ne correspond plus a rien s'en va : un compte supprime ne doit
+       pas laisser son CV dans un dossier que d'autres lisent. */
+    foreach ([['profils', $vusProfils], ['cv', $vusCv]] as [$sous, $vus]) {
+        foreach (glob("$base/sortant/$sous/*") ?: [] as $f) {
+            if (!in_array(basename($f), $vus, true)) {
+                @unlink($f);
+                journalEchange($pdo, $code, 'sortant', "$sous/" . basename($f), 'ecrit', 'retire : compte inactif ou CV remplace');
             }
         }
-
-        if ((int) $part['lit_cv_pdf'] === 1) {
-            foreach ($pdfs as $uid => $fabrique) {
-                $contenu = $fabrique();
-                $nom = "cv-$uid.pdf";
-                if (ecritSiChange("$base/sortant/cv/$nom", $contenu)) {
-                    $ecrits++;
-                    journalEchange($pdo, $code, 'sortant', "cv/$nom", 'ecrit', null, $uid, strlen($contenu));
-                }
-                $index[] = ['fichier' => "cv/$nom", 'candidat' => $uid,
-                            'sha256' => hash('sha256', $contenu), 'octets' => strlen($contenu)];
-            }
-        }
-
-        ecritSiChange("$base/sortant/index.json", json_encode([
-            'genere_le' => maintenant(),
-            'partenaire' => $code,
-            'contenu' => 'nominatif',
-            'fichiers' => $index,
-        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-
-        $bilan[$code] = ['fichiers' => count($index), 'ecrits' => $ecrits];
     }
-    return $bilan;
+
+    ecritSiChange("$base/sortant/index.json", json_encode([
+        'genere_le'  => maintenant(),
+        'contenu'    => 'nominatif',
+        'convention' => 'Le nombre dans le nom de fichier est l’identifiant du candidat : '
+                      . 'cv-42.docx et profil-42.json sont la même personne. Renvoyez le JSON Resume '
+                      . 'sous le nom profil-42.json, ou avec meta.candidat = 42.',
+        'fichiers'   => $index,
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+
+    return [$code => ['fichiers' => count($index), 'ecrits' => $ecrits]];
 }
 
 /* ============================================================== l'entrant */
@@ -220,20 +247,64 @@ function niveauDepuisStudyType(?string $t): int
     return 1;
 }
 
-/** Applique un JSON Resume valide au compte qui porte cette adresse. */
-function appliqueJsonResume(PDO $pdo, array $d, string $partenaire, string $fichier): array
+/**
+ * A quel compte ce fichier revient-il ?
+ *
+ * Dans l'ordre : le numero dans le NOM du fichier (`profil-42.json`), puis
+ * `meta.candidat` dans le document, puis l'adresse e-mail. Les deux premiers
+ * survivent a un changement d'adresse et a une chaine de traitement qui ne
+ * garde pas l'e-mail ; le troisieme reste pour un partenaire qui produit du
+ * JSON Resume standard sans rien savoir de nos conventions.
+ */
+function candidatDuFichier(PDO $pdo, array $d, string $fichier): array
 {
-    $email = mb_strtolower(trim((string) $d['basics']['email']));
+    $id = 0;
+    $par = '';
+    if (preg_match('/(\d+)/', pathinfo($fichier, PATHINFO_FILENAME), $m)) {
+        $id = (int) $m[1];
+        $par = 'le nom du fichier';
+    } elseif (isset($d['meta']['candidat']) && (int) $d['meta']['candidat'] > 0) {
+        $id = (int) $d['meta']['candidat'];
+        $par = 'meta.candidat';
+    }
+
+    if ($id > 0) {
+        $st = $pdo->prepare("SELECT id, email, role, status FROM users WHERE id = ?");
+        $st->execute([$id]);
+        if ($u = $st->fetch()) {
+            if ($u['status'] !== 'actif' || $u['role'] !== 'candidat') {
+                return [0, "le compte $id n’est pas un compte candidat actif"];
+            }
+            return [(int) $u['id'], null];
+        }
+        return [0, "aucun compte ne porte le numéro $id (lu dans $par) — "
+                 . "la passerelle ne crée jamais de compte"];
+    }
+
+    $email = mb_strtolower(trim((string) ($d['basics']['email'] ?? '')));
+    if ($email === '') {
+        return [0, "impossible de savoir à qui ce fichier appartient : ni numéro dans le nom "
+                 . "(attendu : profil-42.json), ni meta.candidat, ni basics.email"];
+    }
     $st = $pdo->prepare("SELECT id, role, status FROM users WHERE email = ?");
     $st->execute([$email]);
     $u = $st->fetch();
     if (!$u) {
-        return [null, "aucun compte avec l’adresse $email — la passerelle ne crée jamais de compte"];
+        return [0, "aucun compte avec l’adresse $email — la passerelle ne crée jamais de compte"];
     }
     if ($u['status'] !== 'actif' || $u['role'] !== 'candidat') {
-        return [null, "le compte $email n’est pas un compte candidat actif"];
+        return [0, "le compte $email n’est pas un compte candidat actif"];
     }
-    $id = (int) $u['id'];
+    return [(int) $u['id'], null];
+}
+
+/** Applique un JSON Resume valide au compte auquel il revient. */
+function appliqueJsonResume(PDO $pdo, array $d, string $partenaire, string $fichier): array
+{
+    [$id, $raison] = candidatDuFichier($pdo, $d, $fichier);
+    if ($id === 0) {
+        return [null, $raison];
+    }
 
     $nomComplet = trim((string) ($d['basics']['name'] ?? ''));
     $morceaux = preg_split('/\s+/', $nomComplet) ?: [];
@@ -325,18 +396,14 @@ function appliqueJsonResume(PDO $pdo, array $d, string $partenaire, string $fich
     return [$id, null];
 }
 
-/** Traite tout ce qui attend dans les dossiers entrant/. */
+/** Traite tout ce qui attend dans entrant/. */
 function ingereEntrant(PDO $pdo): array
 {
-    $bilan = [];
-    foreach (partenaires($pdo) as $part) {
-        if ((int) $part['depose_profils'] !== 1) {
-            continue;
-        }
-        $code = (string) $part['code'];
-        $base = arboPartenaire($code);
-        $acceptes = 0;
-        $refuses = 0;
+    $code = partenaire();
+    $base = arboPartenaire($code);
+    $acceptes = 0;
+    $refuses = 0;
+    {
 
         foreach (glob("$base/entrant/*") ?: [] as $chemin) {
             if (!is_file($chemin)) {
@@ -370,13 +437,17 @@ function ingereEntrant(PDO $pdo): array
                 file_put_contents("$base/rejets/$nom.erreur.txt",
                     "Refusé le " . maintenant() . " (UTC)\n\n$raison\n\n"
                     . "Le format attendu est JSON Resume (jsonresume.org).\n"
-                    . "« basics.email » doit correspondre à un compte candidat existant :\n"
-                    . "la passerelle ne crée jamais de compte.\n");
+                    . "\n"
+                    . "Pour que le fichier retombe sur la bonne personne, gardez le nom que porte\n"
+                    . "son profil dans sortant/ : profil-42.json pour le candidat 42, qui est aussi\n"
+                    . "celui de cv-42.pdf.\n"
+                    . "\n"
+                    . "A defaut : meta.candidat = 42 dans le document, ou une adresse basics.email\n"
+                    . "qui existe deja. La passerelle ne cree jamais de compte.\n");
                 journalEchange($pdo, $code, 'entrant', $nom, 'refuse', $raison, null, $octets);
                 $refuses++;
             }
         }
-        $bilan[$code] = ['acceptes' => $acceptes, 'refuses' => $refuses];
     }
-    return $bilan;
+    return [$code => ['acceptes' => $acceptes, 'refuses' => $refuses]];
 }

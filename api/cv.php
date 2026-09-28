@@ -16,49 +16,6 @@ declare(strict_types=1);
 require_once __DIR__ . '/documents.php';
 
 const CV_OCTETS_MAX = 10 * 1024 * 1024;
-const CV_MIMES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-
-function cvPublic(array $r, ?array $x = null): array
-{
-    return [
-        'id' => (int) $r['id'], 'nom' => $r['filename'], 'mime' => $r['mime'], 'octets' => (int) $r['bytes'],
-        'actif' => (bool) $r['is_active'], 'depose' => $r['created_at'],
-        'fichier' => $r['storage_key'] !== '',
-        'lecture' => $x ? [
-            'moteur' => $x['engine'], 'version' => $x['version'],
-            'lu' => json_decode((string) $x['payload'], true),
-            'retenu' => $x['accepted'] === null ? null : json_decode((string) $x['accepted'], true),
-            'quand' => $x['created_at'],
-        ] : null,
-    ];
-}
-
-function derniereLecture(PDO $pdo, int $resumeId): ?array
-{
-    $st = $pdo->prepare('SELECT * FROM resume_extractions WHERE resume_id = ? ORDER BY id DESC LIMIT 1');
-    $st->execute([$resumeId]);
-    return $st->fetch() ?: null;
-}
-
-/** Le CV actif du candidat (ligne de resumes), s'il y en a un. Defini ici,
-    car cv.php est charge avant candidatures.php qui s'en sert aussi. */
-function cvActif(PDO $pdo, int $userId): ?array
-{
-    $st = $pdo->prepare('SELECT * FROM resumes WHERE user_id = ? AND is_active = 1 ORDER BY id DESC LIMIT 1');
-    $st->execute([$userId]);
-    return $st->fetch() ?: null;
-}
-
-function cvDuCandidat(PDO $pdo, int $userId, int $id): array
-{
-    $st = $pdo->prepare('SELECT * FROM resumes WHERE id = ? AND user_id = ?');
-    $st->execute([$id, $userId]);
-    $r = $st->fetch();
-    if (!$r) {
-        erreur('introuvable', 'Ce CV n’existe pas.', 404);
-    }
-    return $r;
-}
 
 /* ----------------------------------------------------------------- routes */
 
@@ -115,11 +72,14 @@ if (route('POST', 'profil/cv/fichier', $seg, $methode) !== false) {
     $contenu = (string) file_get_contents((string) $f['tmp_name']);
     // le type se lit dans les octets, pas dans ce que le client declare
     $mime = (new finfo(FILEINFO_MIME_TYPE))->buffer($contenu) ?: 'application/octet-stream';
-    if (!in_array($mime, CV_MIMES, true)) {
-        erreur('format_refuse', 'Formats acceptés : PDF, JPEG, PNG, WebP.', 415);
+    $nomOrigine = mb_substr(basename((string) $f['name']), 0, 190) ?: 'cv';
+    if (extensionCv($mime, $nomOrigine) === null) {
+        erreur('format_refuse',
+            'Formats acceptés : PDF, Word (.doc, .docx), OpenDocument (.odt), RTF, texte, '
+            . 'et les images (JPEG, PNG, WebP, HEIC, TIFF).', 415);
     }
     [$cle, $iv, $tag] = rangeFichier($contenu);
-    $nom = mb_substr(basename((string) $f['name']), 0, 190) ?: 'cv';
+    $nom = $nomOrigine;
     $sha = hash('sha256', $contenu);
 
     $cvId = (int) champ('cv', 0) ?: (int) ($_POST['cv'] ?? 0);

@@ -67,6 +67,14 @@ define('EQUIPE_API_BASE', $cfg('AVP_EQUIPE_API', 'https://hackavp-api.duckdns.or
     POST /auth/forgot-password et POST /auth/reset-password. */
 define('COMPTE_ROUTES_EQUIPE', $cfg('AVP_EQUIPE_COMPTE_ROUTES', '') === '1');
 
+/** La passerelle d'echange de fichiers : ou vivent les dossiers, et sous quel
+    nom. UN seul dossier, celui que voit le compte FTPS partage — il a existe
+    un dossier par partenaire tant qu'on pensait ouvrir un acces par personne.
+    Le nom doit correspondre au « -home » du compte FTPS (cf. outils/
+    passerelle_comptes.py), sinon le veilleur ecrit ou personne ne regarde. */
+define('ECHANGE_DIR', $cfg('AVP_ECHANGE_DIR', ''));           // vide = a cote des CV chiffres
+define('ECHANGE_PARTENAIRE', $cfg('AVP_ECHANGE_PARTENAIRE', 'equipe'));
+
 /** API OPT-NC (portail Apigee). Vide = repli sur le dataset Hugging Face, sans cle. */
 define('OPT_API_KEY', $cfg('OPT_API_KEY', ''));
 const OPT_API_BASE = 'https://api.opt.nc';

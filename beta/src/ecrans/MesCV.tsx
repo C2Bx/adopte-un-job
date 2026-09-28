@@ -70,18 +70,21 @@ export function MesCV() {
 
   return (
     <div className="pvoie mescv">
-      <b>Mes CV</b>
+      <b>Mon CV</b>
       <span>
-        Le fichier que tu déposes est chiffré sur le serveur et remis à l’employeur <b>seulement</b> quand
-        il présélectionne ta candidature — avec un CV recentré sur le poste, généré depuis ce profil.
+        Dépose ton CV dans le format que tu as sous la main — <b>PDF, Word, OpenDocument,
+        RTF, texte ou photo</b>. Il est chiffré sur le serveur, puis transmis à la chaîne
+        d’analyse de l’équipe, qui en tire les rubriques et <b>remplit ce profil toute
+        seule</b>. Tu n’as rien à recopier : tu relis, et tu corriges ce qui va de travers.
       </span>
 
       {erreur && <div className="pal manque"><b>Problème</b>{erreur}</div>}
 
       <div className="mescv-actions">
         <label className="btn-fichier">
-          {envoi ? <><Spinner />Envoi…</> : actif?.fichier ? 'Remplacer le fichier' : 'Déposer mon CV (fichier)'}
-          <input type="file" accept=".pdf,image/*" hidden disabled={envoi}
+          {envoi ? <><Spinner />Envoi…</> : actif?.fichier ? 'Remplacer mon CV' : 'Déposer mon CV'}
+          <input type="file" hidden disabled={envoi}
+            accept=".pdf,.doc,.docx,.odt,.rtf,.txt,image/*"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) void depose(f) }} />
         </label>
         <a className="btn-mini" href={api.urlCvGenere()} target="_blank" rel="noreferrer">CV généré (PDF)</a>

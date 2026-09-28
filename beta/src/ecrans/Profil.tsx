@@ -7,7 +7,6 @@ import { api } from '../api'
 import {
   ETAPES, NIVEAUX, anneesExperience, completude, conseils, force, manques,
 } from '../regles'
-import { ImportCV } from './ImportCV'
 import { MesCV } from './MesCV'
 import { MonCompte } from './MonCompte'
 import { profilEnvoi } from '../regles'
@@ -22,7 +21,6 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
   const [etape, setEtape] = useState(0)
   const [ref, setRef] = useState<Referentiels | null>(null)
   const [etat, setEtat] = useState<Etat>('repos')
-  const [relecture, setRelecture] = useState(false)
   const premier = useRef(true)
   // Le serveur rattache les compétences au référentiel et le renvoie : on
   // reprend sa version sans redéclencher un enregistrement.
@@ -88,11 +86,16 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
               </span>
             </div>
 
-            <ImportCV profil={profil} onProfil={onProfil} onRelecture={setRelecture} />
-            {!relecture && <MesCV />}
-            {!relecture && <MonCompte />}
+            {/* La lecture du CV dans le navigateur (ImportCV, extraction.ts,
+                ocr.ts) est débranchée depuis le 29/09 : le fichier part
+                désormais à la chaîne d'extraction de l'équipe par la
+                passerelle, et revient en JSON Resume. Le code reste dans le
+                dépôt — il marche, il est audité, et il redeviendra le
+                deuxième chemin si la chaîne tarde. */}
+            <MesCV />
+            <MonCompte />
 
-            {!relecture && <>
+            {<>
             <div className="petapes">
               {ETAPES.map((t, i) => {
                 const n = aCombler.filter((m) => m.etape === i).length
@@ -145,7 +148,7 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
             </>}
           </div>
 
-          {!relecture && <aside className="pcol-b">
+          {<aside className="pcol-b">
             {c.length === 0
               ? <div className="pal ok"><b>Profil solide</b>Rien à améliorer côté structure.</div>
               : (
