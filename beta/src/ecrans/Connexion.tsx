@@ -4,17 +4,21 @@
 
    Les comptes ne sont pas à nous : c'est l'API de l'équipe qui les tient
    (`/auth/register`, `/auth/login`). D'où le prénom et le nom à l'inscription,
-   qu'elle exige — et l'absence de « mot de passe oublié », qu'elle n'expose
-   pas encore. */
+   qu'elle exige. Le parcours « mot de passe oublié » existe et est branché,
+   mais il ne s'affiche que si elle l'expose : un lien qui mène à un message
+   d'excuse vaut moins que pas de lien. */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { Spinner } from '../Attente'
 import { ErreurApi } from '../types'
 import type { Utilisateur } from '../types'
 
 export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Promise<void> }) {
-  const [mode, setMode] = useState<'connexion' | 'inscription'>('connexion')
+  const [mode, setMode] = useState<'connexion' | 'inscription' | 'oubli'>('connexion')
+  const [oubliPossible, setOubliPossible] = useState(false)
+  const [codeRecu, setCodeRecu] = useState('')
+  const [info, setInfo] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [mdp, setMdp] = useState('')
   const [prenom, setPrenom] = useState('')
@@ -22,11 +26,26 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
 
+  useEffect(() => { void api.capacites().then(setOubliPossible).catch(() => setOubliPossible(false)) }, [])
+
   const soumets = async (ev: React.FormEvent) => {
     ev.preventDefault()
     setErreur(null)
+    setInfo(null)
     setEnvoi(true)
     try {
+      if (mode === 'oubli') {
+        if (codeRecu.trim()) {
+          const r = await api.oubliConfirme(codeRecu.trim(), mdp)
+          setInfo(r.message)
+          setMode('connexion')
+          setMdp('')
+          setCodeRecu('')
+        } else {
+          setInfo((await api.oubli(email)).message)
+        }
+        return
+      }
       const u = mode === 'connexion'
         ? await api.connexion(email, mdp)
         : await api.inscription(email, mdp, prenom.trim(), nom.trim())
@@ -56,12 +75,12 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
           <button
             type="button"
             className={mode === 'connexion' ? 'on' : ''}
-            onClick={() => { setMode('connexion'); setErreur(null) }}
+            onClick={() => { setMode('connexion'); setErreur(null); setInfo(null) }}
           >J’ai déjà un compte</button>
           <button
             type="button"
             className={mode === 'inscription' ? 'on' : ''}
-            onClick={() => { setMode('inscription'); setErreur(null) }}
+            onClick={() => { setMode('inscription'); setErreur(null); setInfo(null) }}
           >Créer un compte</button>
         </div>
 
@@ -89,8 +108,16 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
             />
           </label>
 
-          <label className="pf">
-            <span className="pl">Mot de passe</span>
+          {mode === 'oubli' && (
+            <label className="pf">
+              <span className="pl">Code reçu (laisser vide pour en demander un)</span>
+              <input type="text" value={codeRecu} autoComplete="one-time-code"
+                onChange={(e) => setCodeRecu(e.target.value)} />
+            </label>
+          )}
+
+          {(mode !== 'oubli' || codeRecu.trim() !== '') && <label className="pf">
+            <span className="pl">{mode === 'oubli' ? 'Nouveau mot de passe' : 'Mot de passe'}</span>
             <input
               type="password" value={mdp} required minLength={mode === 'connexion' ? 1 : 12}
               autoComplete={mode === 'connexion' ? 'current-password' : 'new-password'}
@@ -102,13 +129,27 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
                 une majuscule imposée finit sur un papier collé à l’écran.
               </span>
             )}
-          </label>
+          </label>}
 
           {erreur && <div className="pal manque"><b>Ça n’a pas marché</b>{erreur}</div>}
+          {info && <div className="pal info"><b>Info</b>{info}</div>}
 
           <button className="btn primaire" type="submit" disabled={envoi}>
-            {envoi ? <><Spinner />Un instant…</> : mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'}
+            {envoi ? <><Spinner />Un instant…</>
+              : mode === 'connexion' ? 'Se connecter'
+              : mode === 'inscription' ? 'Créer mon compte'
+              : codeRecu.trim() ? 'Changer le mot de passe' : 'Recevoir un code'}
           </button>
+
+          {/* Seulement si le service de comptes sait le faire. */}
+          {mode === 'connexion' && oubliPossible && (
+            <button type="button" className="btn-mini" style={{ alignSelf: 'center' }}
+              onClick={() => { setMode('oubli'); setErreur(null); setInfo(null) }}>Mot de passe oublié</button>
+          )}
+          {mode === 'oubli' && (
+            <button type="button" className="btn-mini" style={{ alignSelf: 'center' }}
+              onClick={() => { setMode('connexion'); setErreur(null) }}>← Retour</button>
+          )}
         </form>
 
         <p className="accueil-note">

@@ -60,6 +60,13 @@ define('SYNC_TOKEN', $cfg('AVP_SYNC_TOKEN', ''));
     reference : aucun doublon possible, quelle que soit la source qui a servi. */
 define('EQUIPE_API_BASE', $cfg('AVP_EQUIPE_API', 'https://hackavp-api.duckdns.org'));
 
+/** Leur API sait-elle changer un mot de passe, une adresse, et traiter un oubli ?
+    Au 29/09 elle ne le sait pas : elle n'expose que /auth/register et /auth/login.
+    Les routes correspondantes repondent donc 501 et l'interface l'explique.
+    Passer a 1 le jour ou l'equipe livre PUT /auth/password, PUT /auth/email,
+    POST /auth/forgot-password et POST /auth/reset-password. */
+define('COMPTE_ROUTES_EQUIPE', $cfg('AVP_EQUIPE_COMPTE_ROUTES', '') === '1');
+
 /** API OPT-NC (portail Apigee). Vide = repli sur le dataset Hugging Face, sans cle. */
 define('OPT_API_KEY', $cfg('OPT_API_KEY', ''));
 const OPT_API_BASE = 'https://api.opt.nc';

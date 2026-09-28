@@ -11,6 +11,66 @@
 
 declare(strict_types=1);
 
+/* ------------------------------------------------- le compte, chez l'equipe
+
+   Ces quatre routes ne font que relayer : c'est leur service qui detient le
+   mot de passe et l'adresse. Tant qu'il n'expose pas ces gestes, elles
+   repondent 501 et l'interface le dit — cf. equipe.php. */
+
+/* Changer son mot de passe, connecte : l'ancien est exige, et c'est eux qui
+   le reverifient. Les autres sessions tombent : on change un mot de passe
+   parce qu'on doute de quelqu'un. */
+if (route('PUT', 'auth/motdepasse', $seg, $methode) !== false) {
+    $u = exigeConnexion();
+    limite('mdp:' . $u['id'], 5, 3600);
+    $nouveau = (string) champ('nouveau', '');
+    if (mb_strlen($nouveau) < 12) {
+        erreur('mot_de_passe_court', 'Le mot de passe doit faire au moins 12 caractères.', 422);
+    }
+    equipeChangeMotDePasse((string) $u['email'], (string) champ('ancien', ''), $nouveau);
+    $pdo->prepare('DELETE FROM sessions WHERE user_id = ? AND token <> ?')->execute([(int) $u['id'], jeton()]);
+    trace((int) $u['id'], 'changement_mot_de_passe', 'user', (int) $u['id']);
+    envoie(['ok' => true]);
+}
+
+/* Changer son adresse. Elle est la cle qui relie le compte local au leur :
+   elle ne bouge ici qu'une fois qu'elle a bouge chez eux. */
+if (route('PUT', 'auth/email', $seg, $methode) !== false) {
+    $u = exigeConnexion();
+    limite('email:' . $u['id'], 5, 3600);
+    $nouveau = mb_strtolower(texte('email', 190, true));
+    if (!filter_var($nouveau, FILTER_VALIDATE_EMAIL)) {
+        erreur('email_invalide', 'Cette adresse e-mail n’est pas valide.', 422);
+    }
+    $st = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id <> ?');
+    $st->execute([$nouveau, (int) $u['id']]);
+    if ($st->fetch()) {
+        erreur('email_pris', 'Un compte existe déjà avec cette adresse.', 409);
+    }
+    $retenu = equipeChangeEmail((string) $u['email'], (string) champ('motdepasse', ''), $nouveau);
+    $pdo->prepare('UPDATE users SET email = ? WHERE id = ?')->execute([$retenu, (int) $u['id']]);
+    trace((int) $u['id'], 'changement_email', 'user', (int) $u['id']);
+    envoie(['ok' => true, 'email' => $retenu]);
+}
+
+/* Mot de passe oublie. Meme reponse que l'adresse existe ou non : dire
+   « inconnue » revient a publier la liste des comptes. */
+if (route('POST', 'auth/oubli', $seg, $methode) !== false) {
+    limite('oubli:' . empreinteIp(), 5, 3600);
+    equipeOubli(mb_strtolower(texte('email', 190, true)));
+    envoie(['ok' => true, 'message' => 'Si cette adresse a un compte, un code lui est envoyé.']);
+}
+
+if (route('POST', 'auth/oubli/confirme', $seg, $methode) !== false) {
+    limite('oublic:' . empreinteIp(), 10, 3600);
+    $mdp = (string) champ('motdepasse', '');
+    if (mb_strlen($mdp) < 12) {
+        erreur('mot_de_passe_court', 'Le mot de passe doit faire au moins 12 caractères.', 422);
+    }
+    equipeReinit((string) champ('code', ''), $mdp);
+    envoie(['ok' => true, 'message' => 'Mot de passe changé. Connecte-toi.']);
+}
+
 /* Les sessions ouvertes, et de quoi fermer les autres. */
 if (route('GET', 'auth/sessions', $seg, $methode) !== false) {
     $u = exigeConnexion();

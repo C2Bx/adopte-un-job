@@ -118,8 +118,20 @@ export const api = {
     const d = await appel<{ utilisateur: Utilisateur | null }>('GET', 'auth/moi')
     return d.utilisateur
   },
+  /* Ce que le service de comptes permet, avant même d'être connecté : l'écran
+     d'accueil n'affiche « mot de passe oublié » que si ça mène quelque part. */
+  async capacites() {
+    const d = await appel<{ comptesModifiables: boolean }>('GET', 'auth/moi')
+    return d.comptesModifiables === true
+  },
   sessions: () => appel<{ sessions: { courante: boolean; ouverte: string; active: string; expire: string }[] }>('GET', 'auth/sessions'),
   fermeAutresSessions: () => appel<{ ok: boolean }>('DELETE', 'auth/sessions'),
+  /* Le compte est tenu par l'API de l'équipe : ces quatre gestes ne font que
+     la relayer, et répondent 501 tant qu'elle ne les expose pas. */
+  changeMotDePasse: (ancien: string, nouveau: string) => appel<{ ok: boolean }>('PUT', 'auth/motdepasse', { ancien, nouveau }),
+  changeEmail: (email: string, motdepasse: string) => appel<{ ok: boolean; email: string }>('PUT', 'auth/email', { email, motdepasse }),
+  oubli: (email: string) => appel<{ ok: boolean; message: string }>('POST', 'auth/oubli', { email }),
+  oubliConfirme: (code: string, motdepasse: string) => appel<{ ok: boolean; message: string }>('POST', 'auth/oubli/confirme', { code, motdepasse }),
   export: () => appel<Record<string, unknown>>('GET', 'auth/export'),
   supprimeCompte: () => appel<{ ok: boolean }>('DELETE', 'auth/compte'),
   cles: () => appel<{ cles: { id: number; nom: string; prefixe: string; creee: string; utilisee: string | null }[] }>('GET', 'cles'),

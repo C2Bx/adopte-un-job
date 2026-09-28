@@ -6,6 +6,9 @@
 export interface Utilisateur {
   id: number
   email: string
+  /** Le service de comptes de l'équipe sait-il changer mot de passe et adresse ?
+      C'est le serveur qui le dit ; le front n'affiche que ce qui aboutira. */
+  comptesModifiables?: boolean
 }
 
 export interface Langue {

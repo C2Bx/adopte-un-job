@@ -286,12 +286,18 @@ function httpGet(string $url, int $timeout = 30, array $entetes = []): ?string
 /** POST JSON sortant, memes regles. Rend [code, corps]. */
 function httpPostJson(string $url, array $corps, array $entetes = [], int $timeout = 15): array
 {
+    return httpJson('POST', $url, $corps, $entetes, $timeout);
+}
+
+/** Meme chose, pour n'importe quel verbe : PUT, PATCH, DELETE. */
+function httpJson(string $methode, string $url, array $corps, array $entetes = [], int $timeout = 15): array
+{
     $json = json_encode($corps, JSON_UNESCAPED_UNICODE);
     $entetes = array_merge(['Content-Type: application/json', 'Accept: application/json', 'User-Agent: adopte-un-job/1.0'], $entetes);
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $json,
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => $methode, CURLOPT_POSTFIELDS => $json,
             CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => $timeout, CURLOPT_HTTPHEADER => $entetes,
             CURLOPT_SSL_VERIFYPEER => !SSL_INSECURE,
         ]);
@@ -300,7 +306,7 @@ function httpPostJson(string $url, array $corps, array $entetes = [], int $timeo
         curl_close($ch);
         return [$r === false ? 0 : $code, $r === false ? '' : (string) $r];
     }
-    $ctx = stream_context_create(['http' => ['method' => 'POST', 'timeout' => $timeout, 'ignore_errors' => true,
+    $ctx = stream_context_create(['http' => ['method' => $methode, 'timeout' => $timeout, 'ignore_errors' => true,
         'header' => implode("\r\n", $entetes) . "\r\n", 'content' => $json]]);
     $r = @file_get_contents($url, false, $ctx);
     $code = 0;

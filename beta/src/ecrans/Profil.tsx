@@ -9,6 +9,7 @@ import {
 } from '../regles'
 import { ImportCV } from './ImportCV'
 import { MesCV } from './MesCV'
+import { MonCompte } from './MonCompte'
 import { profilEnvoi } from '../regles'
 import { Spinner } from '../Attente'
 import type { CompetenceOpt, MetierOpt } from '../types'
@@ -89,6 +90,7 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
 
             <ImportCV profil={profil} onProfil={onProfil} onRelecture={setRelecture} />
             {!relecture && <MesCV />}
+            {!relecture && <MonCompte />}
 
             {!relecture && <>
             <div className="petapes">

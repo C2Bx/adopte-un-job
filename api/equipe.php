@@ -133,3 +133,95 @@ function utilisateurLocal(PDO $pdo, string $email, string $prenom = '', string $
 
     return ['id' => $id, 'email' => $email, 'nouveau' => true];
 }
+
+/* ---------------------------------------------- changer ce qui est chez eux
+
+   Trois gestes manquent a leur API au 29/09 : changer son mot de passe,
+   changer son adresse, et le parcours « mot de passe oublie ». Ils sont
+   demandes a l'equipe ; le contrat ci-dessous est celui qui leur a ete
+   propose, et ces fonctions l'appliquent deja.
+
+   `COMPTE_ROUTES_EQUIPE` vaut false tant qu'ils n'ont pas livre : les routes
+   repondent alors 501, et l'interface affiche pourquoi au lieu d'un
+   formulaire qui echouerait.
+
+   Aucun jeton n'est conserve entre deux requetes : chacun de ces gestes exige
+   le mot de passe courant de toute facon, on s'en sert pour obtenir un jeton
+   frais juste avant l'appel. Un secret qu'on ne garde pas ne fuit pas. */
+
+/** Leur API sait-elle modifier un compte ? Faux tant qu'ils n'ont pas livre. */
+function comptesModifiables(): bool
+{
+    return defined('COMPTE_ROUTES_EQUIPE') && COMPTE_ROUTES_EQUIPE === true && baseEquipe() !== '';
+}
+
+function exigeComptesModifiables(): void
+{
+    if (!comptesModifiables()) {
+        erreur('non_disponible',
+            'Le service de comptes de l’équipe n’ouvre pas encore cette action. '
+            . 'Elle sera disponible ici sans rien changer d’autre le jour où il l’expose.', 501);
+    }
+}
+
+/** Un jeton frais, obtenu avec le mot de passe que l'utilisateur vient de saisir. */
+function jetonEquipe(string $email, string $mdp): string
+{
+    $d = equipeConnecte($email, $mdp);
+    $t = (string) ($d['accessToken'] ?? '');
+    if ($t === '') {
+        erreur('service_comptes', 'Le service de comptes n’a pas rendu de jeton.', 502);
+    }
+    return $t;
+}
+
+/** PUT /auth/password — le mot de passe courant est reverifie par eux. */
+function equipeChangeMotDePasse(string $email, string $ancien, string $nouveau): void
+{
+    exigeComptesModifiables();
+    $t = jetonEquipe($email, $ancien);
+    [$code, ] = httpJson('PUT', baseEquipe() . '/auth/password',
+        ['currentPassword' => $ancien, 'newPassword' => $nouveau],
+        ['Authorization: Bearer ' . $t], 20);
+    if ($code < 200 || $code >= 300) {
+        echecEquipe($code, 'password');
+    }
+}
+
+/** PUT /auth/email — rend la nouvelle adresse telle qu'ils l'ont enregistree. */
+function equipeChangeEmail(string $email, string $mdp, string $nouveau): string
+{
+    exigeComptesModifiables();
+    $t = jetonEquipe($email, $mdp);
+    [$code, $corps] = httpJson('PUT', baseEquipe() . '/auth/email',
+        ['password' => $mdp, 'newEmail' => $nouveau],
+        ['Authorization: Bearer ' . $t], 20);
+    if ($code < 200 || $code >= 300) {
+        echecEquipe($code, 'email');
+    }
+    $d = json_decode((string) $corps, true);
+    return mb_strtolower((string) (is_array($d) ? ($d['email'] ?? $nouveau) : $nouveau));
+}
+
+/** POST /auth/forgot-password — reponse identique que l'adresse existe ou non. */
+function equipeOubli(string $email): void
+{
+    exigeComptesModifiables();
+    [$code, ] = httpPostJson(baseEquipe() . '/auth/forgot-password', ['email' => $email], [], 20);
+    // Un 404 chez eux voudrait dire « adresse inconnue » : on ne le repercute
+    // pas, sinon cette route publie la liste des comptes.
+    if ($code >= 500 || $code === 0) {
+        echecEquipe($code, 'forgot');
+    }
+}
+
+/** POST /auth/reset-password — le code recu par courriel, et le nouveau mot de passe. */
+function equipeReinit(string $code, string $nouveau): void
+{
+    exigeComptesModifiables();
+    [$http, ] = httpPostJson(baseEquipe() . '/auth/reset-password',
+        ['token' => $code, 'newPassword' => $nouveau], [], 20);
+    if ($http < 200 || $http >= 300) {
+        erreur('code_invalide', 'Ce code est inconnu, expiré ou déjà utilisé.', 422);
+    }
+}
