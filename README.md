@@ -36,7 +36,7 @@ format JSON Resume).
 | Dossier | Contenu |
 |---|---|
 | `beta/` | L'application : React 19 + TypeScript strict, Vite. Sortie 100 % statique, empaquetable pour les magasins (Capacitor). Trois écrans : le deck, les candidatures, le profil. |
-| `api/` | L'API : PHP 8, MySQL 8, un point d'entrée `index.php`, un fichier par domaine. Routes, sécurité, pièges : [`api/README.md`](api/README.md). |
+| `api/` | L'API : PHP 8, MySQL 8, un point d'entrée `index.php`, un fichier par domaine. Routes, sécurité, pièges : [`api/README.md`](api/README.md). **Les comptes sont tenus par l'API de l'équipe HackAVP** : aucun mot de passe ici. |
 | `prototype/` | Le prototype d'origine (PHP + JS, `localStorage`), référence de mise en forme et mode démonstration sans compte. |
 | `site/` | Le site de documentation du projet : produit, matching, extraction, arbitrages, API, techno… |
 | `scripts/` | Migration du schéma (`migre.py`, avec le référentiel OPT-NC), recette de l'API (`essai_api.py`, CLI ou HTTPS), **banc d'essai de la lecture de CV** sur un corpus. |

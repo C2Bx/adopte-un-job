@@ -7,16 +7,26 @@
      sans AVP_API                  → CLI local (scripts/appel_cli.php), quand un
                                      antivirus ou un proxy bloque le serveur de dev.
 
-   Les comptes crees sont prefixes zz_ et supprimes a la fin par leur propre
-   session (DELETE auth/compte). Jamais de DELETE sans WHERE."""
+   ⚠ LES COMPTES NE SONT PLUS A NOUS. L'inscription et la connexion passent
+   par l'API de l'equipe ; un compte cree ici reste chez EUX — leur API n'a pas
+   de route de suppression, et leur /users est public. D'ou :
+
+     AVP_RECETTE_EMAIL=... AVP_RECETTE_MDP=...   un compte dedie, cree UNE fois,
+                                                 reutilise a chaque passage
+     sans ces variables                          la recette en cree un nouveau
+                                                 et le dit ; il restera chez eux
+
+   Le DELETE auth/compte final n'anonymise que la ligne locale : la prochaine
+   connexion la recree a partir de leur API. Jamais de DELETE sans WHERE."""
 import json, os, subprocess, sys, uuid, pathlib
 
 sys.stdout.reconfigure(encoding="utf-8")
 ICI = pathlib.Path(__file__).resolve().parent
 BASE = os.environ.get("AVP_API")
 tag = uuid.uuid4().hex[:6]
-CAND = f"zz_cand_{tag}@example.nc"
-MDP = "recette-adopte-un-job-2026"
+REUTILISE = bool(os.environ.get("AVP_RECETTE_EMAIL") and os.environ.get("AVP_RECETTE_MDP"))
+CAND = os.environ.get("AVP_RECETTE_EMAIL") or f"zz_cand_{tag}@example.nc"
+MDP = os.environ.get("AVP_RECETTE_MDP") or "recette-adopte-un-job-2026"
 ecarts = 0
 n = 0
 
@@ -103,7 +113,16 @@ appel("GET", "avp/999999999", attendu=404)
 
 # ---------------------------------------------------------------- candidat
 ligne("candidat")
-r = appel("POST", "auth/inscription", {"email": CAND, "motdepasse": MDP}, attendu=201)
+if REUTILISE:
+    print(f"  compte dédié réutilisé : {CAND}")
+    r = appel("POST", "auth/connexion", {"email": CAND, "motdepasse": MDP})
+else:
+    print("  ⚠ création d'un compte sur l'API de l'équipe : il y restera "
+          "(pas de route de suppression chez eux, et leur /users est public).")
+    print("    Pour éviter ça : AVP_RECETTE_EMAIL / AVP_RECETTE_MDP.")
+    r = appel("POST", "auth/inscription",
+              {"email": CAND, "motdepasse": MDP, "prenom": "Recette", "nom": "Automatique"},
+              attendu=201)
 tc = r["jeton"]
 appel("GET", "auth/moi", token=tc)
 appel("GET", "deck", token=tc, attendu=409)          # profil vide : verrou
@@ -178,6 +197,8 @@ appel("GET", "auth/export", token=tc)
 
 # ---------------------------------------------------------------- nettoyage (par sa propre session, jamais en masse)
 ligne("nettoyage")
+# N'efface que la ligne locale. Le compte reste chez l'equipe, et la prochaine
+# connexion recreera sa ligne ici, vide.
 appel("DELETE", "auth/compte", token=tc)
 
 print(f"\n{n} appels, {ecarts} écarts")

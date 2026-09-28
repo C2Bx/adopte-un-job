@@ -15,6 +15,7 @@ en **OpenAPI 3.1** : `GET /openapi.json`.
 | `opt.php` | Import et synchronisation des AVP réels, appels sortants vers l'API OPT-NC |
 | `documents.php` | CV recentré (PDF, FPDF vendu dans `lib/`) et JSON Resume |
 | `cv.php` `compte.php` `avp.php` `candidatures.php` `echange.php` | Un domaine par fichier, ses fonctions et ses routes |
+| `equipe.php` | Les comptes, tenus par l'API de l'équipe : inscription, connexion, ligne locale |
 | `doc.php` | Le tableau des routes documentées et le document OpenAPI |
 | `config.php` | **À créer** depuis `config.example.php`. Jamais versionné. Lit `private/avp.env` ou `api/.env` |
 | `schema.sql` + `migrations/` | 46 tables, rejouable (`CREATE TABLE IF NOT EXISTS`, `ALTER` gardés par `scripts/migre.py`) |
@@ -70,17 +71,40 @@ Trois moyens, selon le client :
 
 | Client | Transport | Durée |
 |---|---|---|
-| Navigateur | Cookie `avp_sid` — `HttpOnly`, `Secure`, `SameSite=Lax`, chemin `/avp/`, posé par l'API | 30 jours |
+| Navigateur | Cookie `avp_sid` — `HttpOnly`, `Secure`, `SameSite=Lax`, chemin `/avp/` (l'application **et** le prototype), posé par l'API | 30 jours |
 | Application native, script | `Authorization: Bearer <jeton>` (64 hexadécimaux, rendu à la connexion) | 30 jours |
 | Intégration (tableur, Power BI, robot) | `Authorization: Bearer aj_<prefixe>.<secret>` — clé créée par `POST cles`, secret montré une fois, révocable | jusqu'à révocation |
 
 La session est **renouvelée à la connexion** et liée à une empreinte du
-navigateur. Mots de passe hachés en **Argon2id**, 12 caractères minimum, sans
-règle de composition ; la connexion répond la même chose, dans le même temps,
-que le compte existe ou non (hachage factice). Réinitialisation et vérification
-d'e-mail existent (`auth/reinit`, `auth/verification`) : les codes sont mis en
-**file d'attente** (`email_queue`), **aucun e-mail ne part** — l'envoi est un
-choix à faire (fournisseur, domaine), pas un oubli.
+navigateur.
+
+### Les mots de passe ne sont pas ici
+
+Depuis le 29 septembre, `auth/inscription` et `auth/connexion` sont **relayées
+vers l'API de l'équipe** (`POST /auth/register`, `POST /auth/login` — voir
+`equipe.php`, adresse dans `AVP_EQUIPE_API`). Cette API ne stocke plus aucun mot
+de passe et n'en vérifie plus aucun : `users.pass_hash` reste vide, et une
+chaîne vide ne correspond à aucun mot de passe.
+
+La ligne `users` existe pour porter ce qui est à nous — profil, CV,
+candidatures, sessions, clés d'API. Elle est retrouvée ou créée **par
+l'adresse**, après que leur API a validé les identifiants ; un compte créé
+directement chez eux obtient la sienne à sa première connexion ici.
+
+Trois conséquences, assumées :
+
+- leur `RegisterRequest` déclare `nom` et `prenom` **obligatoires** : le
+  formulaire d'inscription les demande, et ils amorcent le profil ;
+- ils n'exposent **ni changement, ni réinitialisation de mot de passe, ni
+  vérification d'adresse** : ces routes n'existent plus ici non plus. Les
+  remettre reviendrait à tenir un second mot de passe, donc à en avoir deux ;
+- **leur service en panne = personne ne se connecte** (`503 service_comptes`).
+  Les sessions déjà ouvertes continuent : seule l'ouverture dépend d'eux.
+
+Le jeton qu'ils rendent (`accessToken`) n'est pas conservé : aucune route d'ici
+n'en a besoin, et garder un secret dont on ne se sert pas est un risque sans
+contrepartie. La file `email_queue` reste en place pour la fonction ④, mais
+**aucun e-mail ne part**.
 
 ## Les routes
 
@@ -190,10 +214,10 @@ code est stable, le message peut changer.
 
 Audit du 21 septembre 2026, tout point de l'audit du 14 traité :
 
-- Argon2id + hachage factice à la connexion, **limites de débit** par route
-  (`rate_limits` : connexion, inscription, réinitialisation, dépôt, messages,
-  synchronisation) et globale (240/min par adresse), **rotation de session** à
-  la connexion, empreinte du navigateur vérifiée.
+- **Limites de débit** par route (`rate_limits` : connexion, inscription,
+  dépôt, synchronisation) et globale (240/min par adresse), **rotation de
+  session** à la connexion, empreinte du navigateur vérifiée. Le hachage des
+  mots de passe n'est plus ici : il est chez l'équipe (voir plus haut).
 - **Vérification d'origine** sur toute écriture (`Origin` / `Sec-Fetch-Site`),
   liste blanche CORS (`AVP_ORIGINES`, `capacitor://localhost` pour le natif).
 - **En-têtes** : `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
