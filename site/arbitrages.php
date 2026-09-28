@@ -27,7 +27,7 @@
       <a href="profil.php"><b>Profil &amp; CV</b><span>Pôle 1</span></a>
       <a href="matching.php"><b>Swipe &amp; matching</b><span>Pôles 2 et 3</span></a>
       <a href="techno.php"><b>Techno</b><span>Web, mobile, données</span></a>
-      <a href="beta.php"><b>La bêta</b><span>L'app réelle, en ligne</span></a>
+      <a href="beta.php"><b>L’application</b><span>En ligne, réelle</span></a>
       <a href="extraction.php"><b>Lecture de CV</b><span>Audit et règles</span></a>
       <a href="api.php"><b>API &amp; base</b><span>Routes, schéma, sécurité</span></a>
       <a href="opensource.php"><b>Open source</b><span>Audit de l'existant</span></a>
@@ -213,6 +213,7 @@
       <tr><td>④ Candidature transmissible</td><td>Rien</td><td>PDF côté serveur, envoi par Brevo (le port 25 sortant est fermé chez l'hébergeur), archive</td></tr>
       <tr><td>Le jury joue l'employeur</td><td>Côté recruteur construit (deck entreprise, match à deux oui)</td><td><b>Gelé.</b> Un candidat choisit, une candidature part</td></tr>
       <tr><td>Le jury joue l'employeur — <i>revu le 21</i></td><td>Un vrai côté organisation</td><td><b>Dégelé, et retourné.</b> Le recruteur ne swipe plus : il reçoit des candidatures anonymes, présélectionne, propose des entretiens, lit un tableau de bord partagé par toute son organisation. Le second « oui » est la présélection, pas un swipe</td></tr>
+      <tr><td>Le jury joue l'employeur — <i>revu le 28</i></td><td>Un côté employeur complet, et personne derrière</td><td><b>Retiré.</b> <a href="#cote-employeur">Voir plus bas</a> : l'employeur est l'OPT-NC, il publie ailleurs et reçoit ailleurs. L'application est entièrement celle du candidat</td></tr>
       <tr><td>Track SaaS ou onPrem souverain (20 pts)</td><td>Hébergé à Sydney</td><td>Non tranché : demander le 16 comment les 20 points de <i>chaque</i> track sont notés avant de décider. Un tunnel Cloudflare n'est pas souverain</td></tr>
       <tr><td>Équipes de 1 à 5</td><td>Neuf</td><td>À trancher le 16</td></tr>
     </tbody>
@@ -224,7 +225,7 @@
       <tr><td>① Profil</td><td><b>Fait.</b> CV lu dans l'appareil (PDF, scan, photo), formulaire, métier visé et compétences rattachés au référentiel OPT-NC, fichier déposé chiffré, CV généré, JSON Resume.</td></tr>
       <tr><td>② Matching sur les AVP réels</td><td><b>Fait.</b> 23 AVP synchronisés depuis le dataset officiel, référentiel 84 métiers / 409 compétences, score v2 (structurel + lexical + explicite, écarts sans élimination, confiance à part), mêmes filtres que la recherche de l'OPT, recherche plein texte, offres closes pour s'entraîner. Le signal <code>/search</code> attend une clé.</td></tr>
       <tr><td>③ Quatre documents</td><td><b>Deux sur quatre.</b> CV recentré sur le poste (PDF) et restitution du matching (l'explication du score, des deux côtés). Manquent la lettre de motivation et la préparation d'entretien. Aucun modèle de langage n'est branché : ce qui est généré l'est par règles.</td></tr>
-      <tr><td>④ Candidature transmissible</td><td><b>Forme applicative faite.</b> Un oui est une candidature ; elle arrive chez l'organisation, anonyme puis complète (contact, CV recentré, CV d'origine), avec des propositions de messages et des créneaux d'entretien. Pas encore un fichier unique à envoyer hors de l'application, et aucun e-mail ne part (file prête).</td></tr>
+      <tr><td>④ Candidature transmissible</td><td><b>À faire, et c'est maintenant le sujet.</b> Le dossier existe côté serveur : CV recentré sur le poste, CV d'origine, JSON Resume. Il lui manque d'être envoyé — en un fichier, au contact indiqué par l'avis. <i>Le 28, le côté employeur a été retiré : la candidature ne peut plus « arriver dans l'application », elle doit en sortir.</i></td></tr>
       <tr><td>Sécurité</td><td><b>Les treize points de l'audit du 14 traités</b> : débit, origine, en-têtes, secrets hors docroot, rotation de session, chiffrement des fichiers, jeton hors <code>localStorage</code>, corps borné, clés d'API. Recette de 90 appels, 0 écart, en local et en production.</td></tr>
     </tbody>
   </table></div>
@@ -233,11 +234,18 @@
     <p><b>Neuf AVP ouverts, c'est un deck qui se vide en quarante secondes.</b> Le deck se nourrit donc de l'historique, étiqueté sans ambiguïté (« clos le … — pour t'entraîner », candidature désactivée), et le pitch se retourne : <i>choisir vite, candidater bien</i>. Le swipe est l'entonnoir ; le dossier de candidature est le produit. La vidéo passera trente secondes sur le premier et trois minutes sur le second.</p>
   </div>
 
+  <h2 id="cote-employeur">Le côté employeur, retiré (28 septembre)</h2>
+  <p>Le côté organisation a été construit deux fois : en swipe, puis en file de candidatures avec présélection, entretiens et tableau de bord. Il fonctionnait. Il a été <b>retiré en entier</b>, application et API.</p>
+  <p><b>Le motif tient en une phrase : personne n'était derrière.</b> L'employeur des AVP, c'est l'OPT-NC. Il publie ses avis dans son propre système et reçoit les candidatures au contact indiqué sur l'avis. Il n'allait pas ouvrir un compte chez nous pour traiter une deuxième fois ce qu'il reçoit déjà ailleurs. Tant que ce compte n'existait pas, les états que l'écran promettait au candidat — <i>vue</i>, <i>présélectionnée</i>, <i>entretien proposé</i> — n'avaient aucune chance d'arriver. Un agenda qui ne se remplit jamais et une messagerie où personne n'écrit valent moins que rien : ils font douter du reste.</p>
+  <p>Ce qui disparaît de l'application : l'agenda, la messagerie, le tableau de bord, les offres, l'organisation, la bascule de rôle. Ce qui disparaît de l'API : le compte recruteur, <code>auth/role</code>, et les routes <code>organisation</code>, <code>offres</code>, <code>matchs</code>, <code>agenda</code>, <code>tableau</code>. Le seul changement de statut qui reste est le <b>retrait</b> par le candidat.</p>
+  <p class="note"><b>Rien n'est détruit en base.</b> <code>companies</code> porte l'organisation émettrice de chaque AVP, et <code>matches</code>, <code>messages</code>, <code>entretiens</code> gardent l'historique. Les pages de conception de ce site (<a href="produit.php">Produit</a>, <a href="matching.php">Swipe &amp; matching</a>, <a href="design.php">Design</a>, <a href="questions.php">Questions</a>, <a href="prompt.php">Prompt</a>) décrivent le produit à deux côtés : elles sont laissées telles quelles, parce qu'elles disent ce qui a été conçu, à la date où ça l'a été.</p>
+  <p><b>Ce que ça libère :</b> tout ce qui était consacré à un utilisateur imaginaire va à la fonction ④, la candidature transmissible, qui est la seule des quatre à n'avoir jamais été commencée.</p>
+
   <h2 id="valider">Trois décisions qui vous appartiennent</h2>
   <p>Les points marqués <span class="badge warn">⚑</span> plus haut changent le travail de tout le monde. Ils sont écrits dans le wiki parce que la recommandation est nette et unanime, mais ils doivent être validés en réunion avant le sprint 1 :</p>
   <ol>
     <li><b>Abandonner React Native pour du web seul.</b> Si l'un de vous tenait au mobile natif comme objectif d'apprentissage, c'est le moment de le dire.</li>
-    <li><b>Retirer le swipe au recruteur.</b> C'est la moitié du concept affiché. Assumez-le : le slogan reste vrai côté candidat, et le produit devient utilisable côté entreprise. <i>Fait le 21 : le recruteur traite des candidatures, il ne swipe pas.</i></li>
+    <li><b>Retirer le swipe au recruteur.</b> C'est la moitié du concept affiché. Assumez-le : le slogan reste vrai côté candidat, et le produit devient utilisable côté entreprise. <i>Fait le 21 : le recruteur traite des candidatures, il ne swipe pas. Puis <a href="#cote-employeur">retiré en entier le 28</a> : il n'y avait personne pour s'en servir.</i></li>
     <li><b>Choisir un secteur pilote.</b> Une piste évidente : votre propre campus — stages, alternance, premiers emplois. Vous avez accès aux deux côtés du marché.</li>
   </ol>
 

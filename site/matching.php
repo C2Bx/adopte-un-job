@@ -36,7 +36,7 @@
       <a href="profil.php"><b>Profil &amp; CV</b><span>Pôle 1</span></a>
       <a href="matching.php" aria-current="page"><b>Swipe &amp; matching</b><span>Pôles 2 et 3</span></a>
       <a href="techno.php"><b>Techno</b><span>Web, mobile, données</span></a>
-      <a href="beta.php"><b>La bêta</b><span>L'app réelle, en ligne</span></a>
+      <a href="beta.php"><b>L’application</b><span>En ligne, réelle</span></a>
       <a href="extraction.php"><b>Lecture de CV</b><span>Audit et règles</span></a>
       <a href="api.php"><b>API &amp; base</b><span>Routes, schéma, sécurité</span></a>
       <a href="opensource.php"><b>Open source</b><span>Audit de l'existant</span></a>
@@ -54,6 +54,11 @@
   <div class="eyebrow">03 — Pôles 2 et 3</div>
   <h1 class="title">Swipe &amp; matching</h1>
   <p class="chapo">Le swipe n'est pas un gadget d'interface : c'est ce qui oblige à ne montrer que l'essentiel, et donc à savoir ce qui est essentiel. La carte et le score se conçoivent ensemble.</p>
+
+  <div class="note" style="border-left:3px solid var(--warn,#c98a17)">
+    <p style="margin-bottom:0"><b>Cette page décrit la conception d'avant le 28 septembre</b>, quand le produit avait un côté employeur. Il a été retiré : l'application est entièrement celle du candidat. Le motif est dans le <a href="arbitrages.php#cote-employeur">journal de décision</a> ; l'état actuel est décrit dans <a href="beta.php">L’application</a>. La page est laissée telle quelle : elle dit ce qui a été conçu, à la date où ça l'a été.</p>
+  </div>
+
 
   <h2 id="carte">La carte</h2>
   <p>Même structure des deux côtés, seul le contenu change. Le grand bloc central que Tinder consacre à la photo, on le consacre au <strong>métier</strong> : c'est notre équivalent du visage.</p>

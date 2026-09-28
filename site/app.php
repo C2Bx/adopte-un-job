@@ -17,11 +17,8 @@
 .fake .dot{width:9px;height:9px;border-radius:99px;background:var(--accent);flex:none}
 
 .protohead{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:20px}
+.protohead .reset{margin-left:auto}
 .protohead h1{font-size:clamp(1.7rem,4vw,2.3rem)}
-.roles{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:11px;margin-left:auto}
-.roles button{font:inherit;font-size:.86rem;font-weight:600;border:none;background:none;color:var(--muted);
-  padding:7px 15px;border-radius:8px;cursor:pointer}
-.roles button.on{background:var(--paper);color:var(--ink);box-shadow:var(--shadow)}
 .reset{font:inherit;font-size:.78rem;font-weight:600;border:1px solid var(--line);background:var(--paper);
   color:var(--muted);border-radius:8px;padding:6px 12px;cursor:pointer}
 
@@ -119,7 +116,7 @@
 .blockers{background:var(--no-soft);border-radius:11px;padding:12px 15px;margin:14px 0;font-size:.88rem;color:var(--ink-2)}
 .blockers b{color:var(--no)}
 
-/* ---------------- liste recruteur ---------------- */
+/* ---------------- listes et fiches ---------------- */
 .pick{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
 .pick select{font:inherit;font-size:.9rem;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:8px 11px;color:var(--ink)}
 .opt{display:flex;align-items:center;gap:7px;font-size:.86rem;color:var(--ink-2);cursor:pointer}
@@ -197,7 +194,7 @@
       <a href="profil.php"><b>Profil &amp; CV</b><span>Pôle 1</span></a>
       <a href="matching.php"><b>Swipe &amp; matching</b><span>Pôles 2 et 3</span></a>
       <a href="techno.php"><b>Techno</b><span>Web, mobile, données</span></a>
-      <a href="beta.php"><b>La bêta</b><span>L'app réelle, en ligne</span></a>
+      <a href="beta.php"><b>L’application</b><span>En ligne, réelle</span></a>
       <a href="extraction.php"><b>Lecture de CV</b><span>Audit et règles</span></a>
       <a href="api.php"><b>API &amp; base</b><span>Routes, schéma, sécurité</span></a>
       <a href="opensource.php"><b>Open source</b><span>Audit de l'existant</span></a>
@@ -213,17 +210,13 @@
 
   <div class="fake">
     <span class="dot"></span>
-    <span><b>Prototype — toutes les données sont inventées.</b> Ces entreprises, ces offres et ces candidats n'existent pas. Le score est réellement calculé par le code de la page, avec les règles arrêtées en version 0.3.</span>
+    <span><b>Prototype — toutes les données sont inventées.</b> Ces entreprises, ces offres et ces candidats n'existent pas. Le score est réellement calculé par le code de la page, avec les règles arrêtées en version 0.3. Il montre le produit tel qu'il était conçu alors : la suite qu'annonce l'écran de match — créneaux, conversation — n'existe plus, le <a href="arbitrages.php#cote-employeur">côté employeur a été retiré le 28 septembre</a>.</span>
   </div>
 
   <div class="protohead">
     <div>
       <div class="eyebrow">Démo cliquable</div>
       <h1 class="title" style="margin:6px 0 0">Premier prototype</h1>
-    </div>
-    <div class="roles">
-      <button type="button" data-role="candidat" class="on">Côté candidat</button>
-      <button type="button" data-role="recruteur">Côté recruteur</button>
     </div>
     <button class="reset" id="reset" type="button">Recommencer</button>
   </div>
@@ -255,21 +248,6 @@
       <button type="button" data-h="hors">Hors de mes critères</button>
     </div>
     <div class="hist" id="chist"></div>
-  </section>
-
-  <!-- ================= RECRUTEUR ================= -->
-  <section id="vue-recruteur" hidden>
-    <div class="pick">
-      <select id="offreSel"></select>
-      <label class="opt"><input type="checkbox" id="recOpt"> Cette offre est ouverte aux reconversions</label>
-    </div>
-    <div class="split">
-      <div>
-        <div class="stats2" id="rstats"></div>
-        <div class="rows" id="rrows"></div>
-      </div>
-      <div class="panel" id="rdetail"></div>
-    </div>
   </section>
 
 </div>
@@ -516,7 +494,7 @@
     return { score: den ? num / den : 0, confiance: tot ? connus / tot : 0, parts: parts };
   }
 
-  function fitRecruteur(c, o) {
+  function fitPoste(c, o) {
     var cov = couverture(c, o);
     var exp = o.expMin === 0 ? 1 : Math.min(1, c.experience / o.expMin);
     var form = c.formation >= o.formation ? 1 : Math.max(0, 1 - (o.formation - c.formation) * 0.35);
@@ -552,7 +530,7 @@
 
   function evalue(c, o) {
     var ctr = contraintes(c, o);
-    var fr = fitRecruteur(c, o);
+    var fr = fitPoste(c, o);
     var fc = fitCandidat(c, o);
     return {
       offre: o, candidat: c, contraintes: ctr, fr: fr, fc: fc,
@@ -590,7 +568,7 @@
      ÉTAT
      ===================================================================== */
   var CLE = 'avp.proto.v1';
-  var S = { decisions: {}, invites: {}, ouvert: false, recOpt: {}, offreCourante: 1, hist: 'aimees', role: 'candidat' };
+  var S = { decisions: {}, ouvert: false, hist: 'aimees' };
   try { var raw = localStorage.getItem(CLE); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
   function save() { try { localStorage.setItem(CLE, JSON.stringify(S)); } catch (e) {} }
 
@@ -887,91 +865,6 @@
   }
 
   /* =====================================================================
-     VUE RECRUTEUR — liste classée, pas de deck
-     ===================================================================== */
-  function renderRecruteur() {
-    var o = OFFRES.filter(function (x) { return x.id === S.offreCourante; })[0];
-    $('#recOpt').checked = !!S.recOpt[o.id];
-    var ouvert = !!S.recOpt[o.id];
-
-    var evs = CANDIDATS.map(function (c) {
-      var e = evalue(c, o);
-      e.reconv = c.metiers.indexOf(o.famille) !== -1 && c.famille !== o.famille;
-      return e;
-    }).filter(function (e) {
-      if (!e.contraintes.ok) return false;
-      if (e.reconv && !ouvert) return false;
-      return true;
-    }).sort(function (a, b) { return b.fr.score - a.fr.score; });
-
-    var exclus = CANDIDATS.length - evs.length;
-    $('#rstats').innerHTML =
-      '<span><b>' + evs.length + '</b> profils proposés</span>' +
-      '<span><b>' + exclus + '</b> écartés par les contraintes ou la reconversion</span>' +
-      '<span>offre <b>' + esc(o.titre) + '</b></span>';
-
-    $('#rrows').innerHTML = evs.length ? evs.map(function (e, i) {
-      var c = e.candidat;
-      var inv = S.invites[o.id + '-' + c.id];
-      return '<div class="row2" data-c="' + c.id + '">' +
-        '<span class="rank" style="color:' + couleur(e.fr.score) + '">' + pc(e.fr.score) + '<small>SUR 100</small></span>' +
-        '<span class="who2"><b>' + esc(c.prenom + ' ' + c.initiale) + '</b>' +
-        '<div class="l">' + esc(c.parcours) + '</div>' +
-        '<span class="tg">' + c.experience + ' ans</span>' +
-        '<span class="tg">' + NIVEAU[c.formation] + '</span>' +
-        '<span class="tg">confiance ' + niveauConf(e.confiance) + '</span>' +
-        (e.reconv ? '<span class="tg rec">reconversion</span>' : '') +
-        (inv ? '<span class="tg inv">invité</span>' : '') +
-        '</span>' +
-        '<button class="inviteb" data-i="' + c.id + '"' + (inv ? ' disabled' : '') + '>' + (inv ? 'Invité' : 'Inviter') + '</button>' +
-        '</div>';
-    }).join('') : '<p class="none" style="padding:22px">Aucun profil ne passe les contraintes de cette offre. ' +
-      (ouvert ? '' : 'Ouvre-la aux reconversions pour élargir.') + '</p>';
-
-    Array.prototype.forEach.call($('#rrows').querySelectorAll('.row2'), function (r) {
-      r.addEventListener('click', function (ev) {
-        if (ev.target.classList.contains('inviteb')) return;
-        var c = CANDIDATS.filter(function (x) { return x.id === +r.dataset.c; })[0];
-        montreCandidat(evalue(c, o));
-        if ($('#rdetail').scrollIntoView) $('#rdetail').scrollIntoView({ block: 'nearest' });
-      });
-    });
-    Array.prototype.forEach.call($('#rrows').querySelectorAll('.inviteb'), function (b) {
-      b.addEventListener('click', function () {
-        var c = CANDIDATS.filter(function (x) { return x.id === +b.dataset.i; })[0];
-        S.invites[o.id + '-' + c.id] = true; save();
-        renderRecruteur();
-        if (c.id === 1 && S.decisions[o.id] && S.decisions[o.id].etat === 'aimees') montreMatch(evalue(MOI, o));
-        else montreCandidat(evalue(c, o), true);
-      });
-    });
-
-    if (evs.length) montreCandidat(evs[0]); else $('#rdetail').innerHTML = '<p class="none">Sélectionne un profil.</p>';
-  }
-
-  function montreCandidat(e, invite) {
-    var c = e.candidat, o = e.offre, p = pourquoi(e);
-    $('#rdetail').innerHTML =
-      '<h2>' + esc(c.prenom + ' ' + c.initiale) + '</h2>' +
-      '<div class="sub">' + esc(c.parcours) + '</div>' +
-      (invite ? '<div class="blockers" style="background:var(--ok-soft)"><b style="color:var(--ok)">Invitation envoyée.</b> Le match sera créé si la personne accepte.</div>' : '') +
-      '<div class="bars">' + barres(e) + '</div>' +
-      '<div class="why">' +
-        '<div><div class="eyebrow" style="color:var(--ok)">Ce qui correspond</div><ul>' +
-          p.oui.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>' +
-        '<div><div class="eyebrow" style="color:var(--accent)">Points à vérifier</div><ul>' +
-          (p.att.length ? p.att.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') : '<li>Rien à signaler</li>') + '</ul></div>' +
-      '</div>' +
-      '<h3 style="font-size:.95rem;margin:18px 0 6px">Compétences déclarées</h3>' +
-      '<div>' + c.competences.map(function (s) {
-        var d = o.requis.indexOf(s) !== -1;
-        return '<span class="tg' + (d ? ' inv' : '') + '">' + esc(s) + '</span>';
-      }).join('') + '</div>' +
-      '<div class="blockers" style="background:var(--sunk);margin-top:18px"><b style="color:var(--ink)">Ce qui reste masqué</b>' +
-      '<p style="margin:6px 0 0">Nom complet, coordonnées, employeurs nommés, établissement de formation et CV d’origine ne seront visibles qu’après le match. Le lieu de résidence n’est jamais collecté, seulement les zones acceptées. Aucune photo, ni avant ni après.</p></div>';
-  }
-
-  /* =====================================================================
      MATCH
      ===================================================================== */
   function montreMatch(e) {
@@ -1015,26 +908,10 @@
     };
   });
 
-  Array.prototype.forEach.call(document.querySelectorAll('.roles button'), function (b) {
-    b.onclick = function () {
-      S.role = b.dataset.role; save();
-      Array.prototype.forEach.call(document.querySelectorAll('.roles button'), function (x) { x.classList.toggle('on', x === b); });
-      $('#vue-candidat').hidden = S.role !== 'candidat';
-      $('#vue-recruteur').hidden = S.role !== 'recruteur';
-      if (S.role === 'recruteur') renderRecruteur(); else renderDeck();
-    };
-  });
-
-  $('#offreSel').innerHTML = OFFRES.filter(function (o) { return o.fin >= AUJ; }).map(function (o) {
-    return '<option value="' + o.id + '">' + esc(o.titre) + ' — ' + esc(o.org) + '</option>';
-  }).join('');
-  $('#offreSel').value = String(S.offreCourante);
-  $('#offreSel').onchange = function () { S.offreCourante = +this.value; save(); renderRecruteur(); };
-  $('#recOpt').onchange = function () { S.recOpt[S.offreCourante] = this.checked; save(); renderRecruteur(); };
 
   $('#reset').onclick = function () {
     if (!confirm('Effacer toutes tes décisions et repartir de zéro ?')) return;
-    S = { decisions: {}, invites: {}, ouvert: false, recOpt: {}, offreCourante: 1, hist: 'aimees', role: S.role };
+    S = { decisions: {}, ouvert: false, hist: 'aimees' };
     save(); location.reload();
   };
 
@@ -1049,12 +926,8 @@
   // démarrage
   $('#ouverture').checked = S.ouvert;
   Array.prototype.forEach.call(document.querySelectorAll('#ctabs button'), function (x) { x.classList.toggle('on', x.dataset.h === S.hist); });
-  Array.prototype.forEach.call(document.querySelectorAll('.roles button'), function (x) { x.classList.toggle('on', x.dataset.role === S.role); });
-  $('#vue-candidat').hidden = S.role !== 'candidat';
-  $('#vue-recruteur').hidden = S.role !== 'recruteur';
   renderDeck();
   renderHist();
-  renderRecruteur();
 })();
 </script>
 </body>

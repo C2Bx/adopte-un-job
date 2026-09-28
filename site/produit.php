@@ -27,7 +27,7 @@
       <a href="profil.php"><b>Profil &amp; CV</b><span>Pôle 1</span></a>
       <a href="matching.php"><b>Swipe &amp; matching</b><span>Pôles 2 et 3</span></a>
       <a href="techno.php"><b>Techno</b><span>Web, mobile, données</span></a>
-      <a href="beta.php"><b>La bêta</b><span>L'app réelle, en ligne</span></a>
+      <a href="beta.php"><b>L’application</b><span>En ligne, réelle</span></a>
       <a href="extraction.php"><b>Lecture de CV</b><span>Audit et règles</span></a>
       <a href="api.php"><b>API &amp; base</b><span>Routes, schéma, sécurité</span></a>
       <a href="opensource.php"><b>Open source</b><span>Audit de l'existant</span></a>
@@ -45,6 +45,11 @@
   <div class="eyebrow">01 — Produit</div>
   <h1 class="title">Ce qu'on construit</h1>
   <p class="chapo">Le problème n'est pas qu'il manque des offres ou des candidats. C'est que les deux se parlent à travers un format — le CV — que personne ne peut comparer.</p>
+
+  <div class="note" style="border-left:3px solid var(--warn,#c98a17)">
+    <p style="margin-bottom:0"><b>Cette page décrit la conception d'avant le 28 septembre</b>, quand le produit avait un côté employeur. Il a été retiré : l'application est entièrement celle du candidat. Le motif est dans le <a href="arbitrages.php#cote-employeur">journal de décision</a> ; l'état actuel est décrit dans <a href="beta.php">L’application</a>. La page est laissée telle quelle : elle dit ce qui a été conçu, à la date où ça l'a été.</p>
+  </div>
+
 
   <h2 id="probleme">Le problème, des deux côtés</h2>
   <p>Un candidat envoie trente CV, n'obtient aucun retour, et ne sait jamais si son profil correspondait vraiment. Un recruteur reçoit deux cents candidatures dans deux cents mises en page différentes, et passe son temps à chercher la même information au même endroit sans jamais la trouver.</p>

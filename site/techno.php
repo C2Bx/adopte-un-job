@@ -27,7 +27,7 @@
       <a href="profil.php"><b>Profil &amp; CV</b><span>Pôle 1</span></a>
       <a href="matching.php"><b>Swipe &amp; matching</b><span>Pôles 2 et 3</span></a>
       <a href="techno.php" aria-current="page"><b>Techno</b><span>Web, mobile, données</span></a>
-      <a href="beta.php"><b>La bêta</b><span>L'app réelle, en ligne</span></a>
+      <a href="beta.php"><b>L’application</b><span>En ligne, réelle</span></a>
       <a href="extraction.php"><b>Lecture de CV</b><span>Audit et règles</span></a>
       <a href="api.php"><b>API &amp; base</b><span>Routes, schéma, sécurité</span></a>
       <a href="opensource.php"><b>Open source</b><span>Audit de l'existant</span></a>
@@ -45,6 +45,11 @@
   <div class="eyebrow">04 — Technique</div>
   <h1 class="title">Une seule base de code</h1>
   <p class="chapo">L'application doit exister sur le web et sur mobile. À neuf personnes et sur un semestre, écrire deux fois la même chose n'est pas une option — le choix du socle est donc la décision la plus structurante du projet.</p>
+
+  <div class="note" style="border-left:3px solid var(--warn,#c98a17)">
+    <p style="margin-bottom:0"><b>Cette page décrit la conception d'avant le 28 septembre</b>, quand le produit avait un côté employeur. Il a été retiré : l'application est entièrement celle du candidat. Le motif est dans le <a href="arbitrages.php#cote-employeur">journal de décision</a> ; l'état actuel est décrit dans <a href="beta.php">L’application</a>. La page est laissée telle quelle : elle dit ce qui a été conçu, à la date où ça l'a été.</p>
+  </div>
+
 
     <h2 id="cross">Web ou natif : tranché</h2>
 
@@ -81,7 +86,7 @@
 
 <h2 id="stack">La pile complète</h2>
   <dl class="kv">
-    <dt>Application</dt><dd>React 19 + TypeScript, construit par Vite, site installable et responsive. Une seule base de code pour le web, iOS et Android. <b>La bêta tourne</b> : <a href="beta.php">description</a>, en ligne sur <a href="beta/">zako.nc/avp/beta/</a></dd>
+    <dt>Application</dt><dd>React 19 + TypeScript, construit par Vite, site installable et responsive. Une seule base de code pour le web, iOS et Android. <b>L’application tourne</b> : <a href="beta.php">description</a>, en ligne sur <a href="beta/">zako.nc/avp/beta/</a></dd>
     <dt>Swipe</dt><dd>Gestes tactiles du navigateur, avec repli en boutons sur toutes les actions — côté candidat uniquement</dd>
     <dt>API</dt><dd><b>PHP 8 + PDO</b>, un seul point d'entrée. Le choix FastAPI reposait sur un seul argument — « la lecture de documents vit en Python » — et cet argument est tombé : l'extraction de CV se fait <b>dans le navigateur</b> avec pdf.js, le serveur n'a plus de PDF à lire. Restait la contrainte qui décide vraiment : sur le vhost mutualisé du projet, PHP se déploie aujourd'hui, un service Python demande un hébergement qu'on n'a pas</dd>
     <dt>Base</dt><dd><b>MySQL 8 seul</b>, 46 tables, en production ; recherche plein texte native pour le catalogue. <b>Pas de recherche vectorielle</b> : aucun usage de la version 1 ne l'exige, et un plongement ne sait pas gérer une contrainte dure — il rapprocherait « permis B » et « permis poids lourd ». Le détail est sur la page <a href="api.php">API &amp; base</a></dd>

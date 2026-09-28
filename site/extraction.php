@@ -27,7 +27,7 @@
       <a href="profil.php"><b>Profil &amp; CV</b><span>Pôle 1</span></a>
       <a href="matching.php"><b>Swipe &amp; matching</b><span>Pôles 2 et 3</span></a>
       <a href="techno.php"><b>Techno</b><span>Web, mobile, données</span></a>
-      <a href="beta.php"><b>La bêta</b><span>L'app réelle, en ligne</span></a>
+      <a href="beta.php"><b>L’application</b><span>En ligne, réelle</span></a>
       <a href="extraction.php"><b>Lecture de CV</b><span>Audit et règles</span></a>
       <a href="api.php"><b>API &amp; base</b><span>Routes, schéma, sécurité</span></a>
       <a href="opensource.php"><b>Open source</b><span>Audit de l'existant</span></a>
@@ -82,7 +82,7 @@
   <p>Le dossier de CV sert de corpus permanent : un script passe les huit documents dans le fichier <b>réellement servi</b> et sort un tableau champ par champ. À relancer après chaque modification. C'est lui qui a attrapé les régressions introduites en cours de route — un motif trop large qui mangeait « Fév. 2023 », un seuil resserré qui perdait un bandeau de nom.</p>
 
   <h2 id="ocr">Scans et photos : la même chaîne, une source de plus</h2>
-  <p>Ce qui rend la lecture possible n'est pas le PDF : c'est une liste de <b>fragments de texte avec leur position et leur taille</b>. Un moteur de reconnaissance optique produit exactement ça — des mots avec leur boîte — et la suite de la chaîne (colonnes, bandeau d'identité, rubriques) ne voit pas la différence. Depuis le 14 septembre, la bêta accepte donc une image (JPG, PNG, WebP) et bascule d'elle-même sur l'OCR quand un PDF n'a pas de couche texte.</p>
+  <p>Ce qui rend la lecture possible n'est pas le PDF : c'est une liste de <b>fragments de texte avec leur position et leur taille</b>. Un moteur de reconnaissance optique produit exactement ça — des mots avec leur boîte — et la suite de la chaîne (colonnes, bandeau d'identité, rubriques) ne voit pas la différence. Depuis le 14 septembre, l’application accepte donc une image (JPG, PNG, WebP) et bascule d'elle-même sur l'OCR quand un PDF n'a pas de couche texte.</p>
   <dl class="kv">
     <dt>Moteur</dt><dd>Tesseract en WebAssembly (tesseract.js 6), modèle français « fast » de 1,1 Mo. Tout est servi par l'application — moteur, cœur, modèle — pas par un CDN : la promesse « rien ne sort » vaut aussi pour la trace de qui utilise l'app. Chargé à la demande, jamais à l'ouverture.</dd>
     <dt>Aucun modèle de langage</dt><dd>Lire des pixels et comprendre du texte sont deux tâches. La première est de la reconnaissance de formes, résolue depuis vingt ans ; la seconde, ce sont nos règles. Un modèle multimodal lirait mieux une photo de travers, mais il inventerait une année qui n'est pas sur le document, dans une phrase parfaitement formée — et le CV partirait chez un tiers.</dd>

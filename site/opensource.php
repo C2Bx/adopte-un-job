@@ -27,7 +27,7 @@
       <a href="profil.php"><b>Profil &amp; CV</b><span>Pôle 1</span></a>
       <a href="matching.php"><b>Swipe &amp; matching</b><span>Pôles 2 et 3</span></a>
       <a href="techno.php"><b>Techno</b><span>Web, mobile, données</span></a>
-      <a href="beta.php"><b>La bêta</b><span>L'app réelle, en ligne</span></a>
+      <a href="beta.php"><b>L’application</b><span>En ligne, réelle</span></a>
       <a href="extraction.php"><b>Lecture de CV</b><span>Audit et règles</span></a>
       <a href="api.php"><b>API &amp; base</b><span>Routes, schéma, sécurité</span></a>
       <a href="opensource.php" aria-current="page"><b>Open source</b><span>Audit de l'existant</span></a>
@@ -45,6 +45,11 @@
   <div class="eyebrow">05 — Audit</div>
   <h1 class="title">Ce qu'on ne réécrit pas</h1>
   <p class="chapo">Une bonne partie de ce projet a déjà été résolue par d'autres. L'enjeu n'est pas de tout prendre, mais de savoir précisément où l'existant nous fait gagner des semaines et où il nous coûterait plus cher que de l'écrire.</p>
+
+  <div class="note" style="border-left:3px solid var(--warn,#c98a17)">
+    <p style="margin-bottom:0"><b>Cette page décrit la conception d'avant le 28 septembre</b>, quand le produit avait un côté employeur. Il a été retiré : l'application est entièrement celle du candidat. Le motif est dans le <a href="arbitrages.php#cote-employeur">journal de décision</a> ; l'état actuel est décrit dans <a href="beta.php">L’application</a>. La page est laissée telle quelle : elle dit ce qui a été conçu, à la date où ça l'a été.</p>
+  </div>
+
 
   <div class="note">
     <p><b>Avertissement sur les licences.</b> Les licences indiquées sont celles connues au moment d'écrire, et plusieurs de ces projets en ont déjà changé. <b>Vérifiez la licence au moment d'intégrer</b>, pas au moment de lire. Deux pièges classiques : une licence de type AGPL contamine ce qu'on distribue, et certaines bibliothèques Python très courantes sont en double licence libre ou commerciale.</p>
