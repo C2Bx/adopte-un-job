@@ -51,19 +51,7 @@ export function MesCV() {
     }
   }
 
-  const exporteJsonResume = async () => {
-    try {
-      const d = await api.jsonResume()
-      const blob = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' })
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = 'resume.json'
-      a.click()
-      URL.revokeObjectURL(a.href)
-    } catch (e) {
-      setErreur(e instanceof ErreurApi ? e.message : 'Export impossible.')
-    }
-  }
+
 
   if (cvs === null) return null
   const actif = cvs.find((c) => c.actif) ?? null
@@ -87,8 +75,6 @@ export function MesCV() {
             accept=".pdf,.doc,.docx,.odt,.rtf,.txt,image/*"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) void depose(f) }} />
         </label>
-        <a className="btn-mini" href={api.urlCvGenere()} target="_blank" rel="noreferrer">CV généré (PDF)</a>
-        <button type="button" className="btn-mini" onClick={() => void exporteJsonResume()}>JSON Resume</button>
       </div>
 
       {cvs.length > 0 && (
