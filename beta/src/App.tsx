@@ -41,6 +41,7 @@ interface Badges { interets: number; interetsMatch: boolean; messages: number; a
 
 export function App() {
   const [charge, setCharge] = useState(false)
+  const [panne, setPanne] = useState(false)
   const [moi, setMoi] = useState<Utilisateur | null>(null)
   const [profil, setProfil] = useState<Profil>(profilVide)
   const [onglet, setOnglet] = useState<Onglet>('swipe')
@@ -76,24 +77,35 @@ export function App() {
     }
   }, [])
 
-  useEffect(() => {
-    let vivant = true
-    void (async () => {
-      let u: Utilisateur | null = null
+  /* Au démarrage, on demande au serveur qui on est.
+
+     `auth/moi` répond 200 avec `utilisateur: null` quand personne n'est
+     connecté : une exception ici n'est donc JAMAIS un « pas connecté », c'est
+     le réseau, le serveur ou une limite de débit. Les confondre renvoyait à
+     l'écran de connexion sur un simple hoquet — un F5 malchanceux suffisait à
+     « déconnecter » quelqu'un dont la session était parfaitement valide, et
+     le jeton en mémoire était perdu avec le rechargement. On réessaie, puis
+     on le dit, au lieu de faire croire à une déconnexion. */
+  const demarre = useCallback(async (): Promise<void> => {
+    setPanne(false)
+    let u: Utilisateur | null = null
+    for (let essai = 0; ; essai++) {
       try {
         u = await api.moi()
+        break
       } catch {
-        u = null
+        if (essai >= 1) { setPanne(true); setCharge(true); return }
+        await new Promise((r) => setTimeout(r, 1200))
       }
-      if (!vivant) return
-      setMoi(u)
-      if (u && u.role !== 'candidat') setOnglet(u.organisation ? 'tableau' : 'organisation')
-      await chargeProfil(u)
-      await rafraichisBadges(u)
-      if (vivant) setCharge(true)
-    })()
-    return () => { vivant = false }
+    }
+    setMoi(u)
+    if (u && u.role !== 'candidat') setOnglet(u.organisation ? 'tableau' : 'organisation')
+    await chargeProfil(u)
+    await rafraichisBadges(u)
+    setCharge(true)
   }, [chargeProfil, rafraichisBadges])
+
+  useEffect(() => { void demarre() }, [demarre])
 
   const entre = async (u: Utilisateur) => {
     setMoi(u)
@@ -145,6 +157,17 @@ export function App() {
 
   if (!charge) {
     return <div className="chargement" role="status">Chargement…</div>
+  }
+  /* Le serveur n'a pas répondu : on ne sait pas si la session est valide, donc
+     on ne prétend pas qu'elle ne l'est plus. */
+  if (panne) {
+    return (
+      <div className="chargement" role="alert">
+        <b>Le serveur n’a pas répondu</b>
+        <span>Ta session n’est pas perdue pour autant : c’est la connexion qui a manqué.</span>
+        <button className="btn primaire" onClick={() => { setCharge(false); void demarre() }}>Réessayer</button>
+      </div>
+    )
   }
   if (!moi) {
     return <Connexion onEntre={entre} />

@@ -4,9 +4,14 @@
    pose déjà. */
 
 .chargement {
-  min-height: 100dvh; display: grid; place-items: center;
+  min-height: 100dvh; display: grid; place-items: center; align-content: center;
+  gap: var(--s3); text-align: center; padding: var(--s6);
   color: var(--ink-3); font-size: var(--t-sm); background: var(--bg);
 }
+.chargement b { font-size: var(--t-lg); color: var(--ink); font-family: var(--font-display);
+  font-weight: var(--display-weight); letter-spacing: var(--display-tracking); }
+.chargement span { max-width: 46ch; }
+.chargement .btn { margin-top: var(--s2); }
 
 /* ------------------------------------------------------------- l'accueil */
 .accueil {
