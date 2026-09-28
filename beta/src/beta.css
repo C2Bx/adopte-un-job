@@ -1,7 +1,6 @@
-/* Ce que la bêta ajoute au système de design existant : l'accueil (qui n'existait
-   pas — le prototype n'avait pas de comptes), la conversation, et quelques
-   ajustements des écrans repris. Rien n'est redéfini ici de ce que design.css
-   pose déjà. */
+/* Ce que l'application ajoute au système de design existant : l'accueil (qui
+   n'existait pas — le prototype n'avait pas de comptes) et quelques ajustements
+   des écrans repris. Rien n'est redéfini ici de ce que design.css pose déjà. */
 
 .chargement {
   min-height: 100dvh; display: grid; place-items: center; align-content: center;
@@ -30,18 +29,12 @@
 .accueil .btn.primaire { width: 100%; margin-top: var(--s2); }
 .accueil-note { margin-top: var(--s6); font-size: var(--t-xs); color: var(--ink-3); line-height: 1.6; }
 .mark.grand svg { width: 34px; height: 34px; }
+.mark.grand .logo { height: 42px; }
 
 @media (min-width: 900px) {
   .accueil { display: grid; place-items: center; }
   .accueil-in { max-width: 520px; }
   .accueil h1 { font-size: var(--t-3xl); }
-}
-
-/* L'étiquette bêta remplace l'étiquette démo : ce n'est plus une maquette. */
-.tag-beta {
-  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-  background: var(--brand-soft); color: var(--brand);
-  border-radius: var(--r-full); padding: 3px 8px; margin-left: var(--s2);
 }
 
 /* --------------------------------------------------- l'état d'enregistrement */
@@ -75,44 +68,7 @@
 .criteres span { color: var(--ink-2); }
 .criteres b { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
 
-.nonlus {
-  align-self: center; min-width: 20px; height: 20px; border-radius: var(--r-full);
-  background: var(--no); color: #fff; font-family: var(--font-num); font-size: 10px;
-  display: grid; place-items: center; padding: 0 5px;
-}
-
-/* --------------------------------------------------------- la conversation */
-.conv { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.conv-top {
-  display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap;
-  padding: var(--s4) var(--s5); border-bottom: 1px solid var(--line); background: var(--surface);
-}
-.conv-top b { font-family: var(--font-display); font-weight: var(--display-weight); }
-.conv-top span { font-size: var(--t-xs); color: var(--ink-3); }
-.conv-fil { flex: 1; min-height: 0; overflow: auto; padding: var(--s5); display: grid; gap: var(--s3); }
-.bulle {
-  max-width: 78%; justify-self: start; background: var(--surface);
-  border: 1px solid var(--line); border-radius: var(--r-md);
-  padding: var(--s3) var(--s4); font-size: var(--t-sm); line-height: 1.5;
-}
-.bulle.moi { justify-self: end; background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
-.bulle time { display: block; font-size: 10px; opacity: .65; margin-top: 4px; }
-.conv-saisie {
-  display: flex; gap: var(--s2); padding: var(--s3) var(--s5) calc(var(--safe-bot) + var(--s4));
-  border-top: 1px solid var(--line); background: var(--surface);
-}
-.conv-saisie input {
-  flex: 1; min-height: var(--tap); border: 1px solid var(--line); border-radius: var(--r-md);
-  background: var(--bg); color: var(--ink); padding: 0 var(--s4); font-size: var(--t-md);
-}
-.conv-saisie .btn { padding: 0 var(--s5); }
-
-@media (min-width: 720px) {
-  .conv-fil { padding: var(--s6) var(--s7); }
-  .bulle { max-width: 60%; }
-}
-
-/* ------------------------------------------------- la grille du deck, bêta
+/* ------------------------------------------------------- la grille du deck
    Le prototype plaçait une barre de filtres en première ligne ; ici la première
    ligne est le deck lui-même. Sans cette reprise, `grid-template-rows: auto 1fr`
    donnait toute la hauteur aux boutons et repoussait la carte hors de l'écran. */
@@ -123,7 +79,7 @@
 }
 #ec-swipe .filters { grid-area: filtres; }
 #ec-swipe .zone-deck { position: relative; min-height: 0; grid-area: deck; }
-/* Le prototype pose cette marge sur .deck, que la bêta n'a pas : sans elle, la
+/* Le prototype pose cette marge sur .deck, que l'application n'a pas : sans elle, la
    carte est collée aux quatre bords. */
 #ec-swipe .card { inset: var(--s2) var(--s4) var(--s3); }
 #ec-swipe .side { display: none; }
@@ -145,8 +101,8 @@
   #ec-swipe .side h3:first-child { margin-top: 0; }
 }
 
-/* La barre du prototype est figée sur cinq colonnes ; la bêta n'a que quatre
-   onglets, d'où la colonne vide à droite et les libellés tassés à gauche.
+/* La barre du prototype est figée sur cinq colonnes ; l'application n'en a que
+   trois, d'où les colonnes vides à droite et les libellés tassés à gauche.
    Autant de colonnes que de boutons, quel qu'en soit le nombre. */
 @media (max-width: 719px) {
   .nav { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }

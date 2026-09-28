@@ -199,7 +199,7 @@ export function ImportCV({ profil, onProfil, onRelecture }: Props) {
         <b>J’ai un CV</b>
         <span>
           Dépose un PDF, une photo ou un scan : il est <b>lu dans l’appareil</b>, puis conservé chiffré pour
-          être remis au recruteur qui te présélectionne. Tu relis ce qui a été trouvé, champ par champ.
+          être remis à l’employeur qui te présélectionne. Tu relis ce qui a été trouvé, champ par champ.
         </span>
         <label className="btn-fichier">
           Choisir un fichier

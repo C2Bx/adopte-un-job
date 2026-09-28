@@ -47,7 +47,7 @@ interface Props {
    de défilement est masquée par le style, et une molette verticale ne bouge
    pas un conteneur horizontal. La rangée paraissait donc figée — alors que le
    curseur « grab » et la classe `.dragging` de la feuille de style promettaient
-   un glissé que personne ne branchait côté bêta. */
+   un glissé que personne ne branchait. */
 function useGlisseHorizontal<T extends HTMLElement>() {
   const ref = useRef<T>(null)
   useEffect(() => {
@@ -423,7 +423,7 @@ function pagesDe(o: Offre): { titre: string; corps: React.ReactNode }[] {
       titre: 'Pourquoi ce score',
       corps: (
         <ul className="criteres">
-          {[...s.detail.recruteur, ...s.detail.candidat].map((c) => (
+          {[...s.detail.poste, ...s.detail.candidat].map((c) => (
             <li key={c.cle}>
               <span>{c.cle}</span>
               <b>{c.v === null ? 'non renseigné' : `${Math.round(c.v * 100)} %`}</b>
@@ -708,7 +708,7 @@ export function explique(o: Offre, p: Profil): { oui: string[]; att: string[]; n
     if (manque.length) att.push(`Manque : ${manque.join(', ')}`)
   }
 
-  const exp = s?.detail?.recruteur.find((x) => x.cle === 'Expérience')
+  const exp = s?.detail?.poste.find((x) => x.cle === 'Expérience')
   if (o.experienceMin === 0) oui.push('Aucune expérience exigée')
   else if (exp?.v === 1) oui.push(`Expérience suffisante pour les ${o.experienceMin} ans demandés`)
   else if (exp && exp.v === null) att.push(`${o.experienceMin} ans demandés — ton ancienneté n’est pas renseignée`)
@@ -763,7 +763,7 @@ export function BlocScore({ offre: o }: { offre: Offre }) {
       {s?.detail && (
         <>
           <h3>Ce que l’employeur regarde</h3>
-          <Jauges parts={s.detail.recruteur} />
+          <Jauges parts={s.detail.poste} />
           <h3>Ce que tu regardes</h3>
           <Jauges parts={s.detail.candidat} />
           {(st || lex) && (

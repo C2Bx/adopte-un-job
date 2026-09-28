@@ -3,9 +3,12 @@
 Un poste qui te correspond, pas trente CV envoyés. Application de mise en
 relation **candidat ↔ AVP réels de l'OPT-NC** en mode « swipe », avec un **score
 de compatibilité explicable**, une **lecture de CV dans l'appareil** (PDF, scan
-ou photo), et, de l'autre côté, un **espace organisation** : plusieurs comptes RH
-sur les mêmes offres, candidatures anonymes jusqu'à la présélection, dossier
-(CV recentré + CV d'origine), entretiens, tableau de bord.
+ou photo) et un **dossier de candidature** — CV recentré sur le poste, plus le
+CV d'origine, chiffré au repos.
+
+L'employeur, c'est l'OPT-NC : il publie ses AVP dans son propre système, pas
+ici. L'application est donc entièrement du côté du candidat, et la candidature
+part vers le contact indiqué par l'avis.
 
 Projet d'étudiants, candidat au **#HackAVP** (OPT-NC · Station N · OPEN NC),
 premier hackathon dédié à l'emploi dans la fonction publique en Nouvelle-Calédonie.
@@ -20,19 +23,8 @@ ouverts, scorés et triés, avec les **mêmes filtres que la recherche officiell
 (ville, province, famille, direction, contrat, encadrement, télétravail…) et une
 barre de recherche. **Rien n'élimine** : n'importe quel profil peut candidater à
 n'importe quel poste, les écarts baissent le score et sont dits. Un « oui » est
-une candidature ; on suit son état, on discute après la présélection, on
-confirme un créneau d'entretien dans l'agenda, on exporte en `.ics`.
-
-**Organisation.** Un compte RH rejoint son organisation par un code
-d'invitation (ou la crée). Les offres sont les **AVP synchronisés depuis le
-dataset officiel** de l'OPT-NC (`opt-nc/odata-avps`) ; on peut aussi en
-publier. Les candidatures arrivent **anonymes**, classées par compatibilité,
-avec le détail du score ; la présélection ouvre le contact et le dossier :
-**CV recentré sur le poste** (généré) et **CV d'origine** (déposé chiffré). Des
-propositions de premiers messages, pour les deux côtés, par règles. Un
-**tableau de bord par organisation** : 13 indicateurs définis, séries par
-jour, entonnoir, répartitions, compétences manquantes, classement des offres,
-activité de l'équipe, export CSV.
+une candidature ; on suit son état, on peut la retirer, et le dossier
+(CV recentré + CV d'origine) se télécharge à tout moment.
 
 **API REST.** Tout ce qui précède est une API documentée en OpenAPI 3.1
 (`GET /openapi.json`), avec des clés d'API pour les intégrations. La première
@@ -43,17 +35,17 @@ format JSON Resume).
 
 | Dossier | Contenu |
 |---|---|
-| `beta/` | L'application : React 19 + TypeScript strict, Vite. Sortie 100 % statique, empaquetable pour les magasins (Capacitor). Deux jeux d'écrans selon le rôle. |
+| `beta/` | L'application : React 19 + TypeScript strict, Vite. Sortie 100 % statique, empaquetable pour les magasins (Capacitor). Trois écrans : le deck, les candidatures, le profil. |
 | `api/` | L'API : PHP 8, MySQL 8, un point d'entrée `index.php`, un fichier par domaine. Routes, sécurité, pièges : [`api/README.md`](api/README.md). |
 | `prototype/` | Le prototype d'origine (PHP + JS, `localStorage`), référence de mise en forme et mode démonstration sans compte. |
 | `site/` | Le site de documentation du projet : produit, matching, extraction, arbitrages, API, techno… |
-| `scripts/` | Migration du schéma (`migre.py`, avec le référentiel OPT-NC), recette de l'API (`essai_api.py`, 90 appels, CLI ou HTTPS), **banc d'essai de la lecture de CV** sur un corpus. |
+| `scripts/` | Migration du schéma (`migre.py`, avec le référentiel OPT-NC), recette de l'API (`essai_api.py`, CLI ou HTTPS), **banc d'essai de la lecture de CV** sur un corpus. |
 
 ## Lecture de CV : PDF, scan, photo
 
 Le CV est lu par le navigateur ; ce qui est envoyé, c'est le résultat relu,
 puis — si l'utilisateur le veut — le fichier lui-même, chiffré côté serveur
-(AES-256-GCM) et remis uniquement à l'organisation qui présélectionne.
+(AES-256-GCM), joint au dossier de candidature et supprimé avec le compte.
 
 - **PDF avec texte** → pdf.js donne des fragments positionnés ; on reconstruit
   la mise en page (colonnes, bandeau d'identité par taille de police), puis des
@@ -108,8 +100,6 @@ AVP_CV_DIR=cv python scripts/audit_corpus.py                    # tout un dossie
 
 - Aucune photo, aucun lieu de résidence, **aucune date sur les formations**
   (l'année d'obtention révèle l'âge). Le schéma n'a pas les colonnes.
-- Une organisation ne voit qu'un profil anonyme avant de présélectionner ; le
-  masquage est fait par le serveur, pas par l'interface.
 - Le fichier de CV est chiffré, stocké hors du docroot, supprimé avec le compte.
 - Consentement versionné à l'inscription, export complet et suppression
   (anonymisation), journal des accès aux données.

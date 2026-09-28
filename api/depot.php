@@ -92,49 +92,6 @@ function profilComplet(PDO $pdo, int $id): array
     ];
 }
 
-/**
- * Le candidat vu par une entreprise. Avant match : ni nom, ni prenom, ni
- * contact. Ce n'est pas de la pudeur, c'est ce qui empeche de trier sur autre
- * chose que les competences.
- */
-function candidatVuParEntreprise(PDO $pdo, int $id, bool $apresMatch): array
-{
-    $p = profilComplet($pdo, $id);
-    $public = [
-        'id'          => $id,
-        'metiers'     => $p['metiers'],
-        'metiersOpt'  => $p['metiersOpt'],
-        'competences' => $p['competences'],
-        'competencesOpt' => array_map(static fn ($x) => ['code' => $x['code'], 'nom' => $x['nom']], $p['competencesOpt']),
-        'experiences' => array_map(static fn ($e) => [
-            'poste'   => $e['poste'],
-            'secteur' => $e['secteur'],
-            'debut'   => $e['debut'],
-            'fin'     => $e['fin'],
-        ], $p['experiences']),
-        // Le niveau, jamais l'annee d'obtention : elle revele l'age.
-        'formations'  => array_map(static fn ($f) => ['niveau' => (int) $f['niveau'], 'domaine' => $f['domaine']], $p['formations']),
-        'langues'     => $p['langues'],
-        'zones'       => $p['zones'],
-        'contrats'    => $p['contrats'],
-        'dispo'       => $p['dispo'],
-        'teletravail' => $p['teletravail'],
-        'formation'   => $p['formation'],
-    ];
-    if (!$apresMatch) {
-        return $public;
-    }
-    // Le contact s'ouvre : prenom, nom, telephone et l'e-mail du compte.
-    $st = $pdo->prepare('SELECT email FROM users WHERE id = ? AND status = "actif"');
-    $st->execute([$id]);
-    return $public + [
-        'prenom'    => $p['prenom'],
-        'nom'       => $p['nom'],
-        'initiale'  => $p['initiale'],
-        'telephone' => $p['telephone'],
-        'email'     => ($st->fetchColumn() ?: null),
-    ];
-}
 
 /* ---------------------------------------------------------------- l'offre */
 
@@ -188,6 +145,7 @@ function garnisOffre(PDO $pdo, array $o): array
     $o['formation_min'] = $o['formation_min'] === null ? null : (int) $o['formation_min'];
     return $o;
 }
+
 
 /** L'offre telle qu'on la montre : pas de colonnes internes, pas d'identifiants d'auteur. */
 function offrePublique(array $o): array
@@ -254,46 +212,6 @@ function offrePublique(array $o): array
     ];
 }
 
-/* -------------------------------------------------------------- les matchs */
-
-function matchExiste(PDO $pdo, int $jobId, int $candId): ?array
-{
-    $st = $pdo->prepare('SELECT * FROM matches WHERE job_id = ? AND candidate_id = ?');
-    $st->execute([$jobId, $candId]);
-    return $st->fetch() ?: null;
-}
-
-/** L'utilisateur a-t-il le droit de lire ce match ? Le candidat, ou l'entreprise. */
-function accesAuMatch(PDO $pdo, array $u, int $matchId): array
-{
-    $st = $pdo->prepare(
-        'SELECT m.*, j.company_id, j.titre FROM matches m JOIN jobs j ON j.id = m.job_id WHERE m.id = ?'
-    );
-    $st->execute([$matchId]);
-    $m = $st->fetch();
-    if (!$m) {
-        erreur('introuvable', 'Ce match n’existe pas.', 404);
-    }
-    if ((int) $m['candidate_id'] === (int) $u['id']) {
-        return $m;
-    }
-    $st = $pdo->prepare('SELECT 1 FROM company_members WHERE company_id = ? AND user_id = ?');
-    $st->execute([$m['company_id'], $u['id']]);
-    if ($st->fetch() || $u['role'] === 'admin') {
-        return $m;
-    }
-    erreur('interdit', 'Ce match ne vous concerne pas.', 403);
-}
-
-/** L'entreprise de l'utilisateur connecte, creee au besoin lors de la premiere offre. */
-function entrepriseDe(PDO $pdo, int $userId): ?int
-{
-    $st = $pdo->prepare('SELECT company_id FROM company_members WHERE user_id = ? ORDER BY created_at LIMIT 1');
-    $st->execute([$userId]);
-    $id = $st->fetchColumn();
-    return $id === false ? null : (int) $id;
-}
-
 /**
  * Ce qui manque encore au profil pour qu'un score veuille dire quelque chose.
  * La meme liste que cote navigateur, mais c'est celle-ci qui fait foi : un
@@ -329,4 +247,61 @@ function manquesProfil(PDO $pdo, int $id): array
         $m[] = 'Ton niveau de formation';
     }
     return $m;
+}
+
+/* ------------------------------------------------- ecriture du profil
+
+   Ces deux aides vivaient dans le routeur ; la passerelle d'echange en a
+   besoin et ne peut pas charger un routeur, qui executerait toutes les
+   routes. Elles sont ici, avec le reste de l'acces aux donnees. */
+
+/** Vide puis reecrit une table de liaison a une colonne. */
+function remplace(PDO $pdo, string $table, string $colonne, int $userId, array $valeurs): void
+{
+    $pdo->prepare("DELETE FROM `$table` WHERE user_id = ?")->execute([$userId]);
+    if (!$valeurs) {
+        return;
+    }
+    $ins = $pdo->prepare("INSERT IGNORE INTO `$table` (user_id, `$colonne`) VALUES (?,?)");
+    foreach ($valeurs as $v) {
+        $ins->execute([$userId, $v]);
+    }
+}
+
+/**
+ * Resout des libelles en identifiants de competences.
+ * Trois passes dans l'ordre : le slug canonique, puis les alias connus, puis la
+ * creation. Comparer par slug apres coup recreerait chaque alias en double —
+ * « dev web » deviendrait une competence distincte de « Developpement web ».
+ */
+function idsOuCree(PDO $pdo, array $libelles): array
+{
+    $ids = [];
+    $parSlug  = $pdo->prepare('SELECT id FROM skills WHERE slug = ?');
+    $parAlias = $pdo->prepare('SELECT skill_id FROM skill_aliases WHERE alias = ?');
+    $ins      = $pdo->prepare('INSERT IGNORE INTO skills (slug, label, family) VALUES (?,?,?)');
+
+    foreach ($libelles as $brut) {
+        $lab = trim((string) $brut);
+        $s = slugue($lab);
+        if ($s === '') {
+            continue;
+        }
+        $parSlug->execute([$s]);
+        $id = $parSlug->fetchColumn();
+        if ($id === false) {
+            $parAlias->execute([mb_strtolower($lab, 'UTF-8')]);
+            $id = $parAlias->fetchColumn();
+        }
+        if ($id === false) {
+            // Inconnue du referentiel : elle y entre plutot que d'etre perdue.
+            $ins->execute([$s, mb_substr($lab, 0, 80), 'libre']);
+            $parSlug->execute([$s]);
+            $id = $parSlug->fetchColumn();
+        }
+        if ($id !== false && !in_array((int) $id, $ids, true)) {
+            $ids[] = (int) $id;
+        }
+    }
+    return $ids;
 }

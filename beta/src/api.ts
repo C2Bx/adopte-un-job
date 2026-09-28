@@ -7,8 +7,8 @@
 
 import { ErreurApi } from './types'
 import type {
-  Candidature, CandidatVu, CvInfo, Entretien, Evenement, Facettes, Filtres, Interet, MatchLigne, Membre,
-  Message, MetierOpt, Offre, Organisation, Profil, ProfilEnvoi, Referentiels, Role, StatutCandidature, Tableau, Utilisateur,
+  Candidature, CvInfo, Evenement, Facettes, Filtres, Interet,
+  MetierOpt, Offre, Profil, ProfilEnvoi, Referentiels, StatutCandidature, Utilisateur,
 } from './types'
 
 const RACINE = '/avp/app/api/index.php'
@@ -94,8 +94,8 @@ function filtresEnQuery(f: Filtres = {}): Record<string, string | number | boole
 
 export const api = {
   /* ------------------------------------------------------------- comptes */
-  async inscription(email: string, motdepasse: string, role: 'candidat' | 'recruteur', organisation?: string, code?: string) {
-    const d = await appel<{ jeton: string; utilisateur: Utilisateur }>('POST', 'auth/inscription', { email, motdepasse, role, organisation, code })
+  async inscription(email: string, motdepasse: string) {
+    const d = await appel<{ jeton: string; utilisateur: Utilisateur }>('POST', 'auth/inscription', { email, motdepasse, role: 'candidat' })
     poseJeton(d.jeton)
     return d.utilisateur
   },
@@ -113,12 +113,6 @@ export const api = {
   },
   async moi() {
     const d = await appel<{ utilisateur: Utilisateur | null }>('GET', 'auth/moi')
-    return d.utilisateur
-  },
-  /* Changer de côté sans changer de compte. Le serveur refuse (403) si le
-     compte n'est pas déclaré polyvalent : le bouton n'ouvre aucun droit. */
-  async basculeRole(role: Role) {
-    const d = await appel<{ utilisateur: Utilisateur }>('POST', 'auth/role', { role })
     return d.utilisateur
   },
   reinit: (email: string) => appel<{ ok: boolean; message: string }>('POST', 'auth/reinit', { email }),
@@ -177,7 +171,6 @@ export const api = {
   avpDetail: (id: number) => appel<{ offre: Offre; candidature: { id: number; statut: StatutCandidature } | null; metier?: { nom: string; famille: string; competences: { code: string; nom: string; poids: string; niveau_requis: string | null }[] } }>('GET', `avp/${id}`),
   vue: (id: number, source: 'deck' | 'detail' | 'recherche' | 'lien') =>
     appel<{ ok: boolean }>('POST', `avp/${id}/vue`, { source }).catch(() => ({ ok: false })),
-  candidatsDe: (offre: number, vivier = false) => appel<{ candidats: CandidatVu[]; offre: Offre }>('GET', `avp/${offre}/candidats`, undefined, { vivier }),
 
   /* ----------------------------------------------------------------- deck */
   async deck(f: Filtres = {}) {
@@ -206,52 +199,7 @@ export const api = {
   urlCvCandidature: (id: number) => urlApi(`candidatures/${id}/cv.pdf`),
   urlCvOriginal: (id: number) => urlApi(`candidatures/${id}/cv-original`),
 
-  /* --------------------------------------------------------------- agenda */
-  async agenda() {
-    const d = await appel<{ entretiens: Entretien[]; maintenant: string }>('GET', 'agenda')
-    return d
-  },
-  proposeCreneaux: (candidature: number, creneaux: string[], duree: number, mode: string, lieu?: string, notes?: string) =>
-    appel<{ entretiens: Entretien[] }>('POST', `candidatures/${candidature}/entretiens`, { creneaux: creneaux.map((debut) => ({ debut })), duree, mode, lieu, notes }),
-  statutEntretien: (id: number, statut: 'confirme' | 'refuse' | 'annule' | 'termine') =>
-    appel<{ entretien: Entretien }>('PUT', `entretiens/${id}`, { statut }),
-  urlIcs: (id: number) => urlApi(`entretiens/${id}/ics`),
-
-  /* --------------------------------------------------------------- matchs */
-  async matchs() {
-    const d = await appel<{ matchs: MatchLigne[] }>('GET', 'matchs')
-    return d.matchs
-  },
-  match: (id: number) => appel<{ match: { id: number; qualite: number; statut: string }; offre: Offre; candidature: { id: number; statut: StatutCandidature } | null; candidat?: CandidatVu; entretiens: unknown[] }>('GET', `matchs/${id}`),
-  async messages(matchId: number) {
-    const d = await appel<{ messages: Message[] }>('GET', `matchs/${matchId}/messages`)
-    return d.messages
-  },
-  envoieMessage: (matchId: number, corps: string) => appel<{ ok: boolean }>('POST', `matchs/${matchId}/messages`, { corps }),
-  suggestionsMatch: (matchId: number) => appel<{ suggestions: string[] }>('GET', `matchs/${matchId}/suggestions`),
   notifications: () => appel<{ notifications: { id: number; type: string; donnees: Record<string, unknown> | null; quand: string; lu: boolean }[] }>('GET', 'notifications'),
   notificationsLues: () => appel<{ ok: boolean }>('POST', 'notifications/lu'),
 
-  /* --------------------------------------------------------- organisation */
-  async organisation() {
-    const d = await appel<{ organisation: Organisation | null }>('GET', 'organisation')
-    return d.organisation
-  },
-  creeOrganisation: (o: { nom: string; secteur?: string; taille?: string; site?: string; pitch?: string }) => appel<{ organisation: Organisation }>('POST', 'organisation', o),
-  modifieOrganisation: (o: { nom: string; secteur?: string; taille?: string; site?: string; pitch?: string }) => appel<{ organisation: Organisation }>('PUT', 'organisation', o),
-  rejoins: (code: string) => appel<{ organisation: Organisation }>('POST', 'organisation/rejoindre', { code }),
-  membres: () => appel<{ membres: Membre[]; codeInvitation: string | null }>('GET', 'organisation/membres'),
-  nouveauCode: () => appel<{ codeInvitation: string }>('POST', 'organisation/invitation'),
-  roleMembre: (id: number, role: Membre['role']) => appel<{ membres: Membre[] }>('PUT', `organisation/membres/${id}`, { role }),
-  retireMembre: (id: number) => appel<{ ok: boolean }>('DELETE', `organisation/membres/${id}`),
-  tableau: (periode: number, offre?: number) => appel<{ tableau: Tableau }>('GET', offre ? `organisation/tableau/${offre}` : 'organisation/tableau', undefined, { periode }),
-  urlTableauCsv: (periode: number) => urlApi('organisation/tableau.csv', { periode }),
-
-  /* --------------------------------------------------------------- offres */
-  async offres() {
-    return appel<{ offres: Offre[]; organisation: Organisation }>('GET', 'offres')
-  },
-  creeOffre: (o: Record<string, unknown>) => appel<{ offre: Offre }>('POST', 'offres', o),
-  modifieOffre: (id: number, o: Record<string, unknown>) => appel<{ offre: Offre }>('PUT', `offres/${id}`, o),
-  fermeOffre: (id: number) => appel<{ ok: boolean }>('DELETE', `offres/${id}`),
 }

@@ -1,23 +1,21 @@
-/* Mes intérêts et les messages : la même matière, deux entrées.
+/* Mes candidatures.
 
-   L'écran ne peut pas se contenter des matchs. Un match demande le oui des deux
-   côtés : tant qu'aucune entreprise n'a répondu, la liste est vide et l'écran
-   passe pour cassé. Ce qu'on a décidé, en revanche, existe dès le premier
-   glissé — c'est ça qu'il faut montrer. */
+   Ce qu'on a décidé existe dès le premier glissé, réponse de l'employeur ou
+   pas : c'est ça qu'il faut montrer, sans quoi la liste reste vide et l'écran
+   passe pour cassé. */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
 import { BlocPoste, BlocPourquoi, BlocScore, Detail, Feuille } from './Deck'
-import { dateLocale, formatHeure } from './Agenda'
 import { ErreurApi } from '../types'
-import type { Interet, MatchLigne, Message, Profil, StatutCandidature } from '../types'
+import type { Interet, Profil, StatutCandidature } from '../types'
 
 /* Ce que vaut chaque statut de candidature, dans les mots du candidat. */
 const STATUTS: Record<StatutCandidature, { nom: string; classe: string }> = {
   envoyee: { nom: 'Candidature envoyée — pas encore ouverte', classe: 'attente' },
   vue: { nom: 'Candidature ouverte par l’organisation', classe: 'attente' },
   preselection: { nom: 'Présélectionné — ton contact et ton dossier sont transmis', classe: 'match' },
-  entretien: { nom: 'Entretien proposé — voir l’agenda', classe: 'match' },
+  entretien: { nom: 'Entretien proposé — l’organisation te contacte', classe: 'match' },
   acceptee: { nom: 'Candidature acceptée', classe: 'match' },
   refusee: { nom: 'Candidature non retenue', classe: 'refus' },
   retiree: { nom: 'Candidature retirée', classe: '' },
@@ -42,17 +40,6 @@ function depuis(quand: string): string {
   if (s < 86400) return `il y a ${Math.round(s / 3600)} h`
   if (s < 172800) return 'hier'
   return `le ${new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
-}
-
-/* Le serveur date en UTC ; on affiche l'heure locale, et le jour s'il n'est
-   pas celui d'aujourd'hui. */
-function heureMessage(utc: string): string {
-  const d = dateLocale(utc)
-  if (Number.isNaN(d.getTime())) return ''
-  const h = formatHeure(d)
-  return d.toDateString() === new Date().toDateString()
-    ? h
-    : `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${h}`
 }
 
 const teinte = (q: number) => (q >= 75 ? 'var(--yes)' : q >= 50 ? 'var(--accent)' : 'var(--no)')
@@ -80,33 +67,21 @@ function useLarge(): boolean {
   return large
 }
 
-export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; profil: Profil }) {
+export function EcranMatchs({ profil }: { profil: Profil }) {
   const [interets, setInterets] = useState<Interet[] | null>(null)
-  const [matchs, setMatchs] = useState<MatchLigne[] | null>(null)
   const [onglet, setOnglet] = useState<Onglet>('oui')
-  const [ouvert, setOuvert] = useState<MatchLigne | null>(null)
   const [detail, setDetail] = useState<Interet | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const large = useLarge()
 
-  // Les messages n'ont besoin que des matchs ; les intérêts n'existent que
-  // pour un candidat (l'organisation n'a pas de deck).
   const charge = useCallback(async () => {
     try {
-      if (vue === 'messages') {
-        setMatchs(await api.matchs())
-        setInterets([])
-        return
-      }
-      const [i, m] = await Promise.all([api.interets(), api.matchs()])
-      setInterets(i)
-      setMatchs(m)
+      setInterets(await api.interets())
     } catch (e) {
       setInterets([])
-      setMatchs([])
       setErreur(e instanceof ErreurApi ? e.message : 'Liste indisponible.')
     }
-  }, [vue])
+  }, [])
 
   useEffect(() => { void charge() }, [charge])
 
@@ -141,44 +116,6 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
     } catch (e) {
       setErreur(e instanceof ErreurApi ? e.message : 'Le retrait n’a pas été enregistré.')
     }
-  }
-
-  if (ouvert) {
-    return <Conversation match={ouvert} onRetour={() => { setOuvert(null); void charge() }} />
-  }
-
-  /* Messages : seuls les matchs ouvrent une conversation. On n'écrit pas à
-     quelqu'un qui n'a pas dit oui. */
-  if (vue === 'messages') {
-    return (
-      <div className="screen" id="ec-messages">
-        <div className="pad">
-          <h2>Messages</h2>
-          <p className="lead">
-            Une conversation s’ouvre à la présélection, jamais avant : le candidat a
-            dit oui en candidatant, l’organisation dit oui en le présélectionnant.
-          </p>
-          {erreur && <div className="pal manque"><b>Ça n’a pas marché</b>{erreur}</div>}
-          {matchs === null && <p className="pa">Chargement…</p>}
-          {matchs?.length === 0 && (
-            <div className="vide">
-              <b>Aucune conversation</b>
-              Il faut une candidature et une présélection pour ouvrir un fil.
-            </div>
-          )}
-          {(matchs ?? []).map((m) => (
-            <button className="item" key={m.id} onClick={() => setOuvert(m)}>
-              <span className="sc">{m.qualite}<small>%</small></span>
-              <span>
-                <h3>{m.titre}</h3>
-                <span className="meta">{m.entreprise ?? (m.prenom ? `${m.prenom} ${m.initiale ?? ''}`.trim() : `candidat #${m.candidate_id}`)}</span>
-              </span>
-              {m.non_lus > 0 && <span className="nonlus">{m.non_lus}</span>}
-            </button>
-          ))}
-        </div>
-      </div>
-    )
   }
 
   const liste = (interets ?? []).filter((x) => x.decision === onglet)
@@ -292,14 +229,6 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
                 <div className="col-p">
                   <BlocPourquoi offre={choisi} profil={profil} />
                   <BlocPoste offre={choisi} />
-                  {choisi.match && (
-                    <div className="btns" style={{ marginTop: 'var(--s5)' }}>
-                      <button className="btn primaire" onClick={() => {
-                        const m = (matchs ?? []).find((y) => y.id === choisi.match)
-                        if (m) setOuvert(m)
-                      }}>Ouvrir la conversation</button>
-                    </div>
-                  )}
                 </div>
               </>
             )
@@ -311,102 +240,10 @@ export function EcranMatchs({ vue, profil }: { vue: 'interets' | 'messages'; pro
         <Feuille onFermer={() => setDetail(null)}>
           <Detail offre={detail} profil={profil} />
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
-            {detail.match && (
-              <button className="btn primaire" onClick={() => {
-                const m = (matchs ?? []).find((x) => x.id === detail.match)
-                setDetail(null)
-                if (m) setOuvert(m)
-              }}>Ouvrir la conversation</button>
-            )}
             <button className="btn" onClick={() => setDetail(null)}>Fermer</button>
           </div>
         </Feuille>
       )}
-    </div>
-  )
-}
-
-export function Conversation({ match, onRetour }: { match: MatchLigne; onRetour: () => void }) {
-  const [messages, setMessages] = useState<Message[] | null>(null)
-  const [texte, setTexte] = useState('')
-  const [envoi, setEnvoi] = useState(false)
-  const [suggestions, setSuggestions] = useState<string[]>([])
-  const bas = useRef<HTMLDivElement>(null)
-
-  /* Trois propositions de premier message, par règles, à partir du poste et
-     du score. À modifier avant d'envoyer : ce sont des débuts, pas des lettres. */
-  useEffect(() => {
-    void api.suggestionsMatch(match.id).then((d) => setSuggestions(d.suggestions)).catch(() => setSuggestions([]))
-  }, [match.id])
-
-  const charge = useCallback(async () => {
-    try {
-      setMessages(await api.messages(match.id))
-    } catch {
-      setMessages([])
-    }
-  }, [match.id])
-
-  useEffect(() => { void charge() }, [charge])
-  useEffect(() => { bas.current?.scrollIntoView({ block: 'end' }) }, [messages])
-
-  const envoie = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const corps = texte.trim()
-    if (!corps) return
-    setEnvoi(true)
-    try {
-      await api.envoieMessage(match.id, corps)
-      setTexte('')
-      await charge()
-    } finally {
-      setEnvoi(false)
-    }
-  }
-
-  return (
-    <div className="screen" id="ec-messages">
-      <div className="conv">
-        <header className="conv-top">
-          <button className="btn-mini" onClick={onRetour}>← Retour</button>
-          <b>{match.titre}</b>
-          <span>{match.entreprise ?? ''}</span>
-        </header>
-
-        <div className="conv-fil">
-          {messages === null && <p className="pa">Chargement…</p>}
-          {messages?.length === 0 && (
-            <p className="pa">
-              Personne n’a encore écrit. Une première question précise vaut mieux
-              qu’un « bonjour » seul.
-            </p>
-          )}
-          {(messages ?? []).map((m) => (
-            <div className={`bulle${m.moi ? ' moi' : ''}`} key={m.id}>
-              {m.corps}
-              <time>{heureMessage(m.quand)}</time>
-            </div>
-          ))}
-          <div ref={bas} />
-        </div>
-
-        {suggestions.length > 0 && (messages?.length ?? 0) < 4 && (
-          <div className="conv-sugg">
-            {suggestions.map((sg) => (
-              <button type="button" key={sg} onClick={() => setTexte(sg)} title="Reprendre ce texte, à modifier">
-                {sg.length > 70 ? sg.slice(0, 68) + '…' : sg}
-              </button>
-            ))}
-          </div>
-        )}
-        <form className="conv-saisie" onSubmit={(e) => void envoie(e)}>
-          <input
-            type="text" value={texte} placeholder="Écrire un message"
-            onChange={(e) => setTexte(e.target.value)}
-          />
-          <button className="btn primaire" type="submit" disabled={envoi || !texte.trim()}>Envoyer</button>
-        </form>
-      </div>
     </div>
   )
 }

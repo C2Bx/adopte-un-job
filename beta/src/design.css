@@ -238,6 +238,10 @@ button { cursor: pointer; }
 .topbar .mark svg { width: 26px; height: 26px; display: block; }
 .topbar .mark b { font-family: var(--font-display); font-weight: var(--display-weight);
   letter-spacing: var(--display-tracking); font-size: var(--t-lg); }
+/* Le logo porte le nom : on le dimensionne par la hauteur, la largeur suit.
+   « auto » des deux cotes eviterait que le navigateur reserve la mauvaise
+   place avant le chargement — d'ou les attributs width/height dans le JSX. */
+.mark .logo { height: 30px; width: auto; display: block; }
 .topbar .spacer { flex: 1; }
 .tag-demo { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   color: var(--accent); background: var(--accent-soft); border: 1px solid transparent;

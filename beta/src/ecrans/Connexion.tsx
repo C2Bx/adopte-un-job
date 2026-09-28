@@ -9,13 +9,8 @@ import type { Utilisateur } from '../types'
 
 export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Promise<void> }) {
   const [mode, setMode] = useState<'connexion' | 'inscription' | 'oubli'>('connexion')
-  const [role, setRole] = useState<'candidat' | 'recruteur'>('candidat')
   const [email, setEmail] = useState('')
   const [mdp, setMdp] = useState('')
-  // recruteur : rejoindre par code, ou créer par nom
-  const [orgMode, setOrgMode] = useState<'code' | 'creer'>('code')
-  const [orgNom, setOrgNom] = useState('')
-  const [orgCode, setOrgCode] = useState('')
   // mot de passe oublié : demande, puis code + nouveau mot de passe
   const [codeReinit, setCodeReinit] = useState('')
   const [info, setInfo] = useState<string | null>(null)
@@ -42,9 +37,7 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
       }
       const u = mode === 'connexion'
         ? await api.connexion(email, mdp)
-        : await api.inscription(email, mdp, role,
-            role === 'recruteur' && orgMode === 'creer' ? orgNom : undefined,
-            role === 'recruteur' && orgMode === 'code' ? orgCode : undefined)
+        : await api.inscription(email, mdp)
       await onEntre(u)
     } catch (e) {
       setErreur(e instanceof ErreurApi ? e.message : 'Quelque chose a échoué. Réessaie.')
@@ -57,13 +50,8 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
     <div className="accueil">
       <div className="accueil-in">
         <span className="mark grand">
-          <svg viewBox="0 0 32 32" aria-hidden="true">
-            <rect x="4" y="7" width="16" height="21" rx="5" fill="var(--brand)" opacity=".28" transform="rotate(-8 12 17)" />
-            <rect x="9" y="4" width="16" height="21" rx="5" fill="var(--brand)" />
-            <circle cx="17" cy="14.5" r="3.2" fill="var(--accent)" />
-          </svg>
-          <b>Adopte un Job</b>
-          <span className="tag-beta">bêta</span>
+          <img src={`${import.meta.env.BASE_URL}marque/logo-horizontal.png`}
+            alt="Adopte un Job" className="logo" width={224} height={48} />
         </span>
 
         <h1>Un poste qui te correspond, pas trente CV envoyés.</h1>
@@ -86,37 +74,6 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
         </div>
 
         <form className="pform" onSubmit={(e) => void soumets(e)}>
-          {mode === 'inscription' && (
-            <label className="pf">
-              <span className="pl">Je suis</span>
-              <div className="pseg">
-                <button type="button" className={role === 'candidat' ? 'on' : ''} onClick={() => setRole('candidat')}>
-                  à la recherche d’un poste
-                </button>
-                <button type="button" className={role === 'recruteur' ? 'on' : ''} onClick={() => setRole('recruteur')}>
-                  recruteur / RH
-                </button>
-              </div>
-            </label>
-          )}
-
-          {mode === 'inscription' && role === 'recruteur' && (
-            <label className="pf">
-              <span className="pl">Mon organisation</span>
-              <div className="pseg">
-                <button type="button" className={orgMode === 'code' ? 'on' : ''} onClick={() => setOrgMode('code')}>j’ai un code d’invitation</button>
-                <button type="button" className={orgMode === 'creer' ? 'on' : ''} onClick={() => setOrgMode('creer')}>je la crée</button>
-              </div>
-              {orgMode === 'code'
-                ? <input type="text" value={orgCode} placeholder="ABCD-EFGH-JKLM" onChange={(e) => setOrgCode(e.target.value.toUpperCase())} maxLength={14} />
-                : <input type="text" value={orgNom} placeholder="nom de l’organisation" onChange={(e) => setOrgNom(e.target.value)} maxLength={160} />}
-              <span className="pa">
-                Plusieurs comptes RH partagent une organisation : mêmes offres, mêmes candidatures, même tableau de bord.
-                Tu pourras aussi le faire après.
-              </span>
-            </label>
-          )}
-
           <label className="pf">
             <span className="pl">Adresse e-mail</span>
             <input
@@ -162,7 +119,7 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
         </form>
 
         <p className="accueil-note">
-          Projet d’étudiants, en bêta. Les données sont réelles et enregistrées :
+          Projet d’étudiants. Les données sont réelles et enregistrées :
           l’export et la suppression du compte sont disponibles dès maintenant.
         </p>
       </div>

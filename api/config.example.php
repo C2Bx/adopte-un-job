@@ -76,16 +76,6 @@ define('SSL_INSECURE', $cfg('AVP_SSL_INSECURE', '') === '1');
 /** Adresse d'expedition des e-mails mis en file (rien n'est envoye pour l'instant). */
 define('MAIL_DE', $cfg('AVP_MAIL_DE', 'candidatures@zako.nc'));
 
-/** Comptes autorises a basculer entre « candidat » et « recruteur » sans se
-    deconnecter — un confort de demonstration, pour montrer les deux cotes du
-    produit. Adresses separees par des virgules ; vide = personne, et la
-    bascule n'apparait nulle part. Le controle est fait par le serveur : le
-    front ne fait qu'afficher ce que l'API declare. */
-define('COMPTES_POLYVALENTS', array_filter(array_map(
-    static fn (string $e): string => mb_strtolower(trim($e)),
-    explode(',', $cfg('AVP_COMPTES_POLYVALENTS', ''))
-)));
-
 function db(): PDO
 {
     static $pdo = null;

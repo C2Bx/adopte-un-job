@@ -1,3 +1,9 @@
 # L'en-tete Authorization n'atteint pas PHP par defaut : sans cette ligne, un
 # client natif (Bearer) est toujours « non connecte ».
 SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+# Le veilleur de la passerelle n'a rien a faire derriere une URL. Il refuse
+# deja de s'executer hors CLI ; ceci est la seconde serrure.
+<Files "passerelle-cli.php">
+  Require all denied
+</Files>

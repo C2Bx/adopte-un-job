@@ -8,18 +8,18 @@
 
 declare(strict_types=1);
 
-/** [methode, chemin, resume, tag, auth (public|session|candidat|recruteur|admin|sync), corps?, reponse?] */
+/** [methode, chemin, resume, tag, auth (public|session|candidat|admin|sync), corps?, reponse?] */
 function routesDocumentees(): array
 {
     return [
         ['GET', '', 'Version, algorithme, liste des routes', 'meta', 'public'],
         ['GET', 'openapi.json', 'Ce document', 'meta', 'public'],
 
-        ['POST', 'auth/inscription', 'Créer un compte candidat ou recruteur (organisation par nom ou code d’invitation)', 'compte', 'public',
-            ['email' => 'string', 'motdepasse' => 'string ≥ 12', 'role' => 'candidat|recruteur', 'organisation' => 'string?', 'code' => 'string?'], ['jeton', 'utilisateur']],
+        ['POST', 'auth/inscription', 'Créer un compte', 'compte', 'public',
+            ['email' => 'string', 'motdepasse' => 'string ≥ 12'], ['jeton', 'utilisateur']],
         ['POST', 'auth/connexion', 'Ouvrir une session (cookie + jeton)', 'compte', 'public', ['email' => 'string', 'motdepasse' => 'string'], ['jeton', 'utilisateur']],
         ['POST', 'auth/deconnexion', 'Fermer la session courante', 'compte', 'session'],
-        ['GET', 'auth/moi', 'Le compte connecté, son organisation, l’état de vérification', 'compte', 'public'],
+        ['GET', 'auth/moi', 'Le compte connecté et l’état de vérification', 'compte', 'public'],
         ['POST', 'auth/reinit', 'Demander un code de réinitialisation (même réponse que l’adresse existe ou non)', 'compte', 'public', ['email' => 'string']],
         ['POST', 'auth/reinit/confirme', 'Choisir un nouveau mot de passe avec le code', 'compte', 'public', ['code' => 'hex64', 'motdepasse' => 'string ≥ 12']],
         ['POST', 'auth/verification', 'Vérifier l’adresse e-mail avec le code reçu', 'compte', 'public', ['code' => 'hex64']],
@@ -57,7 +57,6 @@ function routesDocumentees(): array
         ['GET', 'avp/filtres', 'Les valeurs de filtres disponibles avec leur compte', 'avp', 'public'],
         ['GET', 'avp/{id}', 'Une offre, son score pour le candidat connecté, le métier OPT associé', 'avp', 'public'],
         ['POST', 'avp/{id}/vue', 'Compter une vue (deck, detail, recherche, lien)', 'avp', 'public', ['source' => 'string']],
-        ['GET', 'avp/{id}/candidats', 'Les candidats classés pour une offre de l’organisation (vivier=1 pour inclure les profils sans candidature)', 'avp', 'recruteur'],
         ['GET', 'deck', 'Les offres non décidées, scorées et triées ; mêmes filtres que le catalogue ; clos=1 pour s’entraîner', 'deck', 'candidat'],
         ['POST', 'swipes', 'Décider : oui (= candidature), non, plus_tard', 'deck', 'candidat', ['offre' => 'int', 'decision' => 'oui|non|plus_tard', 'message' => 'string?']],
         ['DELETE', 'swipes/{offre}', 'Revenir sur une décision (retire la candidature si elle n’est pas encore ouverte)', 'deck', 'candidat'],
@@ -66,40 +65,14 @@ function routesDocumentees(): array
         ['GET', 'admin/sync/avp', 'État de la synchronisation', 'avp', 'public'],
 
         ['POST', 'candidatures', 'Candidater à une offre', 'candidatures', 'candidat', ['offre' => 'int', 'message' => 'string?'], ['candidature']],
-        ['GET', 'candidatures', 'Mes candidatures (candidat) ou celles de l’organisation (?offre=&statut=)', 'candidatures', 'session'],
-        ['GET', 'candidatures/{id}', 'Une candidature, ses événements ; l’ouvrir côté organisation la marque « vue »', 'candidatures', 'session'],
-        ['PUT', 'candidatures/{id}/statut', 'Organisation : vue, preselection (ouvre le match et le dossier), entretien, acceptee, refusee. Candidat : retiree', 'candidatures', 'session', ['statut' => 'string', 'motif' => 'string?']],
-        ['GET', 'candidatures/{id}/cv.pdf', 'Le CV généré, recentré sur le poste (organisation : après présélection)', 'candidatures', 'session'],
-        ['GET', 'candidatures/{id}/cv-original', 'Le fichier déposé par le candidat (organisation : après présélection)', 'candidatures', 'session'],
-        ['GET', 'candidatures/{id}/suggestions', 'Propositions de premiers messages, par règles', 'candidatures', 'session'],
-        ['POST', 'candidatures/{id}/entretiens', 'Proposer 1 à 6 créneaux (organisation)', 'agenda', 'recruteur', ['creneaux' => '[{debut: AAAA-MM-JJ HH:MM UTC}]', 'duree' => 'min', 'mode' => 'sur place|visio|telephone', 'lieu', 'notes']],
-        ['GET', 'agenda', 'Mes entretiens (candidat) ou ceux de l’organisation', 'agenda', 'session'],
-        ['PUT', 'entretiens/{id}', 'Candidat : confirme, refuse. Organisation : annule, termine, confirme', 'agenda', 'session', ['statut' => 'string']],
-        ['GET', 'entretiens/{id}/ics', 'Le fichier iCalendar de l’entretien', 'agenda', 'session'],
+        ['GET', 'candidatures', 'Mes candidatures (?statut=)', 'candidatures', 'candidat'],
+        ['GET', 'candidatures/{id}', 'Une candidature et ses événements', 'candidatures', 'candidat'],
+        ['PUT', 'candidatures/{id}/statut', 'Retirer sa candidature (statut = retiree)', 'candidatures', 'candidat', ['statut' => 'retiree', 'motif' => 'string?']],
+        ['GET', 'candidatures/{id}/cv.pdf', 'Le CV généré, recentré sur le poste', 'candidatures', 'candidat'],
+        ['GET', 'candidatures/{id}/cv-original', 'Le fichier déposé', 'candidatures', 'candidat'],
 
-        ['GET', 'matchs', 'Les matchs (candidatures présélectionnées) avec le nombre de messages non lus', 'messages', 'session'],
-        ['GET', 'matchs/{id}', 'Un match : offre, candidat (contact ouvert), candidature, entretiens', 'messages', 'session'],
-        ['GET', 'matchs/{id}/messages', 'La conversation (marque comme lue)', 'messages', 'session'],
-        ['POST', 'matchs/{id}/messages', 'Écrire', 'messages', 'session', ['corps' => 'string ≤ 4000']],
-        ['GET', 'matchs/{id}/suggestions', 'Propositions de messages pour ce match', 'messages', 'session'],
-        ['GET', 'notifications', 'Les 50 dernières notifications', 'messages', 'session'],
-        ['POST', 'notifications/lu', 'Tout marquer lu', 'messages', 'session'],
-
-        ['GET', 'organisation', 'Mon organisation', 'organisation', 'recruteur'],
-        ['POST', 'organisation', 'Créer une organisation (le compte devient propriétaire)', 'organisation', 'recruteur', ['nom', 'secteur', 'taille', 'site', 'pitch']],
-        ['PUT', 'organisation', 'Modifier (propriétaire)', 'organisation', 'recruteur'],
-        ['POST', 'organisation/rejoindre', 'Rejoindre avec un code d’invitation', 'organisation', 'recruteur', ['code' => 'string']],
-        ['GET', 'organisation/membres', 'Les membres et le code d’invitation', 'organisation', 'recruteur'],
-        ['POST', 'organisation/invitation', 'Renouveler le code d’invitation (propriétaire)', 'organisation', 'recruteur'],
-        ['PUT', 'organisation/membres/{id}', 'Changer le rôle d’un membre : proprietaire, recruteur, lecteur', 'organisation', 'recruteur', ['role' => 'string']],
-        ['DELETE', 'organisation/membres/{id}', 'Retirer un membre (ou se retirer)', 'organisation', 'recruteur'],
-        ['GET', 'organisation/tableau', 'Le tableau de bord de l’organisation (?periode=7|30|90|365)', 'tableau', 'recruteur'],
-        ['GET', 'organisation/tableau/{offre}', 'Le tableau de bord d’une offre', 'tableau', 'recruteur'],
-        ['GET', 'organisation/tableau.csv', 'Export CSV par offre (tableur, Power BI)', 'tableau', 'recruteur'],
-        ['GET', 'offres', 'Les offres de l’organisation avec leurs compteurs', 'offres', 'recruteur'],
-        ['POST', 'offres', 'Publier une offre (source app)', 'offres', 'recruteur', ['titre', 'codeMetier', 'contrat', 'zone', 'ville', 'teletravail', 'salaireMin', 'salaireMax', 'experienceMin', 'formationMin', 'permis', 'debut', 'expire', 'description', 'competencesTexte[]', 'requis[]', 'souhaite[]', 'statut']],
-        ['PUT', 'offres/{id}', 'Modifier une offre de l’organisation (pas un AVP synchronisé)', 'offres', 'recruteur'],
-        ['DELETE', 'offres/{id}', 'Fermer une offre', 'offres', 'recruteur'],
+        ['GET', 'notifications', 'Les 50 dernières notifications', 'notifications', 'session'],
+        ['POST', 'notifications/lu', 'Tout marquer lu', 'notifications', 'session'],
     ];
 }
 

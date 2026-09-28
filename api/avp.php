@@ -12,7 +12,6 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/opt.php';
-require_once __DIR__ . '/organisation.php';
 
 /* ----------------------------------------------------------------- filtres */
 
@@ -281,45 +280,6 @@ if (route('GET', 'deck', $seg, $methode) !== false) {
     envoie(['offres' => array_slice($out, 0, 60), 'facettes' => facettes($pdo, $f), 'filtres' => $f]);
 }
 
-/* -------------------------------------------------- candidats d'une offre */
-
-/* Cote organisation : les candidats classes pour une offre, anonymes tant que
-   la candidature n'est pas preselectionnee. Sont listes ceux qui ont
-   candidate (la file) ET, si demande, les profils qui n'ont rien fait (le
-   vivier) : un AVP frais rapproche d'une base de profils. */
-if (($a = route('GET', 'avp/*/candidats', $seg, $methode)) !== false) {
-    $u = exigeConnexion('recruteur');
-    $org = organisationDe($pdo, $u);
-    $o = garnisOffre($pdo, exigeOffreDeOrganisation($pdo, $org, (int) $a[0]));
-    $vivier = ($_GET['vivier'] ?? '') === '1';
-
-    $st = $pdo->prepare(
-        'SELECT c.user_id, a.id AS application_id, a.statut, a.created_at AS candidature_le
-           FROM candidates c JOIN users u ON u.id = c.user_id
-           LEFT JOIN applications a ON a.job_id = ? AND a.candidate_id = c.user_id
-          WHERE c.visible = 1 AND u.status = "actif" ' . ($vivier ? '' : 'AND a.id IS NOT NULL') . '
-          LIMIT 300'
-    );
-    $st->execute([(int) $o['id']]);
-    $out = [];
-    foreach ($st->fetchAll() as $r) {
-        $c = candidatPourScore($pdo, (int) $r['user_id']);
-        if (!$c || !$c['competences']) {
-            continue;
-        }
-        $e = evalue($pdo, $c, $o);
-        memoriseScore($pdo, (int) $o['id'], (int) $r['user_id'], $e);
-        $apres = in_array($r['statut'], ['preselection', 'entretien', 'acceptee'], true);
-        $out[] = candidatVuParEntreprise($pdo, (int) $r['user_id'], $apres) + [
-            'candidature' => $r['application_id'] ? ['id' => (int) $r['application_id'], 'statut' => $r['statut'], 'le' => $r['candidature_le']] : null,
-            'score' => scorePublic($e),
-        ];
-    }
-    usort($out, static fn ($x, $y) => $y['score']['qualite'] <=> $x['score']['qualite']);
-    trace((int) $u['id'], 'deck_candidats', 'job', (int) $o['id']);
-    envoie(['candidats' => array_slice($out, 0, 60), 'offre' => offrePublique($o)]);
-}
-
 /* ------------------------------------------------------------ referentiel */
 
 if (route('GET', 'metiers', $seg, $methode) !== false) {
@@ -370,20 +330,29 @@ if (route('POST', 'admin/sync/avp', $seg, $methode) !== false) {
     envoie(['synchronisation' => $r, 'quand' => maintenant()]);
 }
 
-/* L'etat de la synchronisation est public (chiffres seulement). Avec le jeton
-   de synchronisation, la reponse ajoute le code d'invitation de l'organisation
-   OPT-NC : c'est ainsi qu'un premier compte RH la rejoint. */
+/* Le veilleur de la passerelle d'echange, appele par la meme mecanique que la
+   synchronisation : un jeton dans un en-tete, une tache planifiee dehors. Il
+   tourne aussi en ligne de commande (scripts/passerelle.php) — la meme
+   fonction, deux facons de la declencher. */
+if (route('POST', 'admin/passerelle', $seg, $methode) !== false) {
+    $tok = $_SERVER['HTTP_X_SYNC_TOKEN'] ?? '';
+    $u = utilisateur();
+    if (!(($u && $u['role'] === 'admin') || (SYNC_TOKEN !== '' && hash_equals(SYNC_TOKEN, $tok)))) {
+        erreur('interdit', 'Passerelle réservée.', 403);
+    }
+    limite('passerelle', 40, 3600);
+    require_once __DIR__ . '/echange.php';
+    $debut = microtime(true);
+    $bilan = ['entrant' => ingereEntrant($pdo), 'sortant' => exporteSortant($pdo)];
+    $bilan['duree_ms'] = (int) round((microtime(true) - $debut) * 1000);
+    trace($u ? (int) $u['id'] : null, 'passerelle', 'echange');
+    envoie(['passerelle' => $bilan, 'quand' => maintenant()]);
+}
+
+/* L'etat de la synchronisation est public : des chiffres, rien d'autre. */
 if (route('GET', 'admin/sync/avp', $seg, $methode) !== false) {
     $st = $pdo->query('SELECT COUNT(*) AS n, MAX(synced_at) AS derniere, SUM(statut = "publiee") AS ouverts FROM jobs WHERE source = "opt"');
     $r = $st->fetch();
     $rep = ['avpOpt' => (int) $r['n'], 'ouverts' => (int) $r['ouverts'], 'derniereSynchro' => $r['derniere'], 'cleApiOpt' => OPT_API_KEY !== ''];
-    $tok = $_SERVER['HTTP_X_SYNC_TOKEN'] ?? '';
-    if (SYNC_TOKEN !== '' && hash_equals(SYNC_TOKEN, $tok)) {
-        $st = $pdo->prepare('SELECT id, name, invite_code FROM companies WHERE slug = ?');
-        $st->execute(['opt-nc']);
-        if ($o = $st->fetch()) {
-            $rep['organisationOpt'] = ['id' => (int) $o['id'], 'nom' => $o['name'], 'codeInvitation' => $o['invite_code']];
-        }
-    }
     envoie($rep);
 }

@@ -1,4 +1,4 @@
-/* Mes CV : le fichier d'origine (chiffré sur le serveur, remis au recruteur à
+/* Mes CV : le fichier d'origine (chiffré sur le serveur, remis à l'employeur à
    la présélection), le résumé JSON lu dans l'appareil, le CV généré depuis le
    profil, et l'export JSON Resume. Un seul CV est « actif » : c'est lui qui
    part avec une candidature. */
@@ -71,7 +71,7 @@ export function MesCV() {
     <div className="pvoie mescv">
       <b>Mes CV</b>
       <span>
-        Le fichier que tu déposes est chiffré sur le serveur et remis au recruteur <b>seulement</b> quand
+        Le fichier que tu déposes est chiffré sur le serveur et remis à l’employeur <b>seulement</b> quand
         il présélectionne ta candidature — avec un CV recentré sur le poste, généré depuis ce profil.
       </span>
 

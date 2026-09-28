@@ -10,7 +10,8 @@
   "theme_color": "#17356B",
   "lang": "fr",
   "icons": [
-    { "src": "/avp/app/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/avp/app/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    { "src": "/avp/beta/marque/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/avp/beta/marque/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/avp/beta/marque/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

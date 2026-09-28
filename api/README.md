@@ -6,15 +6,15 @@ en **OpenAPI 3.1** : `GET /openapi.json`.
 
 | Fichier | Rôle |
 |---|---|
-| `index.php` | Le routeur, le compte, le profil, les offres, les décisions, les messages ; charge les domaines ci-dessous |
+| `index.php` | Le routeur, le compte, le profil, les décisions du deck, les notifications ; charge les domaines ci-dessous |
 | `noyau.php` | Réponses JSON, lecture des entrées, sessions, journal d'accès, notifications |
 | `securite.php` | En-têtes de sécurité, CORS, vérification d'origine, limites de débit, clés d'API, chiffrement des fichiers, file d'e-mails |
-| `depot.php` | Accès aux données : profil complet, offre garnie, ce qu'une organisation voit d'un candidat avant et après présélection |
+| `depot.php` | Accès aux données : profil complet, offre garnie, offre publique, écriture des tables de liaison |
 | `referentiel.php` | Le référentiel OPT-NC (12 familles, 84 métiers, 409 compétences) et le rattachement des compétences libres |
 | `score.php` | Le moteur de score v2 (`ALGO`), écrit dans `match_scores` |
 | `opt.php` | Import et synchronisation des AVP réels, appels sortants vers l'API OPT-NC |
-| `documents.php` | CV recentré (PDF, FPDF vendu dans `lib/`), propositions de messages, iCalendar |
-| `cv.php` `compte.php` `organisation.php` `avp.php` `candidatures.php` `agenda.php` `tableau.php` | Un domaine par fichier, ses fonctions et ses routes |
+| `documents.php` | CV recentré (PDF, FPDF vendu dans `lib/`) et JSON Resume |
+| `cv.php` `compte.php` `avp.php` `candidatures.php` `echange.php` | Un domaine par fichier, ses fonctions et ses routes |
 | `doc.php` | Le tableau des routes documentées et le document OpenAPI |
 | `config.php` | **À créer** depuis `config.example.php`. Jamais versionné. Lit `private/avp.env` ou `api/.env` |
 | `schema.sql` + `migrations/` | 46 tables, rejouable (`CREATE TABLE IF NOT EXISTS`, `ALTER` gardés par `scripts/migre.py`) |
@@ -32,8 +32,6 @@ cp config.example.php config.php
 #   AVP_ORIGINES    origines autorisées (CORS), séparées par des virgules
 #   AVP_FICHIERS_DIR (facultatif, défaut : private/avp-fichiers hors docroot)
 #   OPT_API_KEY     (facultatif : sans clé, les AVP viennent du dataset public Hugging Face)
-#   AVP_COMPTES_POLYVALENTS (facultatif : adresses autorisées à basculer candidat ↔ recruteur,
-#                            séparées par des virgules ; vide = personne, et le bouton n'apparaît pas)
 AVP_DB_HOST=… AVP_DB_USER=… AVP_DB_PASS=… AVP_DB_NAME=… python ../scripts/migre.py
 ```
 
@@ -49,8 +47,7 @@ curl -X POST -H "X-Sync-Token: $AVP_SYNC_TOKEN" -H "Content-Type: application/js
 Le `-d '{}'` n'est pas décoratif : un pare-feu applicatif (ModSecurity) refuse
 un `POST` sans `Content-Length`. Cette commande est celle du cron ; elle ferme
 les AVP disparus ou expirés et invalide les scores des offres mises à jour.
-Avec le jeton, `GET admin/sync/avp` renvoie aussi le **code d'invitation de
-l'organisation OPT-NC** : c'est ainsi qu'un premier compte RH la rejoint.
+`GET admin/sync/avp` renvoie l'état de la synchronisation : des chiffres, rien d'autre.
 
 ## Appeler l'API
 
@@ -85,15 +82,6 @@ d'e-mail existent (`auth/reinit`, `auth/verification`) : les codes sont mis en
 **file d'attente** (`email_queue`), **aucun e-mail ne part** — l'envoi est un
 choix à faire (fournisseur, domaine), pas un oubli.
 
-### Rôles et organisations
-
-`candidat` (par défaut), `recruteur`, `admin`. Un recruteur appartient à une
-**organisation** (`companies`) avec un rôle interne : `proprietaire`,
-`recruteur`, `lecteur`. **Plusieurs comptes RH partagent les mêmes offres, les
-mêmes candidatures et le même tableau de bord.** On rejoint une organisation
-par son code d'invitation (à l'inscription ou après), ou on la crée. Une route
-qui exige un rôle répond `403 role_insuffisant`.
-
 ## Les routes
 
 Le détail (paramètres, réponses, codes d'erreur) est dans `GET /openapi.json`.
@@ -101,21 +89,12 @@ Ce qui suit est la carte.
 
 ### Compte
 
-`POST auth/inscription` (candidat, ou recruteur avec `organisation` ou `code`) ·
-`POST auth/connexion` · `POST auth/deconnexion` · `GET auth/moi` ·
+`POST auth/inscription` · `POST auth/connexion` · `POST auth/deconnexion` · `GET auth/moi` ·
 `PUT auth/motdepasse` · `GET/DELETE auth/sessions` · `POST auth/reinit`,
 `auth/reinit/confirme` · `POST auth/verification`, `auth/verification/renvoi` ·
 `GET auth/export` (portabilité) · `DELETE auth/compte` (anonymisation : e-mail
-irréversible, fichiers supprimés, candidatures retirées, clés révoquées,
-organisation quittée, entretiens annulés) · `GET/POST cles`, `DELETE cles/{id}`.
-
-`POST auth/role` — `{role: "candidat"|"recruteur"}`. Passe d'un côté à l'autre
-sans se déconnecter, **uniquement** pour les adresses listées dans
-`AVP_COMPTES_POLYVALENTS` ; `403 interdit` pour toutes les autres, quoi que
-demande le client. Rien n'est détruit : profil, candidatures et appartenance à
-une organisation restent en base, on revient à l'identique en rebasculant.
-`GET auth/moi` annonce `peutBasculer: true` sur ces comptes — c'est ce que le
-front lit pour afficher le bouton, et lui seul ne donne aucun droit.
+irréversible, fichiers supprimés, candidatures retirées, clés révoquées) ·
+`GET/POST cles`, `DELETE cles/{id}`.
 
 ### Référentiel
 
@@ -143,8 +122,6 @@ ouverts) · `GET metiers/{code}` (compétences attendues, pondérées) ·
 | `GET avp/filtres` | Les facettes avec leur compte — **les mêmes filtres que la recherche de l'OPT** |
 | `GET avp/{id}` | Une offre, son métier OPT, et son score pour le candidat connecté |
 | `POST avp/{id}/vue` | Compte une vue (deck, détail, recherche, lien) — une par personne, par offre et par jour |
-| `GET avp/{id}/candidats` | Organisation : les candidats classés pour une offre (`vivier=1` pour inclure les profils qui n'ont pas candidaté) |
-| `GET/POST offres`, `PUT/DELETE offres/{id}` | Les offres de l'organisation (source `app`). Un AVP synchronisé (source `opt`) se consulte mais ne se modifie pas ici |
 | `POST admin/sync/avp`, `GET admin/sync/avp` | Synchronisation depuis le dataset OPT-NC (`X-Sync-Token`) et son état |
 
 ### Deck, candidatures, dossier
@@ -155,46 +132,10 @@ ouverts) · `GET metiers/{code}` (compétences attendues, pondérées) ·
 | `POST swipes` | `oui` **est une candidature** ; `non`, `plus_tard`. Rien n'élimine : un profil peut candidater à n'importe quel poste, les écarts (contrat, zone, télétravail…) baissent le score et sont affichés |
 | `DELETE swipes/{offre}` | Revenir sur une décision (retire la candidature si elle n'est pas encore ouverte) |
 | `GET interets` | Tout ce que j'ai décidé, avec le score et l'état de candidature |
-| `GET/POST candidatures`, `GET candidatures/{id}` | Mes candidatures (candidat) ou celles de l'organisation (`?offre=&statut=`) ; l'ouvrir côté organisation la marque `vue` |
-| `PUT candidatures/{id}/statut` | `envoyee → vue → preselection → entretien → acceptee / refusee` ; `retiree` côté candidat. **La présélection ouvre le match, le contact (prénom, nom, e-mail, téléphone) et le dossier** |
+| `GET/POST candidatures`, `GET candidatures/{id}` | Mes candidatures (`?statut=`) et leurs événements |
+| `PUT candidatures/{id}/statut` | `retiree`, et rien d'autre : les états suivants (`vue`, `preselection`, `entretien`…) sont des décisions de l'employeur, prises hors de l'application |
 | `GET candidatures/{id}/cv.pdf` | Le **CV généré, recentré sur le poste** (compétences du métier OPT en tête) |
-| `GET candidatures/{id}/cv-original` | Le **fichier déposé** par le candidat, déchiffré à la volée — organisation : après présélection seulement |
-| `GET candidatures/{id}/suggestions` | Trois débuts de message pour chaque côté, par règles (pas de modèle de langage) |
-
-Avant la présélection, une organisation voit un profil **anonyme** : métiers,
-compétences, parcours sans nom d'employeur, zones, contrats, disponibilité.
-Le masquage est fait côté serveur (`candidatVuParEntreprise`), jamais dans
-l'interface.
-
-### Messages et agenda
-
-`GET matchs` · `GET matchs/{id}` · `GET/POST matchs/{id}/messages` ·
-`GET matchs/{id}/suggestions` · `GET notifications`, `POST notifications/lu`.
-
-`GET agenda` (mes entretiens, ou ceux de toute l'organisation) ·
-`POST candidatures/{id}/entretiens` (1 à 6 créneaux, UTC, durée, mode, lieu) ·
-`PUT entretiens/{id}` (candidat : `confirme` — les autres créneaux s'annulent —
-ou `refuse` ; organisation : `annule`, `termine`, `confirme`) ·
-`GET entretiens/{id}/ics` (iCalendar, pour n'importe quel agenda).
-
-### Tableau de bord (organisation)
-
-`GET organisation/tableau?periode=7|30|90|365`, `GET organisation/tableau/{offre}`,
-`GET organisation/tableau.csv` (par offre, pour un tableur ou Power BI).
-
-Treize indicateurs, chacun avec sa définition dans la réponse : vues et
-personnes distinctes, candidatures reçues, taux de conversion, à traiter,
-présélections, refus, écartées par les candidats, entretiens, délai de prise en
-compte, délai de décision, première candidature, score moyen, messages
-échangés. Plus les séries par jour, l'entonnoir, la répartition par état, les
-répartitions (zones, niveaux, métiers, expérience, provenance des vues), les
-compétences qui manquent le plus et les plus présentes (lues dans la
-photographie du score prise à la candidature), le classement des offres et
-l'activité de l'équipe.
-
-`GET/POST/PUT organisation` · `POST organisation/rejoindre` ·
-`GET organisation/membres` · `POST organisation/invitation` ·
-`PUT/DELETE organisation/membres/{id}`.
+| `GET candidatures/{id}/cv-original` | Le **fichier déposé**, déchiffré à la volée |
 
 ## Le score, en deux mots
 
@@ -219,7 +160,7 @@ code est stable, le message peut changer.
 | 401 | `non_connecte`, `identifiants` |
 | 403 | `role_insuffisant`, `compte_inactif`, `interdit`, `origine_refusee`, `dossier_ferme` |
 | 404 | `route_inconnue`, `introuvable` |
-| 409 | `profil_incomplet` (+ `manques[]`), `email_pris`, `deja_membre`, `organisation_manquante` |
+| 409 | `profil_incomplet` (+ `manques[]`), `email_pris` |
 | 413 | `corps_trop_grand`, `fichier_trop_grand` |
 | 415 | `format_refuse` |
 | 422 | `champ_manquant`, `*_invalide`, `mot_de_passe_court`, `creneaux_invalides` |
@@ -228,9 +169,9 @@ code est stable, le message peut changer.
 
 ## Ce que l'API refuse de faire, par conception
 
-- **Masquer côté serveur, jamais côté interface.** Une organisation ne voit
-  qu'un profil anonyme avant la présélection ; le nom, l'e-mail, le téléphone
-  et le dossier ne quittent pas le serveur avant.
+- **Filtrer côté serveur, jamais côté interface.** Une candidature, un CV, un
+  profil ne sortent que pour le compte à qui ils appartiennent ; un verrou pose
+  uniquement dans l'interface s'ouvre avec les outils de developpement.
 - **Aucune date sur les formations.** L'année d'obtention révèle l'âge, critère
   de discrimination interdit. Le schéma n'a pas la colonne. Pas de photo, pas
   de lieu de résidence non plus.
@@ -266,8 +207,7 @@ Audit du 21 septembre 2026, tout point de l'audit du 14 traité :
   fichier), stockés hors docroot, type lu dans les octets, 10 Mo, supprimés
   avec le compte.
 - Corps JSON borné à 1 Mo ; requêtes préparées partout ; contrôle
-  d'appartenance sur chaque identifiant (offre de l'organisation, candidature
-  du candidat ou de l'organisation, entretien, match).
+  d'appartenance sur chaque identifiant (candidature, CV, clé d'API).
 - Clés d'API à secret haché (`sha256`), préfixe visible, révocables.
 - Consentement versionné, export et effacement.
 
@@ -310,12 +250,9 @@ python ../scripts/essai_api.py                                   # en local, san
 AVP_API=https://…/api/index.php python ../scripts/essai_api.py   # contre un déploiement
 ```
 
-Quatre-vingt-dix appels qui rejouent le parcours complet des deux côtés :
-inscription (candidat, deux RH d'une même organisation), profil et rattachement
-OPT, deck verrouillé puis ouvert, filtres et recherche, candidature, lecture
-anonyme puis présélection, dossier (CV généré, fichier d'origine déposé en
-multipart), entretiens et confirmation, messages et suggestions, tableau de
-bord, clés d'API, garde-fous (403 d'une autre organisation, dossier fermé
-avant présélection), export, effacement. Les comptes créés sont préfixés `zz_`
+Le parcours complet rejoué : catalogue public, inscription, profil et
+rattachement OPT, deck verrouillé puis ouvert, filtres et recherche, décisions,
+candidature, dossier (CV généré, fichier d'origine déposé en multipart),
+retrait, clés d'API, garde-fous, export, effacement. Les comptes créés sont préfixés `zz_`
 et supprimés **par leur propre session** à la fin. Jamais de `DELETE` sans
 `WHERE` sur une base partagée.

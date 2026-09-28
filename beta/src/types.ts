@@ -3,17 +3,10 @@
    Quand l'API change, c'est ce fichier qui doit échouer à la compilation, pas
    l'écran au moment du clic. */
 
-export type Role = 'candidat' | 'recruteur' | 'admin'
-
 export interface Utilisateur {
   id: number
   email: string
-  role: Role
   emailVerifie?: boolean
-  organisation?: { id: number; nom: string; role?: string } | null
-  /** Compte de démonstration autorisé à passer d'un rôle à l'autre. C'est le
-      serveur qui le dit ; le front ne fait qu'afficher le bouton. */
-  peutBasculer?: boolean
 }
 
 export interface Langue {
@@ -88,7 +81,7 @@ export interface Critere {
 
 export interface Score {
   qualite: number
-  recruteur: number
+  poste: number
   candidat: number
   confiance: number
   passerelle?: boolean
@@ -97,7 +90,7 @@ export interface Score {
   /** Ce qui ne correspond pas à ce que le candidat a dit vouloir : affiché, jamais éliminatoire. */
   ecarts?: string[]
   detail?: {
-    recruteur: Critere[]
+    poste: Critere[]
     candidat: Critere[]
     couverture: { v: number | null; ok: number[]; manque: number[]; bonus: number[] }
     structurel?: { v: number | null; ok: { code: string; nom: string; poids: number }[]; manque: { code: string; nom: string; poids: number; niveau?: number | null }[] } | null
@@ -179,29 +172,6 @@ export interface EntretienCourt {
   statut: string
 }
 
-export interface CandidatVu {
-  id: number
-  metiers: string[]
-  metiersOpt: MetierOpt[]
-  competences: string[]
-  competencesOpt: CompetenceOpt[]
-  experiences: Experience[]
-  formations: Formation[]
-  langues: Langue[]
-  zones: string[]
-  contrats: string[]
-  dispo: string | null
-  teletravail: string
-  formation: number | null
-  prenom?: string
-  nom?: string
-  initiale?: string
-  telephone?: string
-  email?: string | null
-  candidature?: { id: number; statut: StatutCandidature; le: string } | null
-  score?: Score
-}
-
 export interface Candidature {
   id: number
   statut: StatutCandidature
@@ -214,7 +184,6 @@ export interface Candidature {
   offre: Offre
   entretiens: EntretienCourt[]
   dossier: { cvGenere: boolean; cvOriginal: boolean; ouvertPourOrganisation: boolean }
-  candidat?: CandidatVu
   score?: { qualite: number | null; detail: Score['detail'] } | null
 }
 
@@ -223,44 +192,6 @@ export interface Evenement {
   quand: string
   moi: boolean
   donnees: Record<string, unknown> | null
-}
-
-export interface Entretien {
-  id: number
-  candidature: number
-  offre: number
-  titre: string
-  organisation: string
-  debut: string
-  duree: number
-  mode: string
-  lieu: string | null
-  notes: string | null
-  statut: 'propose' | 'confirme' | 'refuse' | 'annule' | 'termine'
-  proposeParMoi: boolean
-  candidat?: { id: number; prenom: string; nom: string; telephone: string }
-}
-
-export interface MatchLigne {
-  id: number
-  qualite: number
-  statut: string
-  created_at: string
-  offre: number
-  titre: string
-  entreprise?: string
-  candidate_id?: number
-  prenom?: string
-  initiale?: string
-  candidature: number | null
-  non_lus: number
-}
-
-export interface Message {
-  id: number
-  moi: boolean
-  corps: string
-  quand: string
 }
 
 export interface Facettes {
@@ -295,53 +226,6 @@ export interface Filtres {
   source?: '' | 'app' | 'opt'
   statut?: 'ouvert' | 'clos' | 'tous'
   clos?: boolean
-}
-
-export interface Organisation {
-  id: number
-  nom: string
-  slug: string | null
-  secteur: string | null
-  taille: string | null
-  site: string | null
-  pitch: string | null
-  source: 'app' | 'opt'
-  monRole: 'proprietaire' | 'recruteur' | 'lecteur' | null
-}
-
-export interface Membre {
-  id: number
-  email: string
-  role: 'proprietaire' | 'recruteur' | 'lecteur'
-  depuis: string
-  decisions: number
-}
-
-export interface Indicateur {
-  cle: string
-  libelle: string
-  valeur: number | null
-  unite?: string
-  detail?: string | null
-  definition: string
-}
-
-export interface Tableau {
-  periode: number
-  offre: number | null
-  indicateurs: Indicateur[]
-  entonnoir: { etape: string; n: number }[]
-  parStatut: Record<StatutCandidature, number>
-  series: Record<'vues' | 'candidatures' | 'matchs' | 'refus', { jour: string; n: number }[]>
-  repartitions: Record<'zones' | 'niveaux' | 'metiers' | 'experience' | 'sourcesVues', { valeur: string; n: number }[]>
-  competences: { manquantes: { valeur: string; n: number }[]; presentes: { valeur: string; n: number }[] }
-  offres: {
-    id: number; titre: string; statut: string; source: string; ville: string | null; publiee: string | null; expire: string | null
-    joursRestants: number | null; vues: number; candidatures: number; enAttente: number; refus: number; matchs: number
-    entretiens: number; ecartee: number; scoreMoyen: number | null; tauxConversion: number | null
-  }[]
-  equipe: { valeur: string; n: number }[]
-  genere: string
 }
 
 export interface CvInfo {

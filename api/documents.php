@@ -183,65 +183,33 @@ function cvPdf(array $p, ?array $o, ?array $e, bool $avecContact, string $email 
     return $pdf->Output('S');
 }
 
-/**
- * Propositions de premiers messages, par regles. Un texte court, personnalise
- * par ce qu'on sait — le poste, le prenom, une competence commune — et jamais
- * plus. L'utilisateur le modifie avant d'envoyer, c'est le principe.
- */
-function suggestionsMessages(string $role, array $p, array $o, ?array $e): array
-{
-    $prenom = $p['prenom'] ?: 'Bonjour';
-    $poste = $o['titre'];
-    $commune = null;
-    foreach (($e['detail']['lexical']['ok'] ?? []) as $x) {
-        $commune = $x['texte'];
-        break;
-    }
-    if ($commune === null && !empty($e['detail']['structurel']['ok'][0]['nom'])) {
-        $commune = $e['detail']['structurel']['ok'][0]['nom'];
-    }
-    $manque = $e['detail']['lexical']['manque'][0]['texte'] ?? ($e['detail']['structurel']['manque'][0]['nom'] ?? null);
 
-    if ($role === 'candidat') {
-        $s = [
-            "Bonjour, merci d’avoir retenu ma candidature pour le poste de $poste. Je suis disponible pour un échange quand vous le souhaitez.",
-            $commune
-                ? "Bonjour, ravi(e) de ce match. Mon expérience en « $commune » correspond directement à ce que demande le poste de $poste — je serais heureux(se) d’en parler."
-                : "Bonjour, ravi(e) de ce match sur le poste de $poste. Qu’est-ce qui, dans mon profil, a retenu votre attention ?",
-            $manque
-                ? "Bonjour, je vois que le poste demande « $manque ». Je n’en ai pas encore fait l’expérience, mais je suis prêt(e) à me former : peut-on en discuter ?"
-                : "Bonjour, quelles seraient les prochaines étapes pour le poste de $poste ? Je peux me rendre disponible pour un entretien dès cette semaine.",
-        ];
-    } else {
-        $s = [
-            "Bonjour $prenom, votre profil a retenu notre attention pour le poste de $poste. Seriez-vous disponible pour un premier échange ?",
-            $commune
-                ? "Bonjour $prenom, votre expérience en « $commune » nous intéresse pour le poste de $poste. Pouvez-vous nous en dire plus ?"
-                : "Bonjour $prenom, merci pour votre candidature au poste de $poste. Pouvez-vous nous parler de ce qui vous attire dans ce poste ?",
-            "Bonjour $prenom, nous souhaitons vous proposer un entretien pour le poste de $poste. Je vous envoie des créneaux dans l’agenda de l’application.",
-        ];
-    }
-    return array_map(static fn ($x) => mb_substr($x, 0, 400), $s);
-}
 
-/** Un fichier iCalendar pour un entretien : le candidat le met dans son agenda. */
-function ics(array $ent, string $titre, string $organisation): string
+/* JSON Resume (jsonresume.org) : le schema norme cite par le HackAVP, pour
+   emporter son profil ailleurs. Pas d'annee de diplome, par choix.
+
+   La fabrication est une fonction et non du code dans la route : la passerelle
+   d'echange sert exactement le meme document, et deux facons de produire un
+   JSON Resume finiraient par diverger. */
+function jsonResume(array $p, string $email): array
 {
-    $debut = gmdate('Ymd\THis\Z', strtotime($ent['debut_utc'] . ' UTC'));
-    $fin = gmdate('Ymd\THis\Z', strtotime($ent['debut_utc'] . ' UTC') + (int) $ent['duree_min'] * 60);
-    $esc = static fn (string $t) => addcslashes($t, ",;\\");
-    $lieu = $ent['mode'] === 'sur place' ? ($ent['lieu'] ?: $organisation) : ucfirst($ent['mode']) . ($ent['lieu'] ? ' — ' . $ent['lieu'] : '');
-    return implode("\r\n", [
-        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Adopte un Job//FR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
-        'BEGIN:VEVENT',
-        'UID:' . $ent['uid_ics'],
-        'DTSTAMP:' . gmdate('Ymd\THis\Z'),
-        'DTSTART:' . $debut,
-        'DTEND:' . $fin,
-        'SUMMARY:' . $esc('Entretien — ' . $titre),
-        'LOCATION:' . $esc($lieu),
-        'DESCRIPTION:' . $esc(($ent['notes'] ?? '') ?: 'Entretien organisé via Adopte un Job.'),
-        'STATUS:' . ($ent['statut'] === 'confirme' ? 'CONFIRMED' : ($ent['statut'] === 'annule' ? 'CANCELLED' : 'TENTATIVE')),
-        'END:VEVENT', 'END:VCALENDAR', '',
-    ]);
+    $niv = ['Bac', 'Bac+2', 'Bac+3', 'Bac+5'];
+    return [
+        '$schema' => 'https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json',
+        'basics' => [
+            'name' => trim($p['prenom'] . ' ' . $p['nom']),
+            'email' => $email,
+            'phone' => $p['telephone'] ?: null,
+            'summary' => $p['metiersOpt'] ? 'Métiers visés : ' . implode(', ', array_column($p['metiersOpt'], 'nom')) : null,
+            'location' => ['region' => implode(', ', $p['zones']), 'countryCode' => 'NC'],
+        ],
+        'work' => array_map(static fn ($x) => ['position' => $x['poste'], 'name' => $x['secteur'], 'startDate' => $x['debut'] ?: null, 'endDate' => $x['fin'] ?: null], $p['experiences']),
+        'education' => array_map(static fn ($f) => ['studyType' => $niv[max(0, min(3, (int) $f['niveau'] - 1))], 'area' => $f['domaine']], $p['formations']),
+        'skills' => array_merge(
+            array_map(static fn ($s) => ['name' => $s], $p['competences']),
+            array_map(static fn ($s) => ['name' => $s['nom'], 'keywords' => ['OPT-NC:' . $s['code']]], $p['competencesOpt'])
+        ),
+        'languages' => array_map(static fn ($l) => ['language' => $l['langue'], 'fluency' => $l['niveau']], $p['langues']),
+        'meta' => ['generator' => 'Adopte un Job', 'version' => 'v1.0.0', 'lastModified' => maintenant()],
+    ];
 }

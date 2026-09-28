@@ -7,7 +7,7 @@
  * La lecture du PDF reste dans l'appareil. Ce qui monte : le resultat de la
  * lecture (pour retraiter sans redemander le fichier), le choix de
  * l'utilisateur apres relecture (la seule mesure de qualite du moteur), et,
- * depuis le 21/09, le fichier lui-meme — chiffre au repos, remis au recruteur
+ * depuis le 21/09, le fichier lui-meme — chiffre au repos, remis a l'employeur
  * seulement apres preselection.
  */
 
@@ -182,28 +182,8 @@ if (route('GET', 'profil/cv.pdf', $seg, $methode) !== false) {
     exit;
 }
 
-/* JSON Resume (jsonresume.org) : le schema norme cite par le HackAVP, pour
-   emporter son profil ailleurs. Pas d'annee de diplome, par choix. */
+
 if (route('GET', 'profil/jsonresume', $seg, $methode) !== false) {
     $u = exigeConnexion('candidat');
-    $p = profilComplet($pdo, (int) $u['id']);
-    $niv = ['Bac', 'Bac+2', 'Bac+3', 'Bac+5'];
-    envoie([
-        '$schema' => 'https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json',
-        'basics' => [
-            'name' => trim($p['prenom'] . ' ' . $p['nom']),
-            'email' => $u['email'],
-            'phone' => $p['telephone'] ?: null,
-            'summary' => $p['metiersOpt'] ? 'Métiers visés : ' . implode(', ', array_column($p['metiersOpt'], 'nom')) : null,
-            'location' => ['region' => implode(', ', $p['zones']), 'countryCode' => 'NC'],
-        ],
-        'work' => array_map(static fn ($x) => ['position' => $x['poste'], 'name' => $x['secteur'], 'startDate' => $x['debut'] ?: null, 'endDate' => $x['fin'] ?: null], $p['experiences']),
-        'education' => array_map(static fn ($f) => ['studyType' => $niv[max(0, min(3, (int) $f['niveau'] - 1))], 'area' => $f['domaine']], $p['formations']),
-        'skills' => array_merge(
-            array_map(static fn ($s) => ['name' => $s], $p['competences']),
-            array_map(static fn ($s) => ['name' => $s['nom'], 'keywords' => ['OPT-NC:' . $s['code']]], $p['competencesOpt'])
-        ),
-        'languages' => array_map(static fn ($l) => ['language' => $l['langue'], 'fluency' => $l['niveau']], $p['langues']),
-        'meta' => ['generator' => 'Adopte un Job', 'version' => 'v1.0.0', 'lastModified' => maintenant()],
-    ]);
+    envoie(jsonResume(profilComplet($pdo, (int) $u['id']), (string) $u['email']));
 }

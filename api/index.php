@@ -75,7 +75,6 @@ if (route('POST', 'auth/inscription', $seg, $methode) !== false) {
     limite('inscription:' . empreinteIp(), 10, 3600);
     $email = mb_strtolower(texte('email', 190, true));
     $mdp   = (string) champ('motdepasse', '');
-    $role  = champ('role') === 'recruteur' ? 'recruteur' : 'candidat';
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         erreur('email_invalide', 'Cette adresse e-mail n’est pas valide.', 422);
@@ -94,33 +93,11 @@ if (route('POST', 'auth/inscription', $seg, $methode) !== false) {
 
     $algo = defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT;
     [$verifClair, $verifHash] = jetonUnique();
-    $pdo->prepare('INSERT INTO users (email, pass_hash, role, verify_hash, created_at) VALUES (?,?,?,?,?)')
-        ->execute([$email, password_hash($mdp, $algo), $role, $verifHash, maintenant()]);
+    $pdo->prepare('INSERT INTO users (email, pass_hash, role, verify_hash, created_at) VALUES (?,?,"candidat",?,?)')
+        ->execute([$email, password_hash($mdp, $algo), $verifHash, maintenant()]);
     $id = (int) $pdo->lastInsertId();
 
-    $organisation = null;
-    if ($role === 'candidat') {
-        $pdo->prepare('INSERT INTO candidates (user_id, updated_at) VALUES (?,?)')->execute([$id, maintenant()]);
-    } else {
-        /* Un recruteur rejoint une organisation par son code, ou en cree une.
-           Sans l'un ni l'autre, le compte existe et l'ecran le lui demandera. */
-        $code = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) champ('code', '')) ?? '');
-        $nomOrg = texte('organisation', 160);
-        if ($code !== '') {
-            $st = $pdo->prepare('SELECT id, name FROM companies WHERE invite_code = ?');
-            $st->execute([$code]);
-            if ($c = $st->fetch()) {
-                $pdo->prepare('INSERT INTO company_members (company_id, user_id, role, created_at) VALUES (?,?,"recruteur",?)')->execute([(int) $c['id'], $id, maintenant()]);
-                $organisation = ['id' => (int) $c['id'], 'nom' => $c['name']];
-            }
-        } elseif ($nomOrg !== '') {
-            $slug = slugue($nomOrg) . '-' . substr(bin2hex(random_bytes(3)), 0, 5);
-            $pdo->prepare('INSERT INTO companies (name, slug, invite_code, source, created_at) VALUES (?,?,?,"app",?)')->execute([$nomOrg, $slug, codeInvitation(), maintenant()]);
-            $cid = (int) $pdo->lastInsertId();
-            $pdo->prepare('INSERT INTO company_members (company_id, user_id, role, created_at) VALUES (?,?,"proprietaire",?)')->execute([$cid, $id, maintenant()]);
-            $organisation = ['id' => $cid, 'nom' => $nomOrg];
-        }
-    }
+    $pdo->prepare('INSERT INTO candidates (user_id, updated_at) VALUES (?,?)')->execute([$id, maintenant()]);
     enfileMail($id, $email, 'Vérifiez votre adresse — Adopte un Job', "Code de vérification : $verifClair");
     // Le consentement est trace des l'inscription : sa version compte autant
     // que le fait qu'il ait ete donne.
@@ -129,7 +106,7 @@ if (route('POST', 'auth/inscription', $seg, $methode) !== false) {
 
     trace($id, 'inscription', 'user', $id);
     $t = ouvreSession($id);
-    envoie(['jeton' => $t, 'utilisateur' => ['id' => $id, 'email' => $email, 'role' => $role, 'organisation' => $organisation]], 201);
+    envoie(['jeton' => $t, 'utilisateur' => ['id' => $id, 'email' => $email]], 201);
 }
 
 if (route('POST', 'auth/connexion', $seg, $methode) !== false) {
@@ -181,56 +158,8 @@ if (route('GET', 'auth/moi', $seg, $methode) !== false) {
     }
     $st = $pdo->prepare('SELECT email_verified_at FROM users WHERE id = ?');
     $st->execute([(int) $u['id']]);
-    $out = ['id' => (int) $u['id'], 'email' => $u['email'], 'role' => $u['role'], 'emailVerifie' => $st->fetchColumn() !== null];
-    if (comptePolyvalent((string) $u['email'])) {
-        $out['peutBasculer'] = true;
-    }
-    if ($u['role'] !== 'candidat') {
-        $st = $pdo->prepare('SELECT c.id, c.name, m.role FROM company_members m JOIN companies c ON c.id = m.company_id WHERE m.user_id = ? ORDER BY m.created_at LIMIT 1');
-        $st->execute([(int) $u['id']]);
-        $o = $st->fetch();
-        $out['organisation'] = $o ? ['id' => (int) $o['id'], 'nom' => $o['name'], 'role' => $o['role']] : null;
-    }
-    envoie(['utilisateur' => $out]);
-}
-
-/* Changer de cote sans changer de compte : reserve aux comptes declares
-   polyvalents dans la configuration du serveur (COMPTES_POLYVALENTS). Pour
-   tous les autres la route repond 403, quoi que demande le client — c'est le
-   serveur qui decide, pas le bouton.
-
-   Rien n'est detruit au passage : le profil candidat reste en base, les
-   candidatures aussi, l'appartenance a une organisation aussi. On revient a
-   l'etat d'avant en rebasculant. */
-if (route('POST', 'auth/role', $seg, $methode) !== false) {
-    $u = exigeConnexion();
-    if (!comptePolyvalent((string) $u['email'])) {
-        erreur('interdit', 'Ce compte ne peut pas changer de rôle.', 403);
-    }
-    limite('role:' . (int) $u['id'], 20, 3600);
-    $vise = champ('role') === 'recruteur' ? 'recruteur' : 'candidat';
-
-    if ($vise !== $u['role']) {
-        $pdo->prepare('UPDATE users SET role = ? WHERE id = ?')->execute([$vise, (int) $u['id']]);
-        // Le profil candidat doit exister meme apres un aller-retour.
-        if ($vise === 'candidat') {
-            $pdo->prepare('INSERT IGNORE INTO candidates (user_id, updated_at) VALUES (?,?)')
-                ->execute([(int) $u['id'], maintenant()]);
-        }
-        trace((int) $u['id'], 'bascule_role_' . $vise, 'user', (int) $u['id']);
-    }
-
-    $st = $pdo->prepare('SELECT email_verified_at FROM users WHERE id = ?');
-    $st->execute([(int) $u['id']]);
-    $out = ['id' => (int) $u['id'], 'email' => $u['email'], 'role' => $vise,
-            'emailVerifie' => $st->fetchColumn() !== null, 'peutBasculer' => true];
-    if ($vise !== 'candidat') {
-        $st = $pdo->prepare('SELECT c.id, c.name, m.role FROM company_members m JOIN companies c ON c.id = m.company_id WHERE m.user_id = ? ORDER BY m.created_at LIMIT 1');
-        $st->execute([(int) $u['id']]);
-        $o = $st->fetch();
-        $out['organisation'] = $o ? ['id' => (int) $o['id'], 'nom' => $o['name'], 'role' => $o['role']] : null;
-    }
-    envoie(['utilisateur' => $out]);
+    envoie(['utilisateur' => ['id' => (int) $u['id'], 'email' => $u['email'],
+                              'emailVerifie' => $st->fetchColumn() !== null]]);
 }
 
 /* Export et suppression sont livres avec la version 1. Ajoutes apres, ils
@@ -428,56 +357,6 @@ if (route('PUT', 'profil', $seg, $methode) !== false) {
     envoie(['profil' => profilComplet($pdo, $id)]);
 }
 
-/** Vide puis reecrit une table de liaison a une colonne. */
-function remplace(PDO $pdo, string $table, string $colonne, int $userId, array $valeurs): void
-{
-    $pdo->prepare("DELETE FROM `$table` WHERE user_id = ?")->execute([$userId]);
-    if (!$valeurs) {
-        return;
-    }
-    $ins = $pdo->prepare("INSERT IGNORE INTO `$table` (user_id, `$colonne`) VALUES (?,?)");
-    foreach ($valeurs as $v) {
-        $ins->execute([$userId, $v]);
-    }
-}
-
-/**
- * Resout des libelles en identifiants de competences.
- * Trois passes dans l'ordre : le slug canonique, puis les alias connus, puis la
- * creation. Comparer par slug apres coup recreerait chaque alias en double —
- * « dev web » deviendrait une competence distincte de « Developpement web ».
- */
-function idsOuCree(PDO $pdo, array $libelles): array
-{
-    $ids = [];
-    $parSlug  = $pdo->prepare('SELECT id FROM skills WHERE slug = ?');
-    $parAlias = $pdo->prepare('SELECT skill_id FROM skill_aliases WHERE alias = ?');
-    $ins      = $pdo->prepare('INSERT IGNORE INTO skills (slug, label, family) VALUES (?,?,?)');
-
-    foreach ($libelles as $brut) {
-        $lab = trim((string) $brut);
-        $s = slugue($lab);
-        if ($s === '') {
-            continue;
-        }
-        $parSlug->execute([$s]);
-        $id = $parSlug->fetchColumn();
-        if ($id === false) {
-            $parAlias->execute([mb_strtolower($lab, 'UTF-8')]);
-            $id = $parAlias->fetchColumn();
-        }
-        if ($id === false) {
-            // Inconnue du referentiel : elle y entre plutot que d'etre perdue.
-            $ins->execute([$s, mb_substr($lab, 0, 80), 'libre']);
-            $parSlug->execute([$s]);
-            $id = $parSlug->fetchColumn();
-        }
-        if ($id !== false && !in_array((int) $id, $ids, true)) {
-            $ids[] = (int) $id;
-        }
-    }
-    return $ids;
-}
 
 /* Depot de CV : on garde la trace du fichier et de ce que l'utilisateur a
    valide, pas le fichier lui-meme — l'extraction se fait dans le navigateur. */
@@ -516,123 +395,8 @@ if (route('POST', 'profil/cv', $seg, $methode) !== false) {
    segment libre (avp/*), et chaque fichier s'en charge pour les siennes. */
 require __DIR__ . '/cv.php';
 require __DIR__ . '/compte.php';
-require __DIR__ . '/organisation.php';
 require __DIR__ . '/avp.php';
 require __DIR__ . '/candidatures.php';
-require __DIR__ . '/agenda.php';
-require __DIR__ . '/tableau.php';
-
-/* =================================================================== offres */
-
-/* Les offres saisies par une organisation (source 'app'). Les AVP OPT (source
-   'opt') arrivent par synchronisation et ne se modifient pas ici. */
-if (route('GET', 'offres', $seg, $methode) !== false) {
-    $u = exigeConnexion('recruteur');
-    $org = organisationDe($pdo, $u);
-    $st = $pdo->prepare(
-        'SELECT j.*, c.name AS entreprise, c.sector AS secteur, c.size AS taille, c.pitch,
-                (SELECT COUNT(*) FROM applications a WHERE a.job_id = j.id) AS candidatures,
-                (SELECT COUNT(*) FROM applications a WHERE a.job_id = j.id AND a.statut IN ("envoyee","vue")) AS en_attente,
-                (SELECT COUNT(*) FROM matches m WHERE m.job_id = j.id) AS matchs,
-                (SELECT COUNT(*) FROM job_views v WHERE v.job_id = j.id) AS vues
-           FROM jobs j JOIN companies c ON c.id = j.company_id
-          WHERE j.company_id = ? ORDER BY j.statut = "publiee" DESC, en_attente DESC, candidatures DESC, j.published_at DESC, j.created_at DESC'
-    );
-    $st->execute([(int) $org['id']]);
-    $out = [];
-    foreach ($st->fetchAll() as $o) {
-        $p = offrePublique(garnisOffre($pdo, $o));
-        $p['candidatures'] = (int) $o['candidatures'];
-        $p['enAttente'] = (int) $o['en_attente'];
-        $p['matchs'] = (int) $o['matchs'];
-        $p['vues'] = (int) $o['vues'];
-        $out[] = $p;
-    }
-    envoie(['offres' => $out, 'organisation' => organisationPublique($org)]);
-}
-
-if (route('POST', 'offres', $seg, $methode) !== false || ($a = route('PUT', 'offres/*', $seg, $methode)) !== false) {
-    $u = exigeConnexion('recruteur');
-    $org = organisationDe($pdo, $u);
-    if ($org['membre_role'] === 'lecteur') {
-        erreur('role_insuffisant', 'Un lecteur ne publie pas d’offre.', 403);
-    }
-    $codeMetier = strtoupper((string) champ('codeMetier', ''));
-    $m = $codeMetier !== '' ? metierOpt($pdo, $codeMetier) : null;
-    $familles = $m ? [$m['famille']] : [];
-
-    $vals = [
-        texte('titre', 160, true),
-        null,
-        in_array(champ('contrat'), CONTRATS, true) ? champ('contrat') : 'CDI',
-        in_array(champ('zone'), ZONES, true) ? champ('zone') : ZONES[0],
-        in_array(champ('teletravail'), ['non', 'hybride', 'total'], true) ? champ('teletravail') : 'non',
-        entierOuNull('salaireMin'),
-        entierOuNull('salaireMax'),
-        max(0, (int) champ('experienceMin', 0)),
-        entierOuNull('formationMin'),
-        champ('permis') ? 1 : 0,
-        preg_match('/^\d{4}-\d{2}$/', (string) champ('debut', '')) ? champ('debut') : null,
-        mb_substr((string) champ('description', ''), 0, 6000),
-        champ('statut') === 'publiee' ? 'publiee' : 'brouillon',
-        $m ? $m['code_metier'] : null,
-        texte('ville', 60) ?: null,
-        json_encode($familles, JSON_UNESCAPED_UNICODE),
-        preg_match('/^\d{4}-\d{2}-\d{2}/', (string) champ('expire', ''), $mm) ? $mm[0] . ' 23:59:59' : null,
-    ];
-    $comp = array_slice(array_values(array_filter(array_map('strval', (array) champ('competencesTexte', [])))), 0, 20);
-    $ct = json_encode(array_map(static fn ($t) => ['texte' => mb_substr($t, 0, 240), 'type' => 'savoir-faire', 'mots' => motsPorteurs($t)], $comp), JSON_UNESCAPED_UNICODE);
-    $texte = $vals[0] . "\n" . $vals[11] . "\n" . implode("\n", $comp) . ' ' . ($m['nom'] ?? '');
-
-    $modif = isset($a[0]);
-    if ($modif) {
-        $o = exigeOffreDeOrganisation($pdo, $org, (int) $a[0]);
-        if ($o['source'] === 'opt') {
-            erreur('offre_synchronisee', 'Un AVP de l’OPT-NC se modifie à la source, pas ici.', 409);
-        }
-        $pdo->prepare(
-            'UPDATE jobs SET titre=?, occupation_id=?, contrat=?, zone=?, teletravail=?, salaire_min=?, salaire_max=?,
-                             experience_min=?, formation_min=?, permis_requis=?, debut=?, description=?, statut=?,
-                             code_metier=?, ville=?, familles=?, expires_at=?, competences_texte=?, texte_recherche=?, updated_at=?,
-                             published_at = IF(?="publiee" AND published_at IS NULL, ?, published_at)
-              WHERE id = ?'
-        )->execute([...$vals, $ct, $texte, maintenant(), $vals[12], maintenant(), (int) $a[0]]);
-        $jobId = (int) $a[0];
-        $pdo->prepare('DELETE FROM match_scores WHERE job_id = ?')->execute([$jobId]);
-    } else {
-        $pdo->prepare(
-            'INSERT INTO jobs (company_id, created_by, titre, occupation_id, contrat, zone, teletravail, salaire_min, salaire_max,
-                               experience_min, formation_min, permis_requis, debut, description, statut, code_metier, ville, familles,
-                               expires_at, competences_texte, texte_recherche, source, published_at, created_at, updated_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"app",?,?,?)'
-        )->execute([(int) $org['id'], (int) $u['id'], ...$vals, $ct, $texte,
-            $vals[12] === 'publiee' ? maintenant() : null, maintenant(), maintenant()]);
-        $jobId = (int) $pdo->lastInsertId();
-    }
-    $pdo->prepare('DELETE FROM job_skills WHERE job_id = ?')->execute([$jobId]);
-    $ins = $pdo->prepare('INSERT IGNORE INTO job_skills (job_id, skill_id, niveau) VALUES (?,?,?)');
-    foreach (idsOuCree($pdo, array_slice((array) champ('requis', []), 0, 12)) as $sid) {
-        $ins->execute([$jobId, $sid, 'exige']);
-    }
-    foreach (idsOuCree($pdo, array_slice((array) champ('souhaite', []), 0, 12)) as $sid) {
-        $ins->execute([$jobId, $sid, 'souhaite']);
-    }
-    trace((int) $u['id'], $modif ? 'maj_offre' : 'creation_offre', 'job', $jobId);
-    envoie(['offre' => offrePublique(garnisOffre($pdo, offreParId($pdo, $jobId)))], $modif ? 200 : 201);
-}
-
-if (($a = route('DELETE', 'offres/*', $seg, $methode)) !== false) {
-    $u = exigeConnexion('recruteur');
-    $org = organisationDe($pdo, $u);
-    $o = exigeOffreDeOrganisation($pdo, $org, (int) $a[0]);
-    if ($o['source'] === 'opt') {
-        erreur('offre_synchronisee', 'Un AVP de l’OPT-NC se ferme à la source.', 409);
-    }
-    // On ferme, on ne supprime pas : des candidatures en dependent.
-    $pdo->prepare('UPDATE jobs SET statut = "fermee", updated_at = ? WHERE id = ?')->execute([maintenant(), (int) $a[0]]);
-    trace((int) $u['id'], 'fermeture_offre', 'job', (int) $a[0]);
-    envoie(['ok' => true]);
-}
 
 /* ================================================================== swipes */
 
@@ -718,10 +482,17 @@ if (route('GET', 'interets', $seg, $methode) !== false) {
             memoriseScore($pdo, (int) $ligne['id'], $id, $e);
             $o['score'] = scorePublic($e);
         } elseif ($ligne['qualite'] !== null) {
+            /* Le detail memorise avant le 28/09 nomme cette moitie « recruteur ».
+               On la rend sous son nom actuel plutot que de reecrire la base. */
+            $detail = json_decode((string) $ligne['detail'], true);
+            if (is_array($detail) && isset($detail['recruteur']) && !isset($detail['poste'])) {
+                $detail = ['poste' => $detail['recruteur']] + $detail;
+                unset($detail['recruteur']);
+            }
             $o['score'] = [
-                'qualite' => (int) $ligne['qualite'], 'recruteur' => (int) $ligne['fit_recruteur'],
+                'qualite' => (int) $ligne['qualite'], 'poste' => (int) $ligne['fit_recruteur'],
                 'candidat' => (int) $ligne['fit_candidat'], 'confiance' => (int) $ligne['confiance'],
-                'detail' => json_decode((string) $ligne['detail'], true),
+                'detail' => $detail,
             ];
             $o['score']['ecarts'] = $o['score']['detail']['ecarts'] ?? [];
         }
@@ -732,100 +503,6 @@ if (route('GET', 'interets', $seg, $methode) !== false) {
         $out[] = $o;
     }
     envoie(['interets' => $out]);
-}
-
-/* ================================================================== matchs */
-
-if (route('GET', 'matchs', $seg, $methode) !== false) {
-    $u = exigeConnexion();
-    $id = (int) $u['id'];
-    if ($u['role'] === 'candidat') {
-        $st = $pdo->prepare(
-            'SELECT m.id, m.qualite, m.statut, m.created_at, j.id AS offre, j.titre, c.name AS entreprise,
-                    (SELECT a.id FROM applications a WHERE a.match_id = m.id LIMIT 1) AS candidature,
-                    (SELECT COUNT(*) FROM messages x WHERE x.match_id = m.id AND x.read_at IS NULL AND x.auteur_id <> ?) AS non_lus
-               FROM matches m JOIN jobs j ON j.id = m.job_id JOIN companies c ON c.id = j.company_id
-              WHERE m.candidate_id = ? ORDER BY m.created_at DESC'
-        );
-        $st->execute([$id, $id]);
-    } else {
-        $org = organisationDe($pdo, $u);
-        $st = $pdo->prepare(
-            'SELECT m.id, m.qualite, m.statut, m.created_at, j.id AS offre, j.titre, m.candidate_id,
-                    ca.prenom, ca.initiale,
-                    (SELECT a.id FROM applications a WHERE a.match_id = m.id LIMIT 1) AS candidature,
-                    (SELECT COUNT(*) FROM messages x WHERE x.match_id = m.id AND x.read_at IS NULL AND x.auteur_id <> ?) AS non_lus
-               FROM matches m JOIN jobs j ON j.id = m.job_id JOIN candidates ca ON ca.user_id = m.candidate_id
-              WHERE j.company_id = ? ORDER BY m.created_at DESC'
-        );
-        $st->execute([$id, (int) $org['id']]);
-    }
-    envoie(['matchs' => array_map(static fn ($m) => $m + ['non_lus' => (int) $m['non_lus'], 'candidature' => $m['candidature'] === null ? null : (int) $m['candidature']], $st->fetchAll())]);
-}
-
-if (($a = route('GET', 'matchs/*', $seg, $methode)) !== false && ctype_digit($a[0])) {
-    $u = exigeConnexion();
-    $m = accesAuMatch($pdo, $u, (int) $a[0]);
-    $o = garnisOffre($pdo, offreParId($pdo, (int) $m['job_id']));
-    $out = ['match' => ['id' => (int) $m['id'], 'qualite' => (int) $m['qualite'], 'statut' => $m['statut']],
-            'offre' => offrePublique($o)];
-    $st = $pdo->prepare('SELECT id, statut FROM applications WHERE match_id = ? LIMIT 1');
-    $st->execute([(int) $m['id']]);
-    $out['candidature'] = $st->fetch() ?: null;
-    if ((int) $m['candidate_id'] !== (int) $u['id']) {
-        $out['candidat'] = candidatVuParEntreprise($pdo, (int) $m['candidate_id'], true);
-        trace((int) $u['id'], 'lecture_profil_candidat', 'candidate', (int) $m['candidate_id']);
-    }
-    $st = $pdo->prepare('SELECT id, debut_utc, duree_min, mode, lieu, statut FROM entretiens WHERE job_id = ? AND candidate_id = ? ORDER BY debut_utc');
-    $st->execute([(int) $m['job_id'], (int) $m['candidate_id']]);
-    $out['entretiens'] = $st->fetchAll();
-    envoie($out);
-}
-
-/* =============================================================== messagerie */
-
-if (($a = route('GET', 'matchs/*/messages', $seg, $methode)) !== false) {
-    $u = exigeConnexion();
-    $m = accesAuMatch($pdo, $u, (int) $a[0]);
-    $st = $pdo->prepare('SELECT id, auteur_id, corps, created_at, read_at FROM messages WHERE match_id = ? ORDER BY id');
-    $st->execute([(int) $m['id']]);
-    $msgs = $st->fetchAll();
-    $pdo->prepare('UPDATE messages SET read_at = ? WHERE match_id = ? AND auteur_id <> ? AND read_at IS NULL')
-        ->execute([maintenant(), (int) $m['id'], (int) $u['id']]);
-    envoie(['messages' => array_map(static fn ($x) => [
-        'id' => (int) $x['id'], 'moi' => (int) $x['auteur_id'] === (int) $u['id'], 'corps' => $x['corps'], 'quand' => $x['created_at'],
-    ], $msgs)]);
-}
-
-if (($a = route('POST', 'matchs/*/messages', $seg, $methode)) !== false) {
-    $u = exigeConnexion();
-    $m = accesAuMatch($pdo, $u, (int) $a[0]);
-    limite('msg:' . $u['id'], 120, 3600);
-    $corps = trim((string) champ('corps', ''));
-    if ($corps === '') {
-        erreur('message_vide', 'Le message est vide.', 422);
-    }
-    $pdo->prepare('INSERT INTO messages (match_id, auteur_id, corps, created_at) VALUES (?,?,?,?)')
-        ->execute([(int) $m['id'], (int) $u['id'], mb_substr($corps, 0, 4000), maintenant()]);
-    if ((int) $m['candidate_id'] === (int) $u['id']) {
-        foreach (membresIds($pdo, (int) $m['company_id']) as $x) {
-            notifie($x, 'message', ['match' => (int) $m['id']]);
-        }
-    } else {
-        notifie((int) $m['candidate_id'], 'message', ['match' => (int) $m['id']]);
-    }
-    envoie(['ok' => true], 201);
-}
-
-/* Propositions de message pour un match (memes regles que par candidature). */
-if (($a = route('GET', 'matchs/*/suggestions', $seg, $methode)) !== false) {
-    $u = exigeConnexion();
-    $m = accesAuMatch($pdo, $u, (int) $a[0]);
-    $p = profilComplet($pdo, (int) $m['candidate_id']);
-    $garni = garnisOffre($pdo, offreParId($pdo, (int) $m['job_id']));
-    $c = candidatPourScore($pdo, (int) $m['candidate_id']);
-    $e = $c ? evalue($pdo, $c, $garni) : null;
-    envoie(['suggestions' => suggestionsMessages((int) $m['candidate_id'] === (int) $u['id'] ? 'candidat' : 'recruteur', $p, offrePublique($garni), $e)]);
 }
 
 /* ============================================================ notifications */

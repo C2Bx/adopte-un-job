@@ -229,7 +229,7 @@ function evalue(PDO $pdo, array $c, array $o): array
         'passerelle_raison' => $direct ? null : $prox['raison'],
         'contraintes'   => $ec,
         'detail'        => [
-            'recruteur'   => $fr['parts'],
+            'poste'       => $fr['parts'],
             'candidat'    => $fc['parts'],
             'couverture'  => $expl ?? ['v' => $vComp, 'ok' => [], 'manque' => [], 'bonus' => []],
             'structurel'  => $struct,
@@ -261,7 +261,7 @@ function scorePublic(array $e): array
 {
     return [
         'qualite'    => $e['qualite'],
-        'recruteur'  => $e['fit_recruteur'],
+        'poste'      => $e['fit_recruteur'],
         'candidat'   => $e['fit_candidat'],
         'confiance'  => $e['confiance'],
         'passerelle' => $e['passerelle'],

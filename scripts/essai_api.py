@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Recette de l'API, de bout en bout : candidat, organisation a deux membres,
-   AVP reels, candidature, preselection (match), dossier, entretien, agenda,
-   tableau de bord, messages, export, suppression.
+"""Recette de l'API, de bout en bout : catalogue public, compte candidat,
+   profil, CV, deck score, candidature, retrait, cles d'API, export, suppression.
 
    Deux transports :
      AVP_API=https://…/index.php   → HTTP (production, staging)
@@ -17,8 +16,6 @@ ICI = pathlib.Path(__file__).resolve().parent
 BASE = os.environ.get("AVP_API")
 tag = uuid.uuid4().hex[:6]
 CAND = f"zz_cand_{tag}@example.nc"
-RH1 = f"zz_rh1_{tag}@example.nc"
-RH2 = f"zz_rh2_{tag}@example.nc"
 MDP = "recette-adopte-un-job-2026"
 ecarts = 0
 n = 0
@@ -106,7 +103,7 @@ appel("GET", "avp/999999999", attendu=404)
 
 # ---------------------------------------------------------------- candidat
 ligne("candidat")
-r = appel("POST", "auth/inscription", {"email": CAND, "motdepasse": MDP, "role": "candidat"}, attendu=201)
+r = appel("POST", "auth/inscription", {"email": CAND, "motdepasse": MDP}, attendu=201)
 tc = r["jeton"]
 appel("GET", "auth/moi", token=tc)
 appel("GET", "deck", token=tc, attendu=409)          # profil vide : verrou
@@ -157,106 +154,15 @@ assert any(x.get("candidature", {}) and x["candidature"]["id"] == cand_id for x 
 r = appel("GET", "candidatures", token=tc)
 assert r["candidatures"][0]["id"] == cand_id and r["candidatures"][0]["statut"] == "envoyee"
 appel("GET", f"candidatures/{cand_id}/cv.pdf", token=tc, brut=True)
-appel("GET", f"candidatures/{cand_id}/suggestions", token=tc)
 appel("DELETE", f"swipes/{deck[-1]['id']}", token=tc)
-
-# ---------------------------------------------------------------- organisation
-ligne("organisation")
-r = appel("POST", "auth/inscription", {"email": RH1, "motdepasse": MDP, "role": "recruteur", "organisation": f"zz Organisation {tag}"}, attendu=201)
-t1 = r["jeton"]
-assert r["utilisateur"]["organisation"], "organisation non créée à l'inscription"
-r = appel("GET", "organisation/membres", token=t1)
-code = r["codeInvitation"]
-r = appel("POST", "auth/inscription", {"email": RH2, "motdepasse": MDP, "role": "recruteur", "code": code}, attendu=201)
-t2 = r["jeton"]
-assert r["utilisateur"]["organisation"], "code d'invitation non reconnu"
-r = appel("GET", "organisation/membres", token=t2)
-assert len(r["membres"]) == 2, "les deux comptes doivent voir la même organisation"
-appel("POST", "organisation/invitation", token=t2, attendu=403)   # pas propriétaire
-appel("POST", "organisation/invitation", token=t1)
-appel("GET", "candidatures", token=t1)                            # vide : l'AVP est à l'OPT
-# une offre propre à l'organisation
-r = appel("POST", "offres", {"titre": f"zz Chargé de clientèle {tag}", "codeMetier": code_metier, "contrat": "CDI", "zone": "Grand Nouméa",
-                             "ville": "Nouméa", "statut": "publiee", "description": "Accueil et conseil.",
-                             "competencesTexte": comp_metier[:3] + ["Relation client"], "expire": "2027-01-31"}, token=t1, attendu=201)
-offre_id = r["offre"]["id"]
-r = appel("GET", "offres", token=t2)
-assert any(o["id"] == offre_id for o in r["offres"]), "le collègue doit voir l'offre"
-appel("PUT", f"offres/{offre_id}", {"titre": f"zz Chargé de clientèle {tag} (maj)", "codeMetier": code_metier, "contrat": "CDI", "zone": "Grand Nouméa", "statut": "publiee"}, token=t2)
-
-# le candidat candidate a l'offre de l'organisation
-r = appel("POST", "candidatures", {"offre": offre_id, "message": "Bonjour"}, token=tc, attendu=201)
-cand2 = r["candidature"]["id"]
-r = appel("GET", f"avp/{offre_id}/candidats", token=t1)
-assert r["candidats"] and r["candidats"][0].get("candidature"), "candidat absent de la file"
-assert "prenom" not in r["candidats"][0], "le prénom ne doit pas être visible avant présélection"
-r = appel("GET", f"avp/{offre_id}/candidats", token=t1, query={"vivier": "1"})
-r = appel("GET", "candidatures", token=t2, query={"offre": offre_id})
-assert r["candidatures"][0]["id"] == cand2
-appel("GET", f"candidatures/{cand2}/cv.pdf", token=t2, attendu=403)   # dossier fermé avant présélection
-r = appel("GET", f"candidatures/{cand2}", token=t2)
-assert r["candidature"]["statut"] == "vue", "l'ouverture doit marquer « vue »"
-r = appel("PUT", f"candidatures/{cand2}/statut", {"statut": "preselection"}, token=t1)
-assert r["candidature"]["statut"] == "preselection" and r["candidature"]["match"], "la présélection doit ouvrir un match"
-match_id = r["candidature"]["match"]
-assert r["candidature"]["candidat"]["prenom"] == "Camille", "le contact s'ouvre à la présélection"
-pdf = appel("GET", f"candidatures/{cand2}/cv.pdf", token=t2, brut=True)
-assert pdf.startswith("%PDF"), "le CV généré doit être un PDF"
-if BASE:
-    orig = appel("GET", f"candidatures/{cand2}/cv-original", token=t2, brut=True)
-    assert orig.startswith("%PDF"), "le CV d'origine doit revenir dechiffre, tel que depose"
-else:
-    appel("GET", f"candidatures/{cand2}/cv-original", token=t2, attendu=404)   # aucun fichier depose (CLI)
-r = appel("GET", f"candidatures/{cand2}/suggestions", token=t1)
-assert len(r["suggestions"]) == 3
-
-# ---------------------------------------------------------------- messages + agenda
-ligne("messages et agenda")
-r = appel("GET", "matchs", token=tc)
-assert r["matchs"][0]["id"] == match_id
-r = appel("GET", f"matchs/{match_id}/suggestions", token=tc)
-appel("POST", f"matchs/{match_id}/messages", {"corps": r["suggestions"][0]}, token=tc, attendu=201)
-r = appel("GET", "matchs", token=t2)
-assert r["matchs"][0]["non_lus"] == 1, "le collègue doit voir le message non lu"
-appel("GET", f"matchs/{match_id}/messages", token=t2)
-appel("POST", f"matchs/{match_id}/messages", {"corps": "Merci, je vous propose des créneaux."}, token=t2, attendu=201)
-r = appel("POST", f"candidatures/{cand2}/entretiens", {"creneaux": [{"debut": "2027-01-12 08:00"}, {"debut": "2027-01-13 03:30"}], "duree": 45, "mode": "visio"}, token=t2, attendu=201)
-ent = r["entretiens"]
-assert len(ent) == 2
-r = appel("GET", "agenda", token=tc)
-assert len(r["entretiens"]) == 2
-r = appel("PUT", f"entretiens/{ent[0]['id']}", {"statut": "confirme"}, token=tc)
-r = appel("GET", "agenda", token=t1)
-statuts = sorted(e["statut"] for e in r["entretiens"])
-assert statuts == ["annule", "confirme"], f"le second créneau doit s'annuler : {statuts}"
-ics = appel("GET", f"entretiens/{ent[0]['id']}/ics", token=tc, brut=True)
-assert "BEGIN:VCALENDAR" in ics
-r = appel("GET", f"candidatures/{cand2}", token=tc)
-assert r["candidature"]["statut"] == "entretien"
-appel("GET", "notifications", token=tc)
-appel("POST", "notifications/lu", token=tc)
-
-# ---------------------------------------------------------------- tableau de bord
-ligne("tableau de bord")
-r = appel("GET", "organisation/tableau", token=t2, query={"periode": "30"})
-t = r["tableau"]
-ind = {i["cle"]: i["valeur"] for i in t["indicateurs"]}
-print(f"  vues={ind['vues']} candidatures={ind['candidatures']} matchs={ind['matchs']} entretiens={ind['entretiens']} en_attente={ind['en_attente']} score={ind['score']}")
-assert ind["candidatures"] >= 1 and ind["matchs"] >= 1 and ind["entretiens"] >= 1
-assert any(o["id"] == offre_id for o in t["offres"])
-assert len(t["series"]["candidatures"]) == 30
-r = appel("GET", f"organisation/tableau/{offre_id}", token=t1)
-csv = appel("GET", "organisation/tableau.csv", token=t1, brut=True)
-assert "titre" in csv.splitlines()[0]
 
 # ---------------------------------------------------------------- refus, retrait, garde-fous
 ligne("garde-fous")
-appel("PUT", f"candidatures/{cand2}/statut", {"statut": "acceptee"}, token=t1)
-appel("PUT", f"candidatures/{cand_id}/statut", {"statut": "preselection"}, token=t1, attendu=403)   # pas son organisation
+# Le retrait est le seul changement de statut qu'un candidat peut demander.
+appel("PUT", f"candidatures/{cand_id}/statut", {"statut": "preselection"}, token=tc, attendu=422)
 appel("PUT", f"candidatures/{cand_id}/statut", {"statut": "retiree"}, token=tc)
-appel("POST", "organisation/rejoindre", {"code": "XXXXXXXXXXXX"}, token=t1, attendu=409)
-appel("GET", "organisation/tableau", token=tc, attendu=403)
-appel("GET", "profil", token=t1, attendu=403)
+appel("GET", "candidatures/999999999", token=tc, attendu=404)
+appel("GET", "profil", attendu=401)
 appel("POST", "auth/connexion", {"email": CAND, "motdepasse": "mauvais-mot-de-passe"}, attendu=401)
 r = appel("POST", "auth/connexion", {"email": CAND, "motdepasse": MDP})
 tc = r["jeton"]
@@ -272,9 +178,7 @@ appel("GET", "auth/export", token=tc)
 
 # ---------------------------------------------------------------- nettoyage (par sa propre session, jamais en masse)
 ligne("nettoyage")
-appel("DELETE", f"offres/{offre_id}", token=t1)
-for tok in (tc, t1, t2):
-    appel("DELETE", "auth/compte", token=tok)
+appel("DELETE", "auth/compte", token=tc)
 
 print(f"\n{n} appels, {ecarts} écarts")
 sys.exit(1 if ecarts else 0)
