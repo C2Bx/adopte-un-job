@@ -21,7 +21,7 @@
   <div class="links">
       <a href="index.html"><b>Tableau</b><span>Kanban, idées, votes</span></a>
       <a href="app.php"><b>Prototype</b><span>Démo cliquable</span></a>
-      <a href="app/index.php"><b>App mobile</b><span>Écran principal, PWA</span></a>
+      <a href="../app/index.php"><b>App mobile</b><span>Écran principal, PWA</span></a>
       <a href="design.php"><b>Design</b><span>Direction et règles</span></a>
       <a href="produit.php"><b>Produit</b><span>Vision et parcours</span></a>
       <a href="profil.php"><b>Profil &amp; CV</b><span>Pôle 1</span></a>
@@ -48,11 +48,11 @@
 
   <h2 id="ou">Où ça tourne</h2>
   <dl class="kv">
-    <dt>Bêta</dt><dd><a href="beta/">zako.nc/avp/beta/</a> — React 19 + TypeScript, construit par Vite, servi en fichiers statiques. Deux jeux d'écrans selon le rôle.</dd>
+    <dt>Application</dt><dd><a href="../">zako.nc/avp/</a> — React 19 + TypeScript, construit par Vite, servi en fichiers statiques.</dd>
     <dt>API</dt><dd><code>zako.nc/avp/app/api/index.php/&lt;route&gt;</code> — PHP 8, un point d'entrée, un fichier par domaine. Documentation vivante : <a href="app/api/index.php?r=openapi.json">openapi.json</a> (OpenAPI 3.1).</dd>
     <dt>Base</dt><dd>MySQL 8.4 sur un hébergement mutualisé, 46 tables. Les secrets vivent hors du code et hors du docroot.</dd>
     <dt>Données</dt><dd>Les <b>AVP réels de l'OPT-NC</b>, par <a href="#sources">deux sources interchangeables</a> : l'API du microservice de l'équipe, et le dataset public (<a href="https://huggingface.co/datasets/opt-nc/odata-avps">opt-nc/odata-avps</a>, schema.org JobPosting) en secours. Synchronisation toutes les six heures. Plus le référentiel officiel des métiers : 12 familles, 84 métiers, 409 compétences, 1 988 liens pondérés.</dd>
-    <dt>Prototype</dt><dd><a href="app/index.php">zako.nc/avp/app/</a> — conservé tel quel, en <code>localStorage</code>, comme démonstration sans compte.</dd>
+    <dt>Prototype</dt><dd><a href="../app/index.php">zako.nc/avp/app/</a> — conservé tel quel, en <code>localStorage</code>, comme démonstration sans compte.</dd>
   </dl>
 
   <h2 id="roles">Un seul côté : le candidat</h2>
@@ -160,7 +160,7 @@
   <h2 id="pieges">Pièges de mise en production</h2>
   <ul>
     <li><b>L'en-tête <code>Authorization</code> n'atteint pas PHP.</b> Apache le retire avant de passer la main. Une ligne de <code>.htaccess</code> (<code>SetEnvIf Authorization</code>) le corrige ; <code>CGIPassAuth</code>, la directive officielle, fait tomber le serveur en 500 ici.</li>
-    <li><b>Le serveur ne connaît pas <code>.mjs</code></b> et le sert en <code>text/plain</code> : le lecteur de PDF marchait en local et pas en ligne. Un <code>.htaccess</code> d'une ligne dans <code>/avp/beta/</code>.</li>
+    <li><b>Le serveur ne connaît pas <code>.mjs</code></b> et le sert en <code>text/plain</code> : le lecteur de PDF marchait en local et pas en ligne. Un <code>.htaccess</code> d'une ligne à côté de l'application.</li>
     <li><b><code>iconv('//TRANSLIT')</code> dépend de la bibliothèque C du serveur.</b> « Développement web » y devenait <code>d-veloppement-web</code>. Table de translittération explicite.</li>
     <li><b>L'ordre des <code>require</code> compte</b> et <b>la garde du corps JSON ne doit pas voir un multipart</b> — voir la recette ci-dessus.</li>
     <li><b>Changer le chemin d'un cookie sans effacer l'ancien laisse une mine.</b> La v1 posait le cookie de session sur <code>/avp/app/</code>, la v2 sur <code>/avp/</code>. Les deux chemins couvrent les appels d'API : un navigateur qui a connu les deux versions envoie <b>deux cookies du même nom</b>, le plus spécifique en tête — et <code>$_COOKIE</code> n'en garde qu'un, le périmé. Résultat : déconnecté à chaque rechargement, avec une session parfaitement valide en base. L'API lit désormais <b>tous</b> les cookies de ce nom dans l'en-tête brut et essaie chacun ; la connexion fait expirer ceux des anciens chemins. Diagnostic par la base, pas par le raisonnement : 21 sessions vivantes pour un seul compte, une nouvelle toutes les deux minutes, aucune jamais remplacée.</li>

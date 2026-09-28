@@ -94,8 +94,11 @@ function filtresEnQuery(f: Filtres = {}): Record<string, string | number | boole
 
 export const api = {
   /* ------------------------------------------------------------- comptes */
-  async inscription(email: string, motdepasse: string) {
-    const d = await appel<{ jeton: string; utilisateur: Utilisateur }>('POST', 'auth/inscription', { email, motdepasse, role: 'candidat' })
+  /* Prénom et nom sont exigés par l'API de l'équipe, qui tient les comptes :
+     son `RegisterRequest` les déclare obligatoires. Ils amorcent aussi le
+     profil, qui les demandait de toute façon à l'étape suivante. */
+  async inscription(email: string, motdepasse: string, prenom: string, nom: string) {
+    const d = await appel<{ jeton: string; utilisateur: Utilisateur }>('POST', 'auth/inscription', { email, motdepasse, prenom, nom })
     poseJeton(d.jeton)
     return d.utilisateur
   },
@@ -115,10 +118,6 @@ export const api = {
     const d = await appel<{ utilisateur: Utilisateur | null }>('GET', 'auth/moi')
     return d.utilisateur
   },
-  reinit: (email: string) => appel<{ ok: boolean; message: string }>('POST', 'auth/reinit', { email }),
-  reinitConfirme: (code: string, motdepasse: string) => appel<{ ok: boolean }>('POST', 'auth/reinit/confirme', { code, motdepasse }),
-  verification: (code: string) => appel<{ ok: boolean }>('POST', 'auth/verification', { code }),
-  changeMotDePasse: (ancien: string, nouveau: string) => appel<{ ok: boolean }>('PUT', 'auth/motdepasse', { ancien, nouveau }),
   sessions: () => appel<{ sessions: { courante: boolean; ouverte: string; active: string; expire: string }[] }>('GET', 'auth/sessions'),
   fermeAutresSessions: () => appel<{ ok: boolean }>('DELETE', 'auth/sessions'),
   export: () => appel<Record<string, unknown>>('GET', 'auth/export'),

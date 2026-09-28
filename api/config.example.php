@@ -35,11 +35,7 @@ define('DB_PASS', $cfg('AVP_DB_PASS', 'a-remplir'));
 const ALGO      = 'v2';               // version du moteur de score, ecrite dans match_scores
 const SESSION_J = 30;                 // duree de vie d'une session, en jours
 const COOKIE    = 'avp_sid';
-const COOKIE_PATH = '/avp/';          // le prototype (/avp/app) ET la beta (/avp/beta)
-
-/** Hash Argon2id d'un mot de passe qui n'existe pas : compare quand le compte est
-    inconnu, pour que la reponse prenne le meme temps qu'avec un vrai compte. */
-const HASH_FACTICE = '$argon2id$v=19$m=65536,t=4,p=1$dUpRNExoanVUdXp4amZlaw$mUmctDTXwaiY+Lzq0DhTAE1UAojDng5lUtOTgV+/YkA';
+const COOKIE_PATH = '/avp/';          // l'application (/avp) ET le prototype (/avp/app)
 
 /** Sel des empreintes d'adresse IP. 32 caracteres aleatoires par installation :
     php -r 'echo bin2hex(random_bytes(16));' */

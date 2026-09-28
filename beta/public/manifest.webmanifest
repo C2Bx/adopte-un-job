@@ -2,16 +2,16 @@
   "name": "Adopte un Job",
   "short_name": "Adopte",
   "description": "Trouver un poste qui correspond vraiment, sans envoyer trente CV.",
-  "start_url": "/avp/beta/",
-  "scope": "/avp/beta/",
+  "start_url": "/avp/",
+  "scope": "/avp/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F4F6F8",
   "theme_color": "#17356B",
   "lang": "fr",
   "icons": [
-    { "src": "/avp/beta/marque/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/avp/beta/marque/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/avp/beta/marque/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "/avp/marque/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/avp/marque/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/avp/marque/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

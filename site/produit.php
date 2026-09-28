@@ -21,7 +21,7 @@
   <div class="links">
       <a href="index.html"><b>Tableau</b><span>Kanban, idées, votes</span></a>
       <a href="app.php"><b>Prototype</b><span>Démo cliquable</span></a>
-      <a href="app/index.php"><b>App mobile</b><span>Écran principal, PWA</span></a>
+      <a href="../app/index.php"><b>App mobile</b><span>Écran principal, PWA</span></a>
       <a href="design.php"><b>Design</b><span>Direction et règles</span></a>
       <a href="produit.php" aria-current="page"><b>Produit</b><span>Vision et parcours</span></a>
       <a href="profil.php"><b>Profil &amp; CV</b><span>Pôle 1</span></a>

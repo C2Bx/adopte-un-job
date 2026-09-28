@@ -21,7 +21,7 @@
   <div class="links">
       <a href="index.html"><b>Tableau</b><span>Kanban, idées, votes</span></a>
       <a href="app.php"><b>Prototype</b><span>Démo cliquable</span></a>
-      <a href="app/index.php"><b>App mobile</b><span>Écran principal, PWA</span></a>
+      <a href="../app/index.php"><b>App mobile</b><span>Écran principal, PWA</span></a>
       <a href="design.php"><b>Design</b><span>Direction et règles</span></a>
       <a href="produit.php"><b>Produit</b><span>Vision et parcours</span></a>
       <a href="profil.php"><b>Profil &amp; CV</b><span>Pôle 1</span></a>
@@ -44,7 +44,7 @@
 
   <div class="eyebrow">04 ter — Technique</div>
   <h1 class="title">L’application</h1>
-  <p class="chapo">L'application réelle, en ligne sur <a href="beta/">zako.nc/avp/beta/</a>. Elle est entièrement du côté du candidat : il swipe les AVP réels de l'OPT-NC, candidate, suit ses candidatures. L'employeur, c'est l'OPT-NC, qui publie ses avis dans son propre système et reçoit les candidatures par le contact de l'avis — nous ne lui demandons pas d'ouvrir un compte ici. Même produit que le prototype, avec des comptes, une base, un score calculé par le serveur.</p>
+  <p class="chapo">L'application réelle, en ligne sur <a href="../">zako.nc/avp/</a>. Elle est entièrement du côté du candidat : il swipe les AVP réels de l'OPT-NC, candidate, suit ses candidatures. L'employeur, c'est l'OPT-NC, qui publie ses avis dans son propre système et reçoit les candidatures par le contact de l'avis — nous ne lui demandons pas d'ouvrir un compte ici. Même produit que le prototype, avec des comptes, une base, un score calculé par le serveur.</p>
 
   <h2 id="pile">Ce que c'est</h2>
   <dl class="kv">
@@ -52,7 +52,7 @@
     <dt>Données</dt><dd>Plus rien dans le navigateur. Tout passe par l'<a href="api.php">API</a> et la base de production ; les offres sont les AVP réels du dataset public de l'OPT-NC, le référentiel est le sien (84 métiers, 409 compétences)</dd>
     <dt>Poids</dt><dd>313 ko de code (94 ko compressés). pdf.js est dans un morceau séparé de 455 ko, téléchargé <b>uniquement</b> quand quelqu'un dépose un CV ; l'OCR (moteur, cœur WebAssembly de 4 Mo, modèle de 1,1 Mo) uniquement quand ce CV est une image ou un scan</dd>
     <dt>Code source</dt><dd><a href="https://github.com/C2Bx/adopte-un-job">github.com/C2Bx/adopte-un-job</a> — public depuis le 14 septembre, version 2 le 21. Bêta, API, prototype, ce site et les bancs d'essai. Aucune configuration réelle : des <code>config.example.php</code> à copier</dd>
-    <dt>Prototype</dt><dd><a href="app/index.php">Toujours en place</a>, en <code>localStorage</code>, avec ses données inventées. Il reste la référence de mise en forme et le mode démonstration sans compte</dd>
+    <dt>Prototype</dt><dd><a href="../app/index.php">Toujours en place</a>, en <code>localStorage</code>, avec ses données inventées. Il reste la référence de mise en forme et le mode démonstration sans compte</dd>
   </dl>
 
   <h2 id="ecrans">Les écrans</h2>

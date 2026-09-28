@@ -35,6 +35,11 @@
 .mescv-json { font-size: 11px; background: var(--surface-2); border-radius: var(--r-sm); padding: var(--s3);
   max-height: 280px; overflow: auto; margin: var(--s3) 0 0; white-space: pre-wrap; word-break: break-word; }
 
+/* Deux champs sur une ligne (prénom / nom à l'inscription), une colonne dès
+   que la place manque : deux champs de 3 cm ne se remplissent pas. */
+.pdeux { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+@media (max-width: 420px) { .pdeux { grid-template-columns: 1fr; } }
+
 /* --- navigation à trois onglets ------------------------------------------ */
 .nav.n3 { grid-template-columns: repeat(3, 1fr); }
 @media (min-width: 720px) {

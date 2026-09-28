@@ -204,6 +204,10 @@ function supprimeFichier(?string $cle): void
  * Met un e-mail en file. RIEN NE PART : la file existe pour qu'un expediteur
  * (Brevo, SMTP) puisse etre branche sans toucher aux routes. Chaque appel
  * documente ce qui serait envoye, a qui, et avec quelle piece.
+ *
+ * Plus personne ne l'appelle depuis que les comptes sont chez l'equipe :
+ * elle est gardee pour la fonction 4 — envoyer la candidature au contact de
+ * l'avis — qui est le prochain chantier.
  */
 function enfileMail(?int $userId, string $destinataire, string $sujet, string $corps, ?string $pieceType = null, ?int $pieceId = null): void
 {
@@ -221,13 +225,6 @@ function enfileMail(?int $userId, string $destinataire, string $sujet, string $c
 }
 
 /* -------------------------------------------------------------- divers */
-
-/** Un secret d'usage unique : on stocke son empreinte, on rend le clair. */
-function jetonUnique(): array
-{
-    $clair = bin2hex(random_bytes(32));
-    return [$clair, hash('sha256', $clair)];
-}
 
 function codeInvitation(): string
 {

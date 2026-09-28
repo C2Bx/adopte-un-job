@@ -16,6 +16,7 @@ require __DIR__ . '/noyau.php';
 require __DIR__ . '/depot.php';
 require __DIR__ . '/score.php';
 require __DIR__ . '/opt.php';
+require __DIR__ . '/equipe.php';
 
 const ZONES    = ['Grand Nouméa', 'Sud', 'Nord', 'Îles'];
 const CONTRATS = ['CDI', 'CDD', 'Alternance', 'Intérim', 'Stage'];
@@ -71,42 +72,39 @@ if (route('GET', '', $seg, $methode) !== false) {
 
 /* =================================================================== compte */
 
+/* L'inscription et la connexion sont deleguees a l'API de l'equipe (voir
+   equipe.php) : elle seule tient les mots de passe. Ici on ne fait que
+   retrouver ou creer la ligne locale a laquelle tout le reste se rattache,
+   et ouvrir notre session. */
+
 if (route('POST', 'auth/inscription', $seg, $methode) !== false) {
     limite('inscription:' . empreinteIp(), 10, 3600);
-    $email = mb_strtolower(texte('email', 190, true));
-    $mdp   = (string) champ('motdepasse', '');
+    $email  = mb_strtolower(texte('email', 190, true));
+    $mdp    = (string) champ('motdepasse', '');
+    $prenom = texte('prenom', 40);
+    $nom    = texte('nom', 60);
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         erreur('email_invalide', 'Cette adresse e-mail n’est pas valide.', 422);
     }
+    if ($prenom === '' || $nom === '') {
+        erreur('identite_manquante', 'Le prénom et le nom sont demandés à la création du compte.', 422);
+    }
     // Douze caracteres, sans regle de composition : la longueur protege mieux
-    // qu'une majuscule obligatoire, et se retient.
+    // qu'une majuscule obligatoire, et se retient. Leur API en exige huit ;
+    // on reste plus strict, c'est compatible.
     if (mb_strlen($mdp) < 12) {
         erreur('mot_de_passe_court', 'Le mot de passe doit faire au moins 12 caractères.', 422);
     }
 
-    $st = $pdo->prepare('SELECT id FROM users WHERE email = ?');
-    $st->execute([$email]);
-    if ($st->fetch()) {
-        erreur('email_pris', 'Un compte existe déjà avec cette adresse.', 409);
-    }
+    /* On demande d'abord a leur API. Creer la ligne locale avant aurait laisse
+       un compte orphelin a chaque refus de leur cote. */
+    equipeInscrit($email, $mdp, $prenom, $nom);
+    $u = utilisateurLocal($pdo, $email, $prenom, $nom);
 
-    $algo = defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT;
-    [$verifClair, $verifHash] = jetonUnique();
-    $pdo->prepare('INSERT INTO users (email, pass_hash, role, verify_hash, created_at) VALUES (?,?,"candidat",?,?)')
-        ->execute([$email, password_hash($mdp, $algo), $verifHash, maintenant()]);
-    $id = (int) $pdo->lastInsertId();
-
-    $pdo->prepare('INSERT INTO candidates (user_id, updated_at) VALUES (?,?)')->execute([$id, maintenant()]);
-    enfileMail($id, $email, 'Vérifiez votre adresse — Adopte un Job', "Code de vérification : $verifClair");
-    // Le consentement est trace des l'inscription : sa version compte autant
-    // que le fait qu'il ait ete donne.
-    $pdo->prepare('INSERT INTO consents (user_id, finalite, version, accorde, created_at, ip_hash) VALUES (?,?,?,?,?,?)')
-        ->execute([$id, 'traitement_candidature', '2026-09', 1, maintenant(), empreinteIp()]);
-
-    trace($id, 'inscription', 'user', $id);
-    $t = ouvreSession($id);
-    envoie(['jeton' => $t, 'utilisateur' => ['id' => $id, 'email' => $email]], 201);
+    trace($u['id'], 'inscription', 'user', $u['id']);
+    $t = ouvreSession($u['id']);
+    envoie(['jeton' => $t, 'utilisateur' => ['id' => $u['id'], 'email' => $email]], 201);
 }
 
 if (route('POST', 'auth/connexion', $seg, $methode) !== false) {
@@ -115,27 +113,19 @@ if (route('POST', 'auth/connexion', $seg, $methode) !== false) {
     limite('connexion:' . empreinteIp(), 30, 900);
     limite('connexion:' . substr(hash('sha256', $email), 0, 24), 10, 900);
 
-    $st = $pdo->prepare('SELECT id, pass_hash, role, status FROM users WHERE email = ?');
-    $st->execute([$email]);
-    $u = $st->fetch();
+    /* Leur API repond 401 sans distinguer « compte inconnu » de « mot de passe
+       faux » : la precaution qu'on prenait ici (hash factice, temps constant)
+       est devenue la leur. */
+    equipeConnecte($email, $mdp);
 
-    // Meme message et meme temps de reponse dans les deux cas : distinguer
-    // « compte inconnu » de « mot de passe faux » revient a publier la liste
-    // des comptes.
-    if (!$u || !password_verify($mdp, $u['pass_hash'])) {
-        // Le hash factice est du MEME algorithme que les vrais (Argon2id) :
-        // un bcrypt repondait plus vite, et le temps trahissait l'existence du compte.
-        password_verify($mdp, HASH_FACTICE);
-        trace(null, 'connexion_echouee', 'user');
-        erreur('identifiants', 'Adresse ou mot de passe incorrect.', 401);
-    }
-    if ($u['status'] !== 'actif') {
-        erreur('compte_inactif', 'Ce compte n’est plus actif.', 403);
-    }
+    /* Un compte peut exister chez eux sans exister ici — cree directement sur
+       leur API, ou avant que cette application ne lui soit branchee. La
+       premiere connexion cree alors sa ligne locale, vide. */
+    $u = utilisateurLocal($pdo, $email);
 
-    trace((int) $u['id'], 'connexion', 'user', (int) $u['id']);
-    $t = ouvreSession((int) $u['id']);
-    envoie(['jeton' => $t, 'utilisateur' => ['id' => (int) $u['id'], 'email' => $email, 'role' => $u['role']]]);
+    trace($u['id'], 'connexion', 'user', $u['id']);
+    $t = ouvreSession($u['id']);
+    envoie(['jeton' => $t, 'utilisateur' => ['id' => $u['id'], 'email' => $email]]);
 }
 
 if (route('POST', 'auth/deconnexion', $seg, $methode) !== false) {
@@ -156,10 +146,7 @@ if (route('GET', 'auth/moi', $seg, $methode) !== false) {
     if (!$u) {
         envoie(['utilisateur' => null]);
     }
-    $st = $pdo->prepare('SELECT email_verified_at FROM users WHERE id = ?');
-    $st->execute([(int) $u['id']]);
-    envoie(['utilisateur' => ['id' => (int) $u['id'], 'email' => $u['email'],
-                              'emailVerifie' => $st->fetchColumn() !== null]]);
+    envoie(['utilisateur' => ['id' => (int) $u['id'], 'email' => $u['email']]]);
 }
 
 /* Export et suppression sont livres avec la version 1. Ajoutes apres, ils

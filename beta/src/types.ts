@@ -6,7 +6,6 @@
 export interface Utilisateur {
   id: number
   email: string
-  emailVerifie?: boolean
 }
 
 export interface Langue {
