@@ -192,25 +192,50 @@ function importeAvp(PDO $pdo, array $j, int $orgId): array
  * est ferme, pas supprime : l'historique nourrit le deck d'entrainement et
  * les statistiques.
  */
-function synchroniseAvp(PDO $pdo): array
+/**
+ * $source : 'equipe' (l'API du hackathon), 'dataset' (Hugging Face), ou
+ * 'auto' — l'API d'equipe d'abord, le dataset en secours si elle ne repond
+ * pas. Le secours n'est pas un detail : le jour de la demonstration, une API
+ * de camarade peut etre arretee, et un deck vide ne s'explique pas.
+ */
+function synchroniseAvp(PDO $pdo, string $source = 'auto'): array
 {
-    $brut = httpGet(HF_AVPS_URL, 60);
-    if ($brut === null || $brut === '') {
-        erreur('source_indisponible', 'Le dataset des AVP n’a pas pu être lu.', 502);
+    $postings = [];
+    $servie = null;
+
+    if ($source === 'equipe' || $source === 'auto') {
+        $liste = avpDepuisEquipe();
+        if ($liste !== null) {
+            foreach ($liste as $a) {
+                if (is_array($a)) {
+                    $postings[] = jobPostingDepuisEquipe($a);
+                }
+            }
+            $servie = 'equipe';
+        } elseif ($source === 'equipe') {
+            erreur('source_indisponible', 'L’API d’équipe n’a pas répondu.', 502);
+        }
     }
+
+    if ($postings === []) {
+        $brut = httpGet(HF_AVPS_URL, 60);
+        if ($brut === null || $brut === '') {
+            erreur('source_indisponible', 'Le dataset des AVP n’a pas pu être lu.', 502);
+        }
+        foreach (explode("\n", $brut) as $ligne) {
+            $ligne = trim($ligne);
+            if ($ligne !== '' && is_array($j = json_decode($ligne, true))) {
+                $postings[] = $j;
+            }
+        }
+        $servie = 'dataset';
+    }
+
     $orgId = organisationOpt($pdo);
     $vus = [];
     $n = 0;
     $crees = 0;
-    foreach (explode("\n", $brut) as $ligne) {
-        $ligne = trim($ligne);
-        if ($ligne === '') {
-            continue;
-        }
-        $j = json_decode($ligne, true);
-        if (!is_array($j)) {
-            continue;
-        }
+    foreach ($postings as $j) {
         [$id, $cree] = importeAvp($pdo, $j, $orgId);
         if ($id) {
             $vus[] = $id;
@@ -230,7 +255,8 @@ function synchroniseAvp(PDO $pdo): array
     // Ceux qui ont depasse leur date de validite se ferment aussi.
     $pdo->prepare('UPDATE jobs SET statut = "fermee", updated_at = ? WHERE statut = "publiee" AND expires_at IS NOT NULL AND expires_at < ?')
         ->execute([maintenant(), maintenant()]);
-    return ['lus' => $n, 'crees' => $crees, 'mis_a_jour' => $n - $crees, 'fermes' => $fermes];
+    return ['source' => $servie, 'lus' => $n, 'crees' => $crees,
+            'mis_a_jour' => $n - $crees, 'fermes' => $fermes];
 }
 
 /* ---------------------------------------------------------------- HTTP */
@@ -343,4 +369,117 @@ function metierOptDetail(PDO $pdo, string $code): ?array
     }
     $m['competences'] = competencesDuMetier($pdo, $code, 40);
     return $m;
+}
+
+/* ------------------------------------------- l'API de l'equipe (MS2 HackAVP)
+
+   Le hackathon decoupe le produit en microservices : une equipe publie les AVP
+   de l'OPT-NC derriere sa propre API. La consommer, c'est faire marcher la
+   chaine prevue — et c'est ce que le jury regarde sous « integrabilite ».
+
+   Plutot que de dupliquer la correspondance champ a champ, on reconstruit la
+   structure schema.org/JobPosting que `importeAvp()` sait deja lire : un seul
+   chemin d'import, une seule cle de deduplication (`reference` = `id_avp`),
+   donc aucun doublon selon la source qui a servi. */
+
+/** Une reponse `AvpResponse` de l'API d'equipe → un JobPosting schema.org. */
+function jobPostingDepuisEquipe(array $a): array
+{
+    $texte = static fn (?string $v): ?string => ($v !== null && trim($v) !== '') ? $v : null;
+    $liste = static fn ($v): array => array_values(array_filter(array_map(
+        static fn ($x) => trim((string) $x),
+        is_array($v) ? $v : []
+    ), static fn ($x) => $x !== ''));
+
+    $libres = [];
+    foreach ((array) ($a['informationsLibres'] ?? []) as $i) {
+        if (isset($i['cle'])) {
+            $libres[(string) $i['cle']] = (string) ($i['valeur'] ?? '');
+        }
+    }
+
+    return [
+        'id_avp'      => (string) ($a['reference'] ?? ''),
+        'title'       => (string) ($a['titre'] ?? ''),
+        'description' => (string) ($a['description'] ?? ''),
+        'disambiguatingDescription' => $texte($a['descriptionComplement'] ?? null),
+        'employmentType' => $texte($a['typeContrat'] ?? null),
+        'datePosted'  => $texte($a['datePublication'] ?? null),
+        'validThrough' => $texte($a['dateLimite'] ?? null),
+        'jobStartDate' => $texte($a['dateDebut'] ?? null),
+        'workHours'   => $texte($a['horaires'] ?? null),
+        'qualifications' => $texte($a['qualifications'] ?? null),
+        'experienceRequirements' => $texte($a['experienceRequise'] ?? null),
+        'occupationalCategory' => $liste($a['familles'] ?? []),
+        'responsibilities' => $liste($a['responsabilites'] ?? []),
+        // Le coeur du matching : les phrases de competence, dans les deux
+        // familles que le referentiel OPT distingue.
+        'skills' => $liste($a['savoirFaire'] ?? []),
+        'educationRequirements' => [
+            'credentialCategory' => $texte($a['niveauDiplome'] ?? null),
+            'competencyRequired' => $liste($a['connaissances'] ?? []),
+        ],
+        'relevantOccupation' => [
+            'code_metier' => $texte($a['metierCode'] ?? null),
+            'name'        => $texte($a['metierLibelle'] ?? null),
+            'url'         => $texte($a['metierFicheUrl'] ?? null),
+            'occupationalCategory' => ['codeValue' => $texte($a['codeRome'] ?? null),
+                                       'name' => $texte($a['libelleRome'] ?? null)],
+        ],
+        'jobLocation' => ['address' => [
+            'name'            => $texte($a['lieuNom'] ?? null),
+            'streetAddress'   => $texte($a['lieuRue'] ?? null),
+            'addressLocality' => $texte($a['ville'] ?? null),
+            'province'        => $texte($a['province'] ?? null),
+            'addressCountry'  => $texte($a['pays'] ?? null),
+        ]],
+        'applicationContact' => [
+            'email'     => $texte($a['contactEmail'] ?? null),
+            'telephone' => $texte($a['contactTelephone'] ?? null),
+        ],
+        'additionalType' => [
+            'direction'            => $texte($a['direction'] ?? null),
+            'directionCode'        => $texte($a['directionCode'] ?? null),
+            'uniteOrganisationnelle' => $texte($a['uniteOrganisationnelle'] ?? null),
+            'corpsDomaine'         => $texte($a['corpsDomaine'] ?? null),
+            'superieurHierarchique' => $texte($a['superieurHierarchique'] ?? null),
+            'placeOrganigramme'    => $texte($a['placeOrganigramme'] ?? null),
+            'nbAgentsEncadres'     => isset($a['nbAgentsEncadres']) ? (int) $a['nbAgentsEncadres'] : null,
+            'nbPostes'             => isset($a['nbPostes']) ? (int) $a['nbPostes'] : null,
+            'secteur'              => $texte($a['secteur'] ?? null),
+            'conditionResidence'   => $texte($a['conditionResidence'] ?? null),
+            'exigencesPhysiques'   => $texte($a['exigencesPhysiques'] ?? null),
+            'engagementsParticuliers' => $texte($a['engagementsParticuliers'] ?? null),
+            'avantages'            => $texte($a['avantages'] ?? null),
+            'deviseSalaire'        => $texte($a['deviseSalaire'] ?? null),
+            'presentationEmployeur' => $texte($a['presentationEmployeur'] ?? null),
+            'candidatureDirecte'   => isset($a['candidatureDirecte']) ? (bool) $a['candidatureDirecte'] : null,
+            'debutImmediat'        => isset($a['debutImmediat']) ? (bool) $a['debutImmediat'] : null,
+            'intituleAlternatif'   => $texte($a['intituleAlternatif'] ?? null),
+            'relationsFonctionnelles' => $liste($a['relationsFonctionnelles'] ?? []),
+            'informationsLibres'   => $libres,
+            'source_equipe'        => ['id' => $a['id'] ?? null, 'lu_le' => maintenant()],
+        ],
+    ];
+}
+
+/* L'adresse par defaut vit ici et non dans config.php : les installations
+   existantes ont un config.php anterieur a cette integration, et on ne veut
+   pas qu'elles perdent la source pour autant. La configuration reste
+   prioritaire, et une chaine vide desactive la source. */
+const EQUIPE_API_DEFAUT = 'https://hackavp-api.duckdns.org';
+
+/** Les AVP tels que l'API d'equipe les sert, ou null si elle ne repond pas. */
+function avpDepuisEquipe(): ?array
+{
+    $base = defined('EQUIPE_API_BASE') ? EQUIPE_API_BASE : EQUIPE_API_DEFAUT;
+    if ($base === '') {
+        return null;
+    }
+    $brut = httpGet(rtrim($base, '/') . '/avp', 30, ['Accept: application/json']);
+    if ($brut === null || $brut === '') {
+        return null;
+    }
+    $d = json_decode($brut, true);
+    return is_array($d) ? $d : null;
 }

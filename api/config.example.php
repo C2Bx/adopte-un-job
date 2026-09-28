@@ -59,6 +59,11 @@ define('ORIGINES', array_filter(array_map('trim', explode(',', $cfg('AVP_ORIGINE
 /** Jeton du cron de synchronisation des AVP (en-tete X-Sync-Token). Vide = route fermee. */
 define('SYNC_TOKEN', $cfg('AVP_SYNC_TOKEN', ''));
 
+/** L'API du hackathon qui publie les AVP (microservice de l'equipe). Vide =
+    on s'en tient au dataset public. Elle sert les memes AVP, avec la meme
+    reference : aucun doublon possible, quelle que soit la source qui a servi. */
+define('EQUIPE_API_BASE', $cfg('AVP_EQUIPE_API', 'https://hackavp-api.duckdns.org'));
+
 /** API OPT-NC (portail Apigee). Vide = repli sur le dataset Hugging Face, sans cle. */
 define('OPT_API_KEY', $cfg('OPT_API_KEY', ''));
 const OPT_API_BASE = 'https://api.opt.nc';

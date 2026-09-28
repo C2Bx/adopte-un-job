@@ -362,7 +362,10 @@ if (route('POST', 'admin/sync/avp', $seg, $methode) !== false) {
         erreur('interdit', 'Synchronisation réservée.', 403);
     }
     limite('sync', 12, 3600);
-    $r = synchroniseAvp($pdo);
+    // « source » : equipe | dataset | auto (defaut). Auto essaie l'API de
+    // l'equipe, puis retombe sur le dataset public si elle est muette.
+    $src = in_array(champ('source'), ['equipe', 'dataset'], true) ? (string) champ('source') : 'auto';
+    $r = synchroniseAvp($pdo, $src);
     trace($u ? (int) $u['id'] : null, 'sync_avp', 'job');
     envoie(['synchronisation' => $r, 'quand' => maintenant()]);
 }
