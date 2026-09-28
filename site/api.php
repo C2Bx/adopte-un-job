@@ -51,7 +51,7 @@
     <dt>Bêta</dt><dd><a href="beta/">zako.nc/avp/beta/</a> — React 19 + TypeScript, construit par Vite, servi en fichiers statiques. Deux jeux d'écrans selon le rôle.</dd>
     <dt>API</dt><dd><code>zako.nc/avp/app/api/index.php/&lt;route&gt;</code> — PHP 8, un point d'entrée, un fichier par domaine. Documentation vivante : <a href="app/api/index.php?r=openapi.json">openapi.json</a> (OpenAPI 3.1).</dd>
     <dt>Base</dt><dd>MySQL 8.4 sur un hébergement mutualisé, 46 tables. Les secrets vivent hors du code et hors du docroot.</dd>
-    <dt>Données</dt><dd>Les <b>23 AVP réels</b> du dataset public de l'OPT-NC (<a href="https://huggingface.co/datasets/opt-nc/odata-avps">opt-nc/odata-avps</a>, schema.org JobPosting), synchronisés par une tâche planifiée ; le référentiel officiel des métiers (12 familles, 84 métiers, 409 compétences, 1 988 liens pondérés).</dd>
+    <dt>Données</dt><dd>Les <b>AVP réels de l'OPT-NC</b>, par <a href="#sources">deux sources interchangeables</a> : l'API du microservice de l'équipe, et le dataset public (<a href="https://huggingface.co/datasets/opt-nc/odata-avps">opt-nc/odata-avps</a>, schema.org JobPosting) en secours. Synchronisation toutes les six heures. Plus le référentiel officiel des métiers : 12 familles, 84 métiers, 409 compétences, 1 988 liens pondérés.</dd>
     <dt>Prototype</dt><dd><a href="app/index.php">zako.nc/avp/app/</a> — conservé tel quel, en <code>localStorage</code>, comme démonstration sans compte.</dd>
   </dl>
 
@@ -106,6 +106,7 @@
       <tr><td>AVP</td><td><code>avp</code> · <code>avp/filtres</code> · <code>avp/{id}</code> · <code>avp/{id}/vue</code> · <code>avp/{id}/candidats</code> · <code>admin/sync/avp</code></td><td>Le catalogue public avec recherche plein texte et <b>les mêmes filtres que la recherche de l'OPT</b> (ville, province, famille, direction, contrat, encadrement, télétravail, débutant), les facettes avec leur compte, la synchronisation par jeton.</td></tr>
       <tr><td>Deck et candidatures</td><td><code>deck</code> · <code>swipes</code> · <code>interets</code> · <code>candidatures</code> · <code>candidatures/{id}/statut</code> · <code>candidatures/{id}/cv.pdf</code> · <code>candidatures/{id}/cv-original</code> · <code>candidatures/{id}/suggestions</code></td><td>Le deck scoré, avec les mêmes filtres et un mode « offres closes » pour s'entraîner. <b>Un oui est une candidature.</b> Côté organisation : anonyme, puis <code>vue</code>, puis <b>présélection</b> — qui ouvre le contact, le match, le CV recentré sur le poste et le fichier d'origine — puis entretien, acceptée ou refusée. Trois débuts de message pour chaque côté, par règles.</td></tr>
       <tr><td>Messages et agenda</td><td><code>matchs</code> · <code>matchs/{id}/messages</code> · <code>agenda</code> · <code>candidatures/{id}/entretiens</code> · <code>entretiens/{id}</code> · <code>entretiens/{id}/ics</code></td><td>La conversation s'ouvre à la présélection, jamais avant. L'organisation propose 1 à 6 créneaux, le candidat en confirme un (les autres s'annulent), chacun télécharge l'<code>.ics</code>. L'agenda de l'organisation montre les entretiens de tous ses membres.</td></tr>
+      <tr><td>Démonstration</td><td><code>POST auth/role</code> — passer de candidat à recruteur sans se déconnecter, <b>uniquement</b> pour les adresses listées dans la configuration du serveur ; <code>403</code> pour toutes les autres, quoi que demande le client. Rien n'est détruit : profil, candidatures et organisation restent en base.</td></tr>
       <tr><td>Organisation</td><td><code>organisation</code> · <code>organisation/rejoindre</code> · <code>organisation/membres</code> · <code>organisation/invitation</code> · <code>offres</code></td><td>Créer, rejoindre par code, gérer les membres et leurs rôles, renouveler le code, publier des offres en plus des AVP synchronisés.</td></tr>
       <tr><td>Tableau de bord</td><td><code>organisation/tableau</code> · <code>organisation/tableau/{offre}</code> · <code>organisation/tableau.csv</code></td><td>Treize indicateurs définis dans la réponse (vues, candidatures, conversion, à traiter, présélections, refus, délais, score moyen…), séries par jour, entonnoir, répartitions, compétences manquantes et présentes, classement des offres, activité de l'équipe. Sur 7, 30, 90 ou 365 jours. Le CSV va dans un tableur ou Power BI.</td></tr>
     </tbody>
@@ -115,6 +116,23 @@
   <div class="callout">
     <p style="margin-bottom:0"><b>Le jeton est triplé, volontairement.</b> Cookie <code>HttpOnly</code> pour le navigateur, en-tête <code>Authorization: Bearer</code> pour l'application empaquetée, clé d'API révocable pour un tableur, un robot ou un partenaire. Les trois passent par le même code serveur, donc les mêmes contrôles.</p>
   </div>
+
+  <h2 id="sources">Deux sources pour les mêmes AVP</h2>
+  <p>Le hackathon découpe le produit en microservices : une autre équipe publie les AVP de l'OPT-NC derrière sa propre API. La consommer, c'est faire marcher la chaîne prévue — et c'est ce que la grille appelle l'intégrabilité.</p>
+  <p>Plutôt que d'écrire une seconde correspondance champ à champ, un <b>adaptateur</b> reconstruit la structure <code>schema.org/JobPosting</code> que l'import sait déjà lire. Il n'y a donc qu'un seul chemin d'import, et surtout <b>une seule clé de déduplication</b> : la référence de l'AVP, identique des deux côtés.</p>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th><code>POST admin/sync/avp</code></th><th>Ce qu'elle lit</th></tr></thead>
+    <tbody>
+      <tr><td><code>{"source":"equipe"}</code></td><td>L'API du microservice AVP de l'équipe</td></tr>
+      <tr><td><code>{"source":"dataset"}</code></td><td>Le dataset public Hugging Face, sans clé</td></tr>
+      <tr><td><code>{}</code> (défaut)</td><td>L'équipe d'abord, le dataset en secours si elle ne répond pas</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="note">Le secours n'est pas de la coquetterie : une API de camarade peut être arrêtée le jour du jury, et un deck vide ne s'explique pas. Preuve que la déduplication tient : la première synchronisation depuis l'API de l'équipe a rendu <code>{"lus":24,"crees":0,"mis_a_jour":24}</code> — les mêmes AVP, reconnus, pas redoublés.</p>
+
+  <p>La synchronisation elle-même est rejouée <b>toutes les six heures par GitHub Actions</b> plutôt que par une tâche sur le serveur : rien à maintenir, elle survit à un poste éteint, et chaque exécution est lisible par toute l'équipe. Sans rappel régulier le deck se fige — le dataset comptait 21 AVP ouverts quand la production en servait encore 19.</p>
 
   <h2 id="securite">La sécurité, point par point</h2>
   <p>L'audit du 14 septembre listait treize manques. Tous sont traités au 21 :</p>
@@ -150,6 +168,9 @@
     <li><b>Le serveur ne connaît pas <code>.mjs</code></b> et le sert en <code>text/plain</code> : le lecteur de PDF marchait en local et pas en ligne. Un <code>.htaccess</code> d'une ligne dans <code>/avp/beta/</code>.</li>
     <li><b><code>iconv('//TRANSLIT')</code> dépend de la bibliothèque C du serveur.</b> « Développement web » y devenait <code>d-veloppement-web</code>. Table de translittération explicite.</li>
     <li><b>L'ordre des <code>require</code> compte</b> et <b>la garde du corps JSON ne doit pas voir un multipart</b> — voir la recette ci-dessus.</li>
+    <li><b>Changer le chemin d'un cookie sans effacer l'ancien laisse une mine.</b> La v1 posait le cookie de session sur <code>/avp/app/</code>, la v2 sur <code>/avp/</code>. Les deux chemins couvrent les appels d'API : un navigateur qui a connu les deux versions envoie <b>deux cookies du même nom</b>, le plus spécifique en tête — et <code>$_COOKIE</code> n'en garde qu'un, le périmé. Résultat : déconnecté à chaque rechargement, avec une session parfaitement valide en base. L'API lit désormais <b>tous</b> les cookies de ce nom dans l'en-tête brut et essaie chacun ; la connexion fait expirer ceux des anciens chemins. Diagnostic par la base, pas par le raisonnement : 21 sessions vivantes pour un seul compte, une nouvelle toutes les deux minutes, aucune jamais remplacée.</li>
+    <li><b>Une empreinte de navigateur trop précise déconnecte tout le monde.</b> Elle incluait les numéros de version : chaque mise à jour de Chrome fermait les sessions. Elle les ignore maintenant, et accepte encore celles ouvertes sous l'ancienne règle.</li>
+    <li><b>Un serveur qui ne répond pas n'est pas une déconnexion.</b> <code>auth/moi</code> rend <code>200</code> avec <code>utilisateur: null</code> quand personne n'est connecté : une exception ne peut donc jamais vouloir dire « pas connecté ». Les confondre renvoyait à l'écran de connexion au moindre hoquet.</li>
   </ul>
 
   <h2 id="reste">Ce qui n'est pas fait</h2>

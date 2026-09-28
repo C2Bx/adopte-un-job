@@ -63,7 +63,7 @@
       <tr><td><b>Swipe</b></td><td>Le deck des AVP ouverts, scorés et triés. Une barre de recherche et <b>les mêmes filtres que la recherche de l'OPT</b> (villes, provinces, familles, directions, télétravail, encadrement, débutant), avec le nombre d'offres derrière chaque puce. Un bouton pour s'entraîner sur les offres closes. Glissé gauche/droite, quatre actions dans les coins, carte en pages, feuille de détail avec les écarts nommés. <b>Un oui est une candidature</b> : une feuille le confirme et dit ce que l'employeur verra.</td></tr>
       <tr><td><b>Candidatures</b></td><td>Envoyée, vue, présélectionnée, entretien proposé, acceptée, refusée. Le nombre d'écarts avec ses critères, le CV envoyé, le retrait. Plus tard et écartés restent là, révocables.</td></tr>
       <tr><td><b>Messages</b></td><td>Une conversation par présélection, jamais avant. Trois débuts de message proposés, par règles, à adapter.</td></tr>
-      <tr><td><b>Agenda</b></td><td>Les créneaux proposés — on en confirme un, les autres s'annulent —, ceux à venir, le passé. Heures locales, fichier <code>.ics</code> pour son propre calendrier.</td></tr>
+      <tr><td><b>Agenda</b></td><td>La carte du <b>prochain entretien</b> avec son compte à rebours vivant, une bande de quinze jours, puis trois onglets : à confirmer, à venir, historique. Les créneaux proposés sont <b>groupés par candidature</b> — un créneau ne se juge pas seul, il se compare aux autres, et confirmer l'un annule les autres : l'écran montre enfin ce choix au lieu de trois boutons identiques. Les actions suivent le mode : rejoindre la visio, appeler, voir le plan. Un <code>.ics</code> par entretien, et un export de tout l'agenda construit dans le navigateur.</td></tr>
       <tr><td><b>Profil</b></td><td>Import de CV — PDF, scan ou photo, lus dans l'appareil, puis déposés chiffrés si on le veut —, formulaire en cinq étapes, métier visé et compétences dans les mots du référentiel OPT-NC (rattachement automatique, à vérifier), guide chiffré, relecture, Mes CV (fichier, CV généré, JSON Resume). Enregistrement différé, sans bouton.</td></tr>
     </tbody>
   </table></div>
@@ -80,12 +80,18 @@
     </tbody>
   </table></div>
 
+  <h2 id="bascule">Voir les deux côtés sans changer de compte</h2>
+  <p>Montrer un produit à deux rôles oblige à jongler avec deux comptes, et à se déconnecter devant le public. Deux boutons dans la barre du haut font passer de <b>candidat</b> à <b>recruteur</b> et retour, en rechargeant ce qui dépend du rôle.</p>
+  <p class="note"><b>C'est le serveur qui décide, pas le bouton.</b> La route répond <code>403</code> à tout compte absent de la liste tenue dans la configuration, et <code>auth/moi</code> n'annonce la possibilité qu'à ceux-là. Le front se contente d'afficher ce que l'API déclare — un bouton n'ouvre jamais un droit. Rien n'est détruit au passage : on revient à l'identique en rebasculant.</p>
+
   <h2 id="gestes">Les gestes, et ce qu'ils ont coûté</h2>
   <p>Trois d'entre eux ont demandé plusieurs reprises. Ils sont notés ici parce que l'erreur se refait sans ça.</p>
 
   <ol class="steps">
     <li><b>La capture du pointeur ne se prend qu'après un vrai mouvement.</b> Prise dès le contact, elle détourne le clic suivant vers l'élément qui capture : les boutons de la carte cessent de répondre, sans erreur ni message. L'erreur a été commise deux fois sur le prototype, une troisième fois évitée sur la bêta.</li>
     <li><b>Un geste plus vertical qu'horizontal n'est pas un swipe</b>, c'est un défilement. Sans ce test, la carte part de travers dès qu'on veut lire la suite du texte.</li>
+    <li><b>Une rangée qui défile doit le prouver.</b> Les filtres du deck tiennent sur près de quatre mille pixels pour neuf cents visibles. La barre de défilement est masquée par le style, une molette verticale ne bouge pas un conteneur horizontal, et le glissé n'avait jamais été porté du prototype vers la bêta : les deux tiers des filtres étaient hors d'atteinte à la souris, pendant que le curseur « grab » promettait un geste que personne ne branchait. Glissé, molette convertie, et un glissé qui s'achève sur une puce ne la sélectionne plus.</li>
+    <li><b>Un voile de modale se cale sur la fenêtre, pas sur son conteneur.</b> Il était posé en absolu dans la zone de contenu — déjà décalée du rail et sous la barre du haut — puis décalé une seconde fois : il laissait deux bandes claires. Il couvre maintenant toute la fenêtre sauf le rail, qui doit rester atteignable.</li>
     <li><b>La carte du dessous est un décor.</b> Elle doit être <code>inert</code> : sinon elle reçoit les clics et prend le focus au clavier, avec des boutons branchés à rien.</li>
   </ol>
 
