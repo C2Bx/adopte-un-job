@@ -18,7 +18,7 @@ en **OpenAPI 3.1** : `GET /openapi.json`.
 | `equipe.php` | Les comptes, tenus par l'API de l'équipe : inscription, connexion, ligne locale |
 | `doc.php` | Le tableau des routes documentées et le document OpenAPI |
 | `config.php` | **À créer** depuis `config.example.php`. Jamais versionné. Lit `private/avp.env` ou `api/.env` |
-| `schema.sql` + `migrations/` | 41 tables, rejouable (`CREATE TABLE IF NOT EXISTS`, `ALTER` gardés par `scripts/migre.py`) |
+| `schema.sql` + `migrations/` | 40 tables, rejouable (`CREATE TABLE IF NOT EXISTS`, `ALTER` gardés par `scripts/migre.py`) |
 | `.htaccess` | Fait passer l'en-tête `Authorization` à PHP (voir *Pièges*) |
 
 ## Installation
@@ -83,8 +83,11 @@ navigateur.
 Depuis le 29 septembre, `auth/inscription` et `auth/connexion` sont **relayées
 vers l'API de l'équipe** (`POST /auth/register`, `POST /auth/login` — voir
 `equipe.php`, adresse dans `AVP_EQUIPE_API`). Cette API ne stocke plus aucun mot
-de passe et n'en vérifie plus aucun : `users.pass_hash` reste vide, et une
-chaîne vide ne correspond à aucun mot de passe.
+de passe et n'en vérifie plus aucun : la colonne `users.pass_hash` a été
+**supprimée** le 29/09, avec `verify_hash`, `email_verified_at` et la table
+`password_resets`. À la place, `users.equipe_user_id` garde l'identifiant que
+leur API rend à l'inscription — le jour où ils ouvriront le changement
+d'adresse, l'e-mail cessera d'être un lien fiable.
 
 La ligne `users` existe pour porter ce qui est à nous — profil, CV,
 candidatures, sessions, clés d'API. Elle est retrouvée ou créée **par

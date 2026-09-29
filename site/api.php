@@ -50,7 +50,7 @@
   <dl class="kv">
     <dt>Application</dt><dd><a href="../">zako.nc/avp/</a> — React 19 + TypeScript, construit par Vite, servi en fichiers statiques.</dd>
     <dt>API</dt><dd><code>zako.nc/avp/app/api/index.php/&lt;route&gt;</code> — PHP 8, un point d'entrée, un fichier par domaine. Documentation vivante : <a href="app/api/index.php?r=openapi.json">openapi.json</a> (OpenAPI 3.1).</dd>
-    <dt>Base</dt><dd>MySQL 8.4 sur un hébergement mutualisé, 41 tables. Les secrets vivent hors du code et hors du docroot.</dd>
+    <dt>Base</dt><dd>MySQL 8.4 sur un hébergement mutualisé, 40 tables. Les secrets vivent hors du code et hors du docroot.</dd>
     <dt>Données</dt><dd>Les <b>AVP réels de l'OPT-NC</b>, par <a href="#sources">deux sources interchangeables</a> : l'API du microservice de l'équipe, et le dataset public (<a href="https://huggingface.co/datasets/opt-nc/odata-avps">opt-nc/odata-avps</a>, schema.org JobPosting) en secours. Synchronisation toutes les six heures. Plus le référentiel officiel des métiers : 12 familles, 84 métiers, 409 compétences, 1 988 liens pondérés.</dd>
     <dt>Prototype</dt><dd><a href="../app/index.php">zako.nc/avp/app/</a> — conservé tel quel, en <code>localStorage</code>, comme démonstration sans compte.</dd>
   </dl>
