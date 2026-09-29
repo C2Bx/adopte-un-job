@@ -43,8 +43,10 @@
 /* --- mon compte (dans le profil) ----------------------------------------
    L'adresse et le mot de passe vivent chez l'equipe : ce bloc dit ou ils sont
    et, quand leur service le permet, ouvre le formulaire qui va bien. */
+/* La barre des etapes suit juste en dessous : sans marge basse, la carte la
+   touchait, et deux blocs colles se lisent comme un seul. */
 .mcompte { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
-  padding: var(--s4); margin-top: var(--s4); }
+  padding: var(--s4); margin: var(--s4) 0 var(--s6); }
 .mcompte h3 { font-size: var(--t-md); margin: 0 0 var(--s3); }
 .mc-ligne { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; margin: 0 0 var(--s3); }
 .mc-ligne dt { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 600; }
