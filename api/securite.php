@@ -12,7 +12,7 @@ declare(strict_types=1);
 /* ------------------------------------------------------------- en-tetes */
 
 /** En-tetes de reponse poses sur chaque appel, y compris les erreurs. */
-function entetesSecurite(): void
+function entetesSecurite(bool $html = false): void
 {
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
@@ -21,9 +21,13 @@ function entetesSecurite(): void
     if (($_SERVER['HTTPS'] ?? '') !== '' || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') {
         header('Strict-Transport-Security: max-age=15552000');
     }
-    // Une reponse JSON n'a pas de script a executer : la CSP le dit, au cas ou
-    // un navigateur la rendrait quand meme.
-    header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
+    /* Une reponse JSON n'a pas de script a executer : la CSP le dit, au cas ou
+       un navigateur la rendrait quand meme. La page d'erreur lisible a besoin
+       de son style en ligne, et de rien d'autre : pas de script, pas d'image,
+       pas de police distante. */
+    header($html
+        ? "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'"
+        : "Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
 }
 
 /**

@@ -14,15 +14,102 @@ require_once __DIR__ . '/securite.php';
 
 /* ------------------------------------------------------------------ sorties */
 
+/**
+ * Quelqu'un a-t-il tape cette adresse dans la barre du navigateur ?
+ *
+ * `Sec-Fetch-Mode: navigate` est pose par le navigateur lui-meme et ne peut
+ * pas etre usurpe depuis une page : c'est le signal fiable. Un `fetch()` de
+ * l'application envoie `cors` ou `same-origin`, jamais `navigate`.
+ *
+ * Les clients qui n'envoient pas ces en-tetes (curl, un robot, une vieille
+ * bibliotheque) retombent sur l'en-tete `Accept` — et dans le doute, c'est du
+ * JSON qui sort, parce que c'est ce qu'attend un programme.
+ */
+function navigateurHumain(): bool
+{
+    $mode = $_SERVER['HTTP_SEC_FETCH_MODE'] ?? '';
+    if ($mode !== '') {
+        return $mode === 'navigate';
+    }
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    return str_contains($accept, 'text/html');
+}
+
 function envoie(mixed $data, int $code = 200): never
 {
     http_response_code($code);
-    header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
-    entetesSecurite();
     cors();
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    /* Une erreur lue par un humain dans un navigateur merite une phrase, pas
+       une accolade. Le CODE HTTP ne bouge pas : il est lu par le front et
+       documente dans l'OpenAPI. Seule la presentation s'adapte. */
+    if ($code >= 400 && navigateurHumain() && is_array($data) && isset($data['message'])) {
+        header('Content-Type: text/html; charset=utf-8');
+        entetesSecurite(true);
+        echo pageErreur($code, (string) ($data['erreur'] ?? ''), (string) $data['message']);
+        exit;
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
+    entetesSecurite();
+    // Lu dans un navigateur, un JSON compact est illisible : on l'aere.
+    $options = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+    echo json_encode($data, navigateurHumain() ? $options | JSON_PRETTY_PRINT : $options);
     exit;
+}
+
+/** La page rendue a qui ouvre une adresse d'API dans son navigateur. */
+function pageErreur(int $code, string $erreur, string $message): string
+{
+    $titres = [
+        400 => 'Demande mal formee',
+        401 => 'Il faut etre connecte',
+        403 => 'Acces refuse',
+        404 => 'Cette adresse n\'existe pas',
+        409 => 'Conflit',
+        413 => 'Fichier trop grand',
+        415 => 'Format refuse',
+        422 => 'Donnees incompletes',
+        429 => 'Trop de demandes',
+        500 => 'Erreur du serveur',
+        501 => 'Pas encore disponible',
+        502 => 'Service indisponible',
+        503 => 'Service indisponible',
+    ];
+    $titre = $titres[$code] ?? 'Erreur';
+    $h = static fn (string $t): string => htmlspecialchars($t, ENT_QUOTES, 'UTF-8');
+    $app = defined('APP_URL') ? APP_URL : '/avp/';
+
+    /* Le style suit le reglage du systeme : cette page peut tomber sur
+       n'importe qui, a n'importe quelle heure. */
+    return '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<meta name="robots" content="noindex">'
+        . '<title>' . $code . ' — Adopte un Job</title><style>'
+        . ':root{color-scheme:light dark;--bg:#F4F6F8;--surface:#fff;--ink:#0F1A2B;--ink-2:#5A6A7E;'
+        . '--line:#DEE3EA;--brand:#17356B}'
+        . '@media(prefers-color-scheme:dark){:root{--bg:#0C1013;--surface:#141A1F;--ink:#EDF2F4;'
+        . '--ink-2:#A9B6BE;--line:#242E36;--brand:#8FB3FF}}'
+        . '*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;'
+        . 'padding:24px;background:var(--bg);color:var(--ink);'
+        . 'font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}'
+        . 'main{max-width:34rem;width:100%;background:var(--surface);border:1px solid var(--line);'
+        . 'border-radius:14px;padding:32px}'
+        . '.code{font:700 13px/1 ui-monospace,monospace;letter-spacing:.12em;color:var(--ink-2)}'
+        . 'h1{font-size:1.5rem;margin:12px 0 8px;text-wrap:balance}'
+        . 'p{margin:0 0 18px;color:var(--ink-2)}'
+        . 'code{font:13px ui-monospace,monospace;background:var(--bg);border:1px solid var(--line);'
+        . 'border-radius:5px;padding:1px 6px;color:var(--ink-2)}'
+        . 'a{display:inline-block;margin-top:6px;color:var(--brand);font-weight:600}'
+        . '</style></head><body><main>'
+        . '<div class="code">ERREUR ' . $code . ($erreur !== '' ? ' &middot; ' . $h($erreur) : '') . '</div>'
+        . '<h1>' . $h($titre) . '</h1>'
+        . '<p>' . $h($message) . '</p>'
+        . '<p>Cette adresse fait partie de l\'API : elle repond normalement en JSON, '
+        . 'a un programme. Vous voyez cette page parce que vous l\'avez ouverte dans un navigateur.</p>'
+        . '<a href="' . $h($app) . '">Retour a l\'application</a>'
+        . '</main></body></html>';
 }
 
 /** Une erreur porte un code lisible par le client, pas seulement un statut HTTP. */
