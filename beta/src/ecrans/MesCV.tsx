@@ -1,7 +1,11 @@
-/* Mes CV : le fichier d'origine (chiffré sur le serveur, remis à l'employeur à
-   la présélection), le résumé JSON lu dans l'appareil, le CV généré depuis le
-   profil, et l'export JSON Resume. Un seul CV est « actif » : c'est lui qui
-   part avec une candidature. */
+/* Mon CV : le fichier déposé, chiffré sur le serveur. Un seul est « actif » :
+   c'est lui qui part avec une candidature, et c'est lui que la chaîne
+   d'extraction lit pour remplir le profil.
+
+   L'écran ne dit de tout cela que ce qui change quelque chose pour la
+   personne : que son format passe, qu'elle n'aura rien à recopier, et que ce
+   n'est pas instantané — sans cette dernière phrase, un profil qui ne bouge
+   pas dans la minute passe pour une panne. */
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
@@ -15,7 +19,6 @@ export function MesCV() {
   const [cvs, setCvs] = useState<CvInfo[] | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
-  const [json, setJson] = useState<CvInfo | null>(null)
 
   const charge = useCallback(async () => {
     try {
@@ -60,9 +63,9 @@ export function MesCV() {
     <div className="pvoie mescv">
       <b>Mon CV</b>
       <span>
-        Dans le format que tu as sous la main — <b>PDF, Word, OpenDocument, RTF, texte
-        ou photo</b>. Il est chiffré sur le serveur, et <b>ton profil se remplit tout
-        seul</b> à partir de lui. Tu n’as rien à recopier : tu relis, et tu corriges.
+        PDF, Word, photo… peu importe le format. <b>Ton profil se remplit tout seul</b>
+        à partir de lui : tu n’as rien à recopier, tu relis et tu corriges.
+        Compte quelques minutes — tu peux fermer la page, ça continue sans toi.
       </span>
 
       {erreur && <div className="pal manque"><b>Problème</b>{erreur}</div>}
@@ -83,14 +86,14 @@ export function MesCV() {
               <span>
                 <b>{c.nom}</b>
                 <em>
-                  {c.fichier ? `fichier ${ko(c.octets)}` : 'lecture seule, sans fichier'}
-                  {c.lecture ? ` · lu par ${c.lecture.moteur} ${c.lecture.version}` : ''}
-                  {c.actif ? ' · actif' : ''}
+                  {ko(c.octets)}
+                  {c.actif && (c.lecture
+                    ? ' · profil rempli à partir de ce CV'
+                    : ' · lecture en cours…')}
                 </em>
               </span>
               <span className="mescv-btns">
                 {c.fichier && <a className="btn-mini" href={api.urlFichierCV(c.id)} target="_blank" rel="noreferrer">Ouvrir</a>}
-                {c.lecture && <button type="button" className="btn-mini" onClick={() => setJson(json?.id === c.id ? null : c)}>JSON</button>}
                 <button type="button" className="btn-mini" onClick={() => void supprime(c)}>Supprimer</button>
               </span>
             </li>
@@ -98,9 +101,6 @@ export function MesCV() {
         </ul>
       )}
 
-      {json?.lecture && (
-        <pre className="mescv-json">{JSON.stringify(json.lecture.retenu ?? json.lecture.lu, null, 2)}</pre>
-      )}
     </div>
   )
 }

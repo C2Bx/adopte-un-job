@@ -380,11 +380,15 @@ function appliqueJsonResume(PDO $pdo, array $d, string $partenaire, string $fich
             }
         }
 
-        // Trace de la matiere recue : on doit pouvoir rejouer ou expliquer.
+        /* Trace de la matiere recue : on doit pouvoir rejouer ou expliquer.
+           Elle est RATTACHEE au CV actif : sans ce lien, l'application ne peut
+           pas dire a la personne que son CV a ete lu, et son ecran reste muet
+           entre le depot et le remplissage. */
+        $cv = cvActif($pdo, $id);
         $pdo->prepare(
             'INSERT INTO resume_extractions (resume_id, engine, version, payload, accepted, created_at)
-             VALUES (NULL, ?, ?, ?, NULL, ?)'
-        )->execute(['passerelle:' . $partenaire, mb_substr($fichier, 0, 20),
+             VALUES (?, ?, ?, ?, NULL, ?)'
+        )->execute([$cv['id'] ?? null, 'passerelle:' . $partenaire, mb_substr($fichier, 0, 20),
                     json_encode($d, JSON_UNESCAPED_UNICODE), maintenant()]);
 
         $pdo->prepare('DELETE FROM match_scores WHERE candidate_id = ?')->execute([$id]);
