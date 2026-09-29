@@ -12,3 +12,14 @@ AddType application/octet-stream .traineddata
 # tout ce qui est sous /avp/, donc aussi pour le wiki du projet — qui charge
 # Google Fonts — et pour l'API. Une CSP « default-src 'self' » heritee y
 # casserait la typographie sans rien proteger de plus.
+
+# Une adresse du site qui n'existe pas tombait sur la page d'Apache. Elle rend
+# maintenant la meme page d'erreur que l'API, dans la charte de l'application.
+#
+# ErrorDocument ne se declenche QUE sur les erreurs produites par Apache
+# lui-meme : un http_response_code(404) pose par l'API ne passe pas par ici,
+# les deux pages ne se marchent pas dessus.
+#
+# 403 y passe aussi : le verrou sur passerelle-cli.php en produit un vrai.
+ErrorDocument 404 /avp/404.php
+ErrorDocument 403 /avp/404.php
