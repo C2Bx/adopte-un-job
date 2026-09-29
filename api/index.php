@@ -99,8 +99,10 @@ if (route('POST', 'auth/inscription', $seg, $methode) !== false) {
 
     /* On demande d'abord a leur API. Creer la ligne locale avant aurait laisse
        un compte orphelin a chaque refus de leur cote. */
-    equipeInscrit($email, $mdp, $prenom, $nom);
-    $u = utilisateurLocal($pdo, $email, $prenom, $nom);
+    /* Leur `UserResponse` porte l'identifiant du compte chez eux : on le
+       garde, c'est un lien qui survivra a un changement d'adresse. */
+    $chezEux = equipeInscrit($email, $mdp, $prenom, $nom);
+    $u = utilisateurLocal($pdo, $email, $prenom, $nom, (int) ($chezEux['id'] ?? 0));
 
     trace($u['id'], 'inscription', 'user', $u['id']);
     $t = ouvreSession($u['id']);
@@ -178,8 +180,8 @@ if (route('DELETE', 'auth/compte', $seg, $methode) !== false) {
     // Anonymisation plutot que suppression : les statistiques du projet
     // survivent, et plus aucune donnee personnelle ne subsiste.
     $pdo->prepare(
-        'UPDATE users SET email = CONCAT("supprime+", id, "@invalide"), pass_hash = "", status = "anonymise",
-                          anonymized_at = ? WHERE id = ?'
+        'UPDATE users SET email = CONCAT("supprime+", id, "@invalide"), equipe_user_id = NULL,
+                          status = "anonymise", anonymized_at = ? WHERE id = ?'
     )->execute([maintenant(), $id]);
     $pdo->prepare('UPDATE candidates SET prenom = "", initiale = "", nom = "", telephone = "", resume_json = NULL, visible = 0 WHERE user_id = ?')
         ->execute([$id]);

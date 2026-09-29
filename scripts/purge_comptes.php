@@ -103,7 +103,7 @@ foreach ($aTraiter as $u) {
         /* Exactement ce que fait DELETE auth/compte : si cette route change,
            celle-ci doit changer avec elle. */
         $pdo->prepare(
-            'UPDATE users SET email = CONCAT("supprime+", id, "@invalide"), pass_hash = "",
+            'UPDATE users SET email = CONCAT("supprime+", id, "@invalide"), equipe_user_id = NULL,
                               status = "anonymise", anonymized_at = ? WHERE id = ?'
         )->execute([maintenant(), $id]);
         $pdo->prepare('UPDATE candidates SET prenom = "", initiale = "", nom = "", telephone = "", resume_json = NULL, visible = 0 WHERE user_id = ?')

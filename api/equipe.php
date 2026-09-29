@@ -8,10 +8,13 @@
  * de passe et n'en verifie plus aucun.
  *
  * Ce qui reste ici, c'est la ligne `users` : tout le reste du schema s'y
- * rattache (profil, CV, candidatures, sessions). Elle est cree ou retrouvee
- * par l'ADRESSE, apres que leur API a valide les identifiants ; sa colonne
- * `pass_hash` reste vide, et une chaine vide ne peut correspondre a aucun
- * mot de passe.
+ * rattache (profil, CV, candidatures, sessions). Elle ne porte plus AUCUN
+ * secret — la colonne `pass_hash` a ete supprimee le 29/09 — seulement une
+ * adresse, et l'identifiant que leur API nous rend a l'inscription.
+ *
+ * Elle est retrouvee par l'ADRESSE, apres que leur API a valide les
+ * identifiants. `equipe_user_id` est la pour le jour ou ils ouvriront le
+ * changement d'adresse : ce jour-la, l'e-mail cessera d'etre un lien fiable.
  *
  * Trois consequences, assumees :
  *   - leur API en panne = personne ne se connecte, meme avec une session
@@ -107,7 +110,7 @@ function equipeConnecte(string $email, string $mdp): array
  * faisait l'inscription : un compte qui arrive par la connexion (parce qu'il
  * a ete cree chez eux directement) doit etre aussi complet qu'un autre.
  */
-function utilisateurLocal(PDO $pdo, string $email, string $prenom = '', string $nom = ''): array
+function utilisateurLocal(PDO $pdo, string $email, string $prenom = '', string $nom = '', int $equipeId = 0): array
 {
     $st = $pdo->prepare('SELECT id, status, role FROM users WHERE email = ?');
     $st->execute([$email]);
@@ -130,8 +133,8 @@ function utilisateurLocal(PDO $pdo, string $email, string $prenom = '', string $
         return ['id' => (int) $u['id'], 'email' => $email, 'nouveau' => false];
     }
 
-    $pdo->prepare('INSERT INTO users (email, pass_hash, role, created_at) VALUES (?,"","candidat",?)')
-        ->execute([$email, maintenant()]);
+    $pdo->prepare('INSERT INTO users (email, equipe_user_id, role, created_at) VALUES (?,?,"candidat",?)')
+        ->execute([$email, $equipeId > 0 ? $equipeId : null, maintenant()]);
     $id = (int) $pdo->lastInsertId();
     // Les longueurs sont celles du schema (prenom 40, nom 60) : leur API
     // accepte 255, une troncature silencieuse en base vaudrait une erreur.
