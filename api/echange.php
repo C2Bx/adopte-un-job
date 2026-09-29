@@ -260,7 +260,7 @@ function candidatDuFichier(PDO $pdo, array $d, string $fichier): array
 {
     $id = 0;
     $par = '';
-    if (preg_match('/(\d+)/', pathinfo($fichier, PATHINFO_FILENAME), $m)) {
+    if (preg_match('/(?:^|[^a-z0-9])(?:profil|cv)-(\d+)(?:[^0-9]|$)/i', pathinfo($fichier, PATHINFO_FILENAME), $m)) {
         $id = (int) $m[1];
         $par = 'le nom du fichier';
     } elseif (isset($d['meta']['candidat']) && (int) $d['meta']['candidat'] > 0) {
