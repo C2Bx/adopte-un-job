@@ -18,7 +18,7 @@ en **OpenAPI 3.1** : `GET /openapi.json`.
 | `equipe.php` | Les comptes, tenus par l'API de l'équipe : inscription, connexion, ligne locale |
 | `doc.php` | Le tableau des routes documentées et le document OpenAPI |
 | `config.php` | **À créer** depuis `config.example.php`. Jamais versionné. Lit `private/avp.env` ou `api/.env` |
-| `schema.sql` + `migrations/` | 46 tables, rejouable (`CREATE TABLE IF NOT EXISTS`, `ALTER` gardés par `scripts/migre.py`) |
+| `schema.sql` + `migrations/` | 41 tables, rejouable (`CREATE TABLE IF NOT EXISTS`, `ALTER` gardés par `scripts/migre.py`) |
 | `.htaccess` | Fait passer l'en-tête `Authorization` à PHP (voir *Pièges*) |
 
 ## Installation
