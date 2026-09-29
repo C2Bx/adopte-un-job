@@ -59,7 +59,7 @@ function envoie(mixed $data, int $code = 200): never
     exit;
 }
 
-/** La page rendue a qui ouvre une adresse d'API dans son navigateur. */
+/** La page rendue a qui ouvre une adresse d\'API dans son navigateur. */
 function pageErreur(int $code, string $erreur, string $message): string
 {
     $titres = [
@@ -81,34 +81,59 @@ function pageErreur(int $code, string $erreur, string $message): string
     $h = static fn (string $t): string => htmlspecialchars($t, ENT_QUOTES, 'UTF-8');
     $app = defined('APP_URL') ? APP_URL : '/avp/';
 
-    /* Le style suit le reglage du systeme : cette page peut tomber sur
-       n'importe qui, a n'importe quelle heure. */
+    /* Les valeurs viennent de `beta/src/design.css`, direction artistique
+       « a » — celle qui est appliquee par defaut dans l\'application. Elles
+       sont recopiees plutot que liees : la feuille de l\'application porte une
+       empreinte dans son nom a chaque construction, et une page d\'erreur qui
+       dependrait d\'un fichier introuvable s\'afficherait sans style.
+
+       « Plus Jakarta Sans » n\'est chargee nulle part dans l\'application : elle
+       rend donc en `system-ui`. On reprend la meme pile, sans police distante
+       a autoriser dans la CSP — meme rendu, surface d\'attaque inchangee.
+
+       Pas de mode sombre : l\'application n\'en a pas. */
     return '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width, initial-scale=1">'
         . '<meta name="robots" content="noindex">'
         . '<title>' . $code . ' — Adopte un Job</title><style>'
-        . ':root{color-scheme:light dark;--bg:#F4F6F8;--surface:#fff;--ink:#0F1A2B;--ink-2:#5A6A7E;'
-        . '--line:#DEE3EA;--brand:#17356B}'
-        . '@media(prefers-color-scheme:dark){:root{--bg:#0C1013;--surface:#141A1F;--ink:#EDF2F4;'
-        . '--ink-2:#A9B6BE;--line:#242E36;--brand:#8FB3FF}}'
-        . '*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;'
-        . 'padding:24px;background:var(--bg);color:var(--ink);'
-        . 'font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}'
-        . 'main{max-width:34rem;width:100%;background:var(--surface);border:1px solid var(--line);'
-        . 'border-radius:14px;padding:32px}'
-        . '.code{font:700 13px/1 ui-monospace,monospace;letter-spacing:.12em;color:var(--ink-2)}'
-        . 'h1{font-size:1.5rem;margin:12px 0 8px;text-wrap:balance}'
-        . 'p{margin:0 0 18px;color:var(--ink-2)}'
-        . 'code{font:13px ui-monospace,monospace;background:var(--bg);border:1px solid var(--line);'
-        . 'border-radius:5px;padding:1px 6px;color:var(--ink-2)}'
-        . 'a{display:inline-block;margin-top:6px;color:var(--brand);font-weight:600}'
+        . ':root{color-scheme:light;'
+        . '--bg:#F4F6F8;--surface:#FFFFFF;--line:#DEE3EA;'
+        . '--ink:#0F1A2B;--ink-2:#46536A;--ink-3:#7A869B;'
+        . '--brand:#17356B;--brand-ink:#FFFFFF;--accent:#E8912B;'
+        . '--font-ui:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;'
+        . '--font-num:"JetBrains Mono",ui-monospace,monospace}'
+        . '*{box-sizing:border-box}'
+        . 'body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px 16px;'
+        . 'background:var(--bg);color:var(--ink);font:15px/1.6 var(--font-ui)}'
+        . 'main{max-width:33rem;width:100%;background:var(--surface);'
+        . 'border:1px solid var(--line);border-radius:28px;padding:40px 32px;text-align:center;'
+        . 'box-shadow:0 1px 2px rgba(15,26,43,.05),0 10px 24px -20px rgba(15,26,43,.5)}'
+        . '.num{font-weight:800;letter-spacing:-.03em;line-height:.9;'
+        . 'font-size:clamp(84px,22vw,148px);color:var(--brand);'
+        . 'font-variant-numeric:tabular-nums}'
+        . '.rule{width:56px;height:4px;border-radius:999px;background:var(--accent);'
+        . 'margin:20px auto 24px}'
+        . 'h1{font-size:22px;font-weight:800;letter-spacing:-.03em;margin:0 0 8px;'
+        . 'text-wrap:balance}'
+        . 'p{margin:0 0 16px;color:var(--ink-2)}'
+        . '.note{font-size:13px;color:var(--ink-3)}'
+        . 'a{display:inline-flex;align-items:center;justify-content:center;'
+        . 'min-height:44px;padding:0 24px;border-radius:999px;'
+        . 'background:var(--brand);color:var(--brand-ink);'
+        . 'font-weight:700;text-decoration:none}'
+        . 'a:focus-visible{outline:3px solid var(--accent);outline-offset:3px}'
+        . '.tag{margin-top:24px;font:11px/1 var(--font-num);letter-spacing:.12em;'
+        . 'text-transform:uppercase;color:var(--ink-3)}'
         . '</style></head><body><main>'
-        . '<div class="code">ERREUR ' . $code . ($erreur !== '' ? ' &middot; ' . $h($erreur) : '') . '</div>'
+        . '<div class="num">' . $code . '</div>'
+        . '<div class="rule"></div>'
         . '<h1>' . $h($titre) . '</h1>'
         . '<p>' . $h($message) . '</p>'
-        . '<p>Cette adresse fait partie de l\'API : elle répond normalement en JSON, '
-        . 'à un programme. Tu vois cette page parce que tu l\'as ouverte dans un navigateur.</p>'
+        . '<p class="note">Cette adresse fait partie de l\'API : elle répond normalement '
+        . 'en JSON, à un programme. Tu vois cette page parce que tu l\'as ouverte dans '
+        . 'un navigateur.</p>'
         . '<a href="' . $h($app) . '">Retour à l\'application</a>'
+        . ($erreur !== '' ? '<div class="tag">' . $h($erreur) . '</div>' : '')
         . '</main></body></html>';
 }
 
