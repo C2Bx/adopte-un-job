@@ -1,4 +1,4 @@
-<?php $GUARD_HOME = '../index.html'; $GUARD_FROM = 'app/da.php'; require __DIR__ . '/../guard.php'; ?>
+<?php $GUARD_HOME = '../projet/index.html'; $GUARD_FROM = 'app/da.php'; require __DIR__ . '/../projet/guard.php'; ?>
 <!DOCTYPE html>
 <html lang="fr" data-da="a">
 <head>

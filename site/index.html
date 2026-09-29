@@ -332,7 +332,11 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--brand)}
       var brut = (location.search.match(/[?&]from=([^&]+)/) || [])[1];
       if (brut) {
         var cible = decodeURIComponent(brut);
-        if (/^(?:app\/)?[a-z]+\.php$/.test(cible)) { location.href = cible; return; }
+        // Le wiki vit dans /avp/projet/ depuis le 29/09 : une page de
+        // /avp/app/ est un cran plus haut. La liste reste fermee — on ne
+        // suit jamais une cible arbitraire venue de l'adresse.
+        if (/^app\/[a-z_]+\.php$/.test(cible)) { location.href = '../' + cible; return; }
+        if (/^[a-z_]+\.php$/.test(cible)) { location.href = cible; return; }
       }
       $('#gate').classList.add('hidden');
       $('#topbar').classList.remove('hidden');
