@@ -63,14 +63,14 @@ function envoie(mixed $data, int $code = 200): never
 function pageErreur(int $code, string $erreur, string $message): string
 {
     $titres = [
-        400 => 'Demande mal formee',
-        401 => 'Il faut etre connecte',
-        403 => 'Acces refuse',
+        400 => 'Demande mal formée',
+        401 => 'Il faut être connecté',
+        403 => 'Accès refusé',
         404 => 'Cette adresse n\'existe pas',
         409 => 'Conflit',
         413 => 'Fichier trop grand',
-        415 => 'Format refuse',
-        422 => 'Donnees incompletes',
+        415 => 'Format refusé',
+        422 => 'Données incomplètes',
         429 => 'Trop de demandes',
         500 => 'Erreur du serveur',
         501 => 'Pas encore disponible',
@@ -106,9 +106,9 @@ function pageErreur(int $code, string $erreur, string $message): string
         . '<div class="code">ERREUR ' . $code . ($erreur !== '' ? ' &middot; ' . $h($erreur) : '') . '</div>'
         . '<h1>' . $h($titre) . '</h1>'
         . '<p>' . $h($message) . '</p>'
-        . '<p>Cette adresse fait partie de l\'API : elle repond normalement en JSON, '
-        . 'a un programme. Vous voyez cette page parce que vous l\'avez ouverte dans un navigateur.</p>'
-        . '<a href="' . $h($app) . '">Retour a l\'application</a>'
+        . '<p>Cette adresse fait partie de l\'API : elle répond normalement en JSON, '
+        . 'à un programme. Tu vois cette page parce que tu l\'as ouverte dans un navigateur.</p>'
+        . '<a href="' . $h($app) . '">Retour à l\'application</a>'
         . '</main></body></html>';
 }
 
