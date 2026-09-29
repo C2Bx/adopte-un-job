@@ -161,10 +161,8 @@ if (route('GET', 'auth/export', $seg, $methode) !== false) {
         $out['profil'] = profilComplet($pdo, $id);
     }
     foreach (['swipes' => 'SELECT sens, job_id, decision, created_at FROM swipes WHERE acteur_id = ?',
-              'matchs' => 'SELECT id, job_id, qualite, statut, created_at FROM matches WHERE candidate_id = ?',
-              'messages' => 'SELECT match_id, corps, created_at FROM messages WHERE auteur_id = ?',
+
               'candidatures' => 'SELECT job_id, statut, created_at, updated_at FROM applications WHERE candidate_id = ?',
-              'entretiens' => 'SELECT job_id, debut_utc, duree_min, mode, statut FROM entretiens WHERE candidate_id = ?',
               'consentements' => 'SELECT finalite, version, accorde, created_at FROM consents WHERE user_id = ?'] as $cle => $sql) {
         $st = $pdo->prepare($sql);
         $st->execute([$id]);
@@ -196,10 +194,6 @@ if (route('DELETE', 'auth/compte', $seg, $methode) !== false) {
     $pdo->prepare('DELETE FROM resume_extractions WHERE resume_id IN (SELECT id FROM resumes WHERE user_id = ?)')->execute([$id]);
     $pdo->prepare('UPDATE applications SET statut = "retiree", message = NULL, updated_at = ? WHERE candidate_id = ? AND statut NOT IN ("acceptee","refusee")')->execute([maintenant(), $id]);
     $pdo->prepare('UPDATE api_keys SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL')->execute([maintenant(), $id]);
-    // un compte RH quitte son organisation : elle ne doit plus le lister
-    $pdo->prepare('DELETE FROM company_members WHERE user_id = ?')->execute([$id]);
-    $pdo->prepare('UPDATE entretiens SET statut = "annule", updated_at = ? WHERE statut IN ("propose","confirme") AND (candidate_id = ? OR propose_par = ?)')
-        ->execute([maintenant(), $id, $id]);
     trace($id, 'suppression_compte', 'user', $id);
     envoie(['ok' => true, 'message' => 'Compte anonymisé. Les données personnelles ont été effacées.']);
 }

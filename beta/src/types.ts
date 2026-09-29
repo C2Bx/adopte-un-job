@@ -165,14 +165,6 @@ export interface Interet extends Offre {
 
 export type StatutCandidature = 'envoyee' | 'vue' | 'preselection' | 'entretien' | 'acceptee' | 'refusee' | 'retiree'
 
-export interface EntretienCourt {
-  id: number
-  debut_utc: string
-  duree_min: number
-  mode: string
-  lieu: string | null
-  statut: string
-}
 
 export interface Candidature {
   id: number
@@ -184,7 +176,6 @@ export interface Candidature {
   decidee: string | null
   match: number | null
   offre: Offre
-  entretiens: EntretienCourt[]
   dossier: { cvGenere: boolean; cvOriginal: boolean; ouvertPourOrganisation: boolean }
   score?: { qualite: number | null; detail: Score['detail'] } | null
 }

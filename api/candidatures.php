@@ -96,15 +96,12 @@ function candidaturePublique(PDO $pdo, array $a): array
 {
     $o = offrePublique(garnisOffre($pdo, offreParId($pdo, (int) $a['job_id'])));
     $ouvert = in_array($a['statut'], STATUTS_OUVERTS, true);
-    $st = $pdo->prepare('SELECT id, debut_utc, duree_min, mode, lieu, statut FROM entretiens WHERE application_id = ? ORDER BY debut_utc');
-    $st->execute([(int) $a['id']]);
     $out = [
         'id' => (int) $a['id'], 'statut' => $a['statut'], 'message' => $a['message'],
         'qualite' => $a['qualite'] === null ? null : (int) $a['qualite'],
         'creee' => $a['created_at'], 'maj' => $a['updated_at'], 'decidee' => $a['decided_at'],
         'match' => $a['match_id'] === null ? null : (int) $a['match_id'],
         'offre' => $o,
-        'entretiens' => $st->fetchAll(),
         'dossier' => [
             'cvGenere' => true,
             'cvOriginal' => (bool) ($a['resume_id'] ?? null) && cvAFichier($pdo, (int) $a['resume_id']),
