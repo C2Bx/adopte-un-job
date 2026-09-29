@@ -153,9 +153,8 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
         </form>
 
         <p className="accueil-note">
-          Projet d’étudiants. Ton compte est tenu par le service de comptes de l’équipe HackAVP :
-          ton mot de passe y est vérifié, il n’est pas conservé ici. Les données sont réelles et
-          enregistrées ; l’export et la suppression du compte sont disponibles dès maintenant.
+          Projet d’étudiants. Les données sont réelles et enregistrées :
+          l’export et la suppression du compte sont disponibles dès maintenant.
         </p>
       </div>
     </div>

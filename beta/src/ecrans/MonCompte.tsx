@@ -75,10 +75,7 @@ export function MonCompte() {
 
       {modifiable === false && (
         <p className="pa">
-          Ton compte est tenu par le <b>service de comptes de l’équipe HackAVP</b> : c’est lui
-          qui détient ton mot de passe, pas cette application. Il n’expose pour l’instant que la
-          création et la connexion — changer son mot de passe ou son adresse deviendra possible
-          ici, sans rien installer, le jour où il ouvre ces deux actions.
+          Changer ton mot de passe ou ton adresse n’est pas encore possible. Ça arrive.
         </p>
       )}
 

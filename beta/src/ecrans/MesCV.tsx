@@ -60,10 +60,9 @@ export function MesCV() {
     <div className="pvoie mescv">
       <b>Mon CV</b>
       <span>
-        Dépose ton CV dans le format que tu as sous la main — <b>PDF, Word, OpenDocument,
-        RTF, texte ou photo</b>. Il est chiffré sur le serveur, puis transmis à la chaîne
-        d’analyse de l’équipe, qui en tire les rubriques et <b>remplit ce profil toute
-        seule</b>. Tu n’as rien à recopier : tu relis, et tu corriges ce qui va de travers.
+        Dans le format que tu as sous la main — <b>PDF, Word, OpenDocument, RTF, texte
+        ou photo</b>. Il est chiffré sur le serveur, et <b>ton profil se remplit tout
+        seul</b> à partir de lui. Tu n’as rien à recopier : tu relis, et tu corriges.
       </span>
 
       {erreur && <div className="pal manque"><b>Problème</b>{erreur}</div>}
