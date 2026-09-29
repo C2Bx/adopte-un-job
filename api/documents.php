@@ -210,6 +210,28 @@ function jsonResume(array $p, string $email): array
             array_map(static fn ($s) => ['name' => $s['nom'], 'keywords' => ['OPT-NC:' . $s['code']]], $p['competencesOpt'])
         ),
         'languages' => array_map(static fn ($l) => ['language' => $l['langue'], 'fluency' => $l['niveau']], $p['langues']),
-        'meta' => ['generator' => 'Adopte un Job', 'version' => 'v1.0.0', 'lastModified' => maintenant()],
+        /* Les criteres de recherche n'ont pas de place dans le schema JSON
+           Resume, qui decrit un parcours et non un projet. Ils vont donc dans
+           `meta`, le seul endroit libre — et le validateur d'ingestion, qui
+           refuse une section inconnue a la racine, les accepte ici.
+
+           Sans eux, repondre au questionnaire ne changeait presque rien au
+           document : seules les zones et les metiers vises y transparaissaient,
+           par `location` et `summary`. */
+        'meta' => [
+            'generator' => 'Adopte un Job',
+            'version' => 'v1.0.0',
+            'lastModified' => maintenant(),
+            'criteres' => [
+                'ouverture' => $p['ouverture'],
+                'zones' => $p['zones'],
+                'contrats' => $p['contrats'],
+                'disponibilite' => $p['dispo'],
+                'salaireMinimumMensuelXPF' => $p['salaireMin'],
+                'teletravail' => $p['teletravail'],
+                'permisB' => $p['permis'],
+                'refuse' => $p['refus'] ?? [],
+            ],
+        ],
     ];
 }

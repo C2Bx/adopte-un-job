@@ -57,6 +57,8 @@ export interface Profil {
   ouverture: 'strict' | 'ouvert'
   salaireMin: number | null
   permis: boolean | null
+  /** Contraintes exclues — mêmes clés que la colonne SET `candidates.refus`. */
+  refus: string[]
   formation: number | null
   zones: string[]
   contrats: string[]

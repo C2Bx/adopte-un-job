@@ -121,7 +121,7 @@ export function conseils(p: Profil): Conseil[] {
 export const profilVide: Profil = {
   prenom: '', initiale: '', nom: '', telephone: '',
   dispo: null, teletravail: 'peu importe', ouverture: 'strict',
-  salaireMin: null, permis: null, formation: null,
+  salaireMin: null, permis: null, refus: [], formation: null,
   zones: [], contrats: [], metiers: [], metiersOpt: [], competences: [], competencesOpt: [],
   langues: [], experiences: [], formations: [],
 }

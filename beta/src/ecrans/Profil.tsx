@@ -11,14 +11,24 @@ import { MesCV } from './MesCV'
 import { MonCompte } from './MonCompte'
 import { profilEnvoi } from '../regles'
 import { Spinner } from '../Attente'
-import type { CompetenceOpt, MetierOpt } from '../types'
+import { Puces, MetiersOptChoix } from './champs'
+import { Questions } from './Questions'
+import type { CompetenceOpt } from '../types'
 import { ErreurApi } from '../types'
 import type { Experience, Formation, Profil, Referentiels } from '../types'
 
 type Etat = 'repos' | 'envoi' | 'ok' | 'erreur'
 
+/** Un profil qu'on n'a pas encore commence : on propose le chemin avant le
+    formulaire, au lieu d'ouvrir cinq ecrans vides. */
+function vierge(p: Profil): boolean {
+  return p.metiersOpt.length === 0 && p.metiers.length === 0 && p.zones.length === 0
+    && p.experiences.length === 0 && p.competences.length === 0
+}
+
 export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p: Profil) => void }) {
   const [etape, setEtape] = useState(0)
+  const [mode, setMode] = useState<'choix' | 'form' | 'questions'>(() => (vierge(profil) ? 'choix' : 'form'))
   const [ref, setRef] = useState<Referentiels | null>(null)
   const [etat, setEtat] = useState<Etat>('repos')
   const premier = useRef(true)
@@ -36,7 +46,7 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
 
   // Le deck demande d'aller corriger tel manque : il envoie l'étape.
   useEffect(() => {
-    const va = (e: Event) => setEtape((e as CustomEvent<number>).detail)
+    const va = (e: Event) => { setMode('form'); setEtape((e as CustomEvent<number>).detail) }
     document.addEventListener('aj:etape', va)
     return () => document.removeEventListener('aj:etape', va)
   }, [])
@@ -95,7 +105,37 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
             <MesCV />
             <MonCompte />
 
-            {<>
+            {mode === 'choix' && (
+              <div className="qzdepart">
+                <div className="qzcarte">
+                  <h3>Je pars de zéro</h3>
+                  <p>Le formulaire guidé, étape par étape. C’est le chemin principal, pas la solution de repli.</p>
+                  <button type="button" className="btn-mini" onClick={() => setMode('form')}>Remplir à la main</button>
+                </div>
+                <div className="qzcarte fort">
+                  <h3>Affiner par questions</h3>
+                  <p>Neuf questions courtes, une par écran, pour cibler ce que le deck doit te proposer. C’est le chemin le plus rapide sur téléphone.</p>
+                  <button type="button" className="btn-fort" onClick={() => setMode('questions')}>Répondre aux questions</button>
+                </div>
+              </div>
+            )}
+
+            {mode === 'questions' && (
+              <Questions
+                profil={profil}
+                maj={maj}
+                ref_={ref}
+                onFin={() => { setMode('form'); setEtape(4) }}
+                onQuitter={() => setMode('form')}
+              />
+            )}
+
+            {mode === 'form' && <>
+            <div className="qzrappel">
+              <span>Neuf questions courtes remplissent l’essentiel — plus rapide que le formulaire.</span>
+              <button type="button" className="btn-mini" onClick={() => setMode('questions')}>Affiner par questions</button>
+            </div>
+
             <div className="petapes">
               {ETAPES.map((t, i) => {
                 const n = aCombler.filter((m) => m.etape === i).length
@@ -177,34 +217,6 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
 }
 
 /* ------------------------------------------------------------- morceaux -- */
-
-function Puces({ id, liste, valeurs, max, onChange }: {
-  id: string
-  liste: { slug?: string; label: string }[]
-  valeurs: string[]
-  max?: number
-  onChange: (v: string[]) => void
-}) {
-  return (
-    <div className="pchips" id={id} tabIndex={-1}>
-      {liste.map((o) => {
-        const cle = o.slug ?? o.label
-        const on = valeurs.includes(cle)
-        return (
-          <button
-            key={cle}
-            type="button"
-            className={`pchip${on ? ' on' : ''}`}
-            onClick={() => {
-              if (on) onChange(valeurs.filter((v) => v !== cle))
-              else if (!max || valeurs.length < max) onChange([...valeurs, cle])
-            }}
-          >{o.label}</button>
-        )
-      })}
-    </div>
-  )
-}
 
 function QuiTuEs({ p, maj, ref_ }: { p: Profil; maj: (b: Partial<Profil>) => void; ref_: Referentiels | null }) {
   return (
@@ -560,59 +572,6 @@ function Relecture({ p }: { p: Profil }) {
 /* Le choix d'un métier OPT : une liste déroulante par famille, des puces
    pour ce qui est retenu. Quatre-vingt-quatre puces à l'écran ne se lisent
    pas ; une liste groupée, si. */
-function MetiersOptChoix({ id, liste, familles, valeurs, onChange }: {
-  id: string
-  liste: MetierOpt[]
-  familles: { id: string; libelle: string }[]
-  valeurs: MetierOpt[]
-  onChange: (v: MetierOpt[]) => void
-}) {
-  const [choix, setChoix] = useState('')
-  const parFamille = useMemo(() => {
-    const m = new Map<string, MetierOpt[]>()
-    for (const x of liste) {
-      const k = x.familleLibelle ?? x.famille ?? 'Autres'
-      if (!m.has(k)) m.set(k, [])
-      m.get(k)!.push(x)
-    }
-    return [...m.entries()]
-  }, [liste])
-  return (
-    <div id={id} tabIndex={-1}>
-      <div className="pchips">
-        {valeurs.map((m) => (
-          <span className="pchip on lib" key={m.code}>
-            {m.nom}
-            <button type="button" aria-label="Retirer" onClick={() => onChange(valeurs.filter((x) => x.code !== m.code))}>✕</button>
-          </span>
-        ))}
-        {valeurs.length === 0 && <span className="pvide">Aucun métier visé — sans lui, le score ne sait pas où tu veux aller.</span>}
-      </div>
-      {valeurs.length < 3 && (
-        <select
-          value={choix}
-          onChange={(e) => {
-            const m = liste.find((x) => x.code === e.target.value)
-            if (m && !valeurs.some((v) => v.code === m.code)) onChange([...valeurs, m])
-            setChoix('')
-          }}
-          aria-label="Ajouter un métier"
-        >
-          <option value="">Ajouter un métier…</option>
-          {parFamille.map(([f, ms]) => (
-            <optgroup label={f} key={f}>
-              {ms.map((m) => <option key={m.code} value={m.code}>{m.nom}{m.avpOuverts ? ` (${m.avpOuverts} AVP)` : ''}</option>)}
-            </optgroup>
-          ))}
-        </select>
-      )}
-      {familles.length > 0 && valeurs.length > 0 && (
-        <span className="pa">Famille{valeurs.length > 1 ? 's' : ''} : {[...new Set(valeurs.map((v) => v.familleLibelle ?? v.famille))].join(', ')}</span>
-      )}
-    </div>
-  )
-}
-
 /* Les compétences telles que l'OPT les nomme. Ce qui est rattaché l'a été par
    les mots : on le montre, avec la source, et on laisse ajouter ou retirer. */
 function CompetencesOptBloc({ p, maj }: { p: Profil; maj: (b: Partial<Profil>) => void }) {

@@ -20,6 +20,10 @@ require __DIR__ . '/equipe.php';
 
 const ZONES    = ['Grand Nouméa', 'Sud', 'Nord', 'Îles'];
 const CONTRATS = ['CDI', 'CDD', 'Alternance', 'Intérim', 'Stage'];
+/* Les contraintes qu'un candidat peut exclure. Liste fermee : ce sont les
+   valeurs de la colonne SET `candidates.refus`, les deux doivent rester
+   d'accord. */
+const REFUS    = ['nuit', 'weekend', 'deplacements', 'coupures', 'astreinte'];
 const NIVEAUX  = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
 try {
@@ -232,13 +236,14 @@ if (route('PUT', 'profil', $seg, $methode) !== false) {
     try {
         $pdo->prepare(
             'INSERT INTO candidates (user_id, prenom, initiale, nom, telephone, dispo, teletravail,
-                                     ouverture, salaire_min, permis, formation_max, experience_ans,
-                                     resume_json, updated_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                                     ouverture, salaire_min, permis, refus, formation_max,
+                                     experience_ans, resume_json, updated_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
              ON DUPLICATE KEY UPDATE
                 prenom = VALUES(prenom), initiale = VALUES(initiale), nom = VALUES(nom),
                 telephone = VALUES(telephone), dispo = VALUES(dispo), teletravail = VALUES(teletravail),
                 ouverture = VALUES(ouverture), salaire_min = VALUES(salaire_min), permis = VALUES(permis),
+                refus = VALUES(refus),
                 formation_max = VALUES(formation_max), experience_ans = VALUES(experience_ans),
                 resume_json = VALUES(resume_json), updated_at = VALUES(updated_at)'
         )->execute([
@@ -252,6 +257,9 @@ if (route('PUT', 'profil', $seg, $methode) !== false) {
             champ('ouverture') === 'ouvert' ? 'ouvert' : 'strict',
             entierOuNull('salaireMin'),
             champ('permis') === null ? null : (champ('permis') ? 1 : 0),
+            // array_intersect garde l'ordre de REFUS et jette l'inconnu : la
+            // colonne SET refuse une valeur hors liste, on ne la lui donne pas.
+            implode(',', array_intersect(REFUS, array_map('strval', (array) champ('refus', [])))),
             entierOuNull('formation'),
             entierOuNull('experienceAns'),
             json_encode(champ('resume'), JSON_UNESCAPED_UNICODE) ?: null,

@@ -78,6 +78,27 @@ function ecarts(array $c, array $o): array
     } elseif ($o['salaire_max'] === null && $o['salaire_min'] === null) {
         $vg[] = 'Salaire non annoncé';
     }
+    /* Les contraintes refusees. L'offre ne les DECLARE pas : rien dans la
+       table `jobs` ne dit « poste de nuit ». On ne peut que les lire dans le
+       texte de l'annonce, ce qui se trompe parfois — un texte peut dire « pas
+       de travail de nuit ». C'est donc une VIGILANCE, jamais un ecart : une
+       lecture approximative ne doit pas couter les 20 % de qualite qu'un ecart
+       retire. Le jour ou l'AVP declarera ses contraintes, ce sera un ecart. */
+    if (!empty($c['refus'])) {
+        $txt = mb_strtolower((string) ($o['description'] ?? '') . ' ' . (string) ($o['titre'] ?? ''));
+        $motifs = [
+            'nuit'          => ['/\bnuits?\b/u',                     'du travail de nuit'],
+            'weekend'       => ['/\bsamedis?\b|\bdimanches?\b|week-?ends?/u', 'du travail le week-end'],
+            'deplacements'  => ['/déplacements?|itinéran|\bterrain\b/u', 'des déplacements'],
+            'coupures'      => ['/coupures?|horaires? coupés?/u',      'des horaires coupés'],
+            'astreinte'     => ['/astreintes?/u',                      'des astreintes'],
+        ];
+        foreach ($c['refus'] as $r) {
+            if (isset($motifs[$r]) && preg_match($motifs[$r][0], $txt)) {
+                $vg[] = 'L’annonce mentionne ' . $motifs[$r][1] . ', que tu as exclu — à vérifier';
+            }
+        }
+    }
     if (!empty($o['nb_agents_encadres']) && $c['experience_ans'] !== null && $c['experience_ans'] < 2) {
         $vg[] = 'Poste avec encadrement (' . $o['nb_agents_encadres'] . ' agents) — peu d’expérience déclarée';
     }

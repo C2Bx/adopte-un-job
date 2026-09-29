@@ -33,6 +33,8 @@ function candidatPourScore(PDO $pdo, int $id): ?array
         'permis'         => $c['permis'] === null ? null : (int) $c['permis'],
         'teletravail'    => $c['teletravail'],
         'ouverture'      => $c['ouverture'],
+        // colonne SET : MySQL la rend en chaine separee par des virgules
+        'refus'          => $c['refus'] ? explode(',', (string) $c['refus']) : [],
         // referentiel OPT : metiers vises (codes) et competences rattachees
         'metiers_opt'    => colonne($pdo, 'SELECT code_metier FROM candidate_opt_metiers WHERE user_id = ?', $id),
         'competences_opt' => competencesOptDuCandidat($pdo, $id),
@@ -79,6 +81,7 @@ function profilComplet(PDO $pdo, int $id): array
         'ouverture'   => $c['ouverture'] ?? 'strict',
         'salaireMin'  => isset($c['salaire_min']) && $c['salaire_min'] !== null ? (int) $c['salaire_min'] : null,
         'permis'      => isset($c['permis']) && $c['permis'] !== null ? (bool) $c['permis'] : null,
+        'refus'       => !empty($c['refus']) ? explode(',', (string) $c['refus']) : [],
         'formation'   => isset($c['formation_max']) && $c['formation_max'] !== null ? (int) $c['formation_max'] : null,
         'zones'       => colonne($pdo, 'SELECT zone FROM candidate_zones WHERE user_id = ?', $id),
         'contrats'    => colonne($pdo, 'SELECT contract FROM candidate_contracts WHERE user_id = ?', $id),
