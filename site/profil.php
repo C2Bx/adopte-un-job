@@ -115,6 +115,89 @@
     </div>
   </div>
 
+<h2 id="questionnaire">Le questionnaire guidé — en ligne depuis le 29/09</h2>
+
+  <p>La voie B se dédouble. Un profil qu'on n'a pas encore commencé n'ouvre plus directement
+  sur cinq écrans vides : il propose d'abord le chemin. <b>Remplir à la main</b>, c'est le
+  formulaire guidé décrit plus haut. <b>Affiner par questions</b>, c'est neuf questions
+  courtes, une par écran.</p>
+
+  <p>La raison est mesurable ailleurs et vaut ici : sur téléphone, un formulaire long est
+  abandonné, une suite de questions courtes est terminée. Le questionnaire reste accessible
+  après coup, depuis un rappel en tête du formulaire.</p>
+
+  <div class="callout">
+    <p style="margin-bottom:0"><b>C'est le même profil, pas un second modèle.</b> Chaque
+    réponse écrit dans les champs que le formulaire édite déjà, et l'écran de profil
+    enregistre tout seul : fermer le questionnaire au milieu ne perd rien, et tout reste
+    modifiable ensuite. Les deux champs réutilisés — les puces et le choix de métiers OPT —
+    ont été sortis dans un module commun plutôt que recopiés : deux listes de puces
+    finiraient par diverger.</p>
+  </div>
+
+  <h3>Les neuf questions</h3>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Question</th><th>Champ du profil</th></tr></thead>
+      <tbody>
+        <tr><td>Qu'est-ce que tu cherches ?</td><td><code>ouverture</code></td></tr>
+        <tr><td>Quels métiers vises-tu ?</td><td><code>metiersOpt</code>, trois au plus, référentiel OPT-NC</td></tr>
+        <tr><td>Où acceptes-tu de travailler ?</td><td><code>zones</code></td></tr>
+        <tr><td>Quels types de contrat ?</td><td><code>contrats</code></td></tr>
+        <tr><td>À partir de quand es-tu disponible ?</td><td><code>dispo</code>, en AAAA-MM</td></tr>
+        <tr><td>En dessous de quel salaire n'irais-tu pas ?</td><td><code>salaireMin</code></td></tr>
+        <tr><td>Le télétravail, pour toi ?</td><td><code>teletravail</code></td></tr>
+        <tr><td>Y a-t-il des choses que tu refuses ?</td><td><code>refus</code> — <b>nouveau</b></td></tr>
+        <tr><td>As-tu le permis B ?</td><td><code>permis</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Huit des neuf existaient déjà. La neuvième a demandé un champ :
+  <code>candidates.refus</code>, colonne <code>SET</code> fermée sur cinq valeurs — nuit,
+  week-end, déplacements, horaires coupés, astreintes (migration <code>007</code>).</p>
+
+  <div class="callout">
+    <p style="margin-bottom:0"><b>Les refus sont une vigilance, pas un écart.</b> La table
+    <code>jobs</code> ne déclare pas ses contraintes : rien n'y dit « poste de nuit ». On ne
+    peut que les lire dans le texte de l'annonce, ce qui se trompe parfois — un texte peut
+    dire « <em>pas</em> de travail de nuit ». Un écart coûte 20 % de qualité ; une lecture
+    approximative n'a pas ce niveau de certitude. L'AVP qui mentionne une contrainte exclue
+    reste donc dans le deck, avec un avertissement. Le jour où l'AVP déclarera ses
+    contraintes, ce deviendra un écart.</p>
+  </div>
+
+  <h3>Ce que ça change au JSON Resume</h3>
+
+  <p>Rien, jusqu'à présent — et c'était le défaut. Le schéma JSON Resume décrit un
+  <em>parcours</em>, pas un <em>projet</em> : les critères de recherche n'y avaient aucune
+  place, et seules les zones et les métiers visés transparaissaient, par <code>location</code>
+  et <code>summary</code>. Répondre aux neuf questions ne déplaçait donc presque rien dans le
+  document servi à la chaîne d'extraction.</p>
+
+  <p>Ils sont désormais sous <code>meta.criteres</code>, le seul endroit libre du schéma — et
+  celui que le validateur d'ingestion accepte, puisqu'il refuse toute section inconnue à la
+  racine :</p>
+
+  <pre class="mono">"meta": {
+  "generator": "Adopte un Job",
+  "criteres": {
+    "ouverture": "strict",
+    "zones": [], "contrats": [],
+    "disponibilite": null,
+    "salaireMinimumMensuelXPF": null,
+    "teletravail": "peu importe",
+    "permisB": null,
+    "refuse": []
+  },
+  "candidat": 48
+}</pre>
+
+  <p class="note">Vérifié le 29/09 sur un document réellement produit par la passerelle,
+  <code>profil-48.json</code>. <code>meta.candidat</code>, la clé de rattachement, est
+  inchangée.</p>
+
   <h2 id="extraction">La chaîne d'extraction</h2>
   <p class="note">Cette page décrit l'intention. Ce qui tourne réellement, l'audit sur huit CV et les huit causes racines corrigées sont sur <a href="extraction.php">Lecture de CV</a>.</p>
   <p>Cinq étapes, du moins cher au plus cher. Chacune peut échouer proprement et laisser la main à la suivante.</p>
