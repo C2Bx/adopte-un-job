@@ -109,13 +109,23 @@ function equipeConnecte(string $email, string $mdp): array
  */
 function utilisateurLocal(PDO $pdo, string $email, string $prenom = '', string $nom = ''): array
 {
-    $st = $pdo->prepare('SELECT id, status FROM users WHERE email = ?');
+    $st = $pdo->prepare('SELECT id, status, role FROM users WHERE email = ?');
     $st->execute([$email]);
     $u = $st->fetch();
 
     if ($u) {
         if ($u['status'] !== 'actif') {
             erreur('compte_inactif', 'Ce compte n’est plus actif.', 403);
+        }
+        /* Il n'y a plus qu'une sorte de compte depuis le retrait du cote
+           employeur. Une ligne restee en `recruteur` ouvrirait bien une
+           session, mais toutes les routes candidat la refuseraient en 403 :
+           on la remet d'aplomb, et on s'assure qu'elle a son profil. */
+        if ($u['role'] !== 'candidat') {
+            $pdo->prepare('UPDATE users SET role = "candidat" WHERE id = ?')->execute([(int) $u['id']]);
+            $pdo->prepare('INSERT IGNORE INTO candidates (user_id, updated_at) VALUES (?,?)')
+                ->execute([(int) $u['id'], maintenant()]);
+            trace((int) $u['id'], 'role_normalise_candidat', 'user', (int) $u['id']);
         }
         return ['id' => (int) $u['id'], 'email' => $email, 'nouveau' => false];
     }
