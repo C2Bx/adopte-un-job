@@ -109,3 +109,7 @@
 .mescv-etat.pas-lu { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
 /* « Ouvrir » est un lien : sans ça, son libellé reste en haut du bouton */
 .mescv-btns .btn-mini { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+/* Métiers visés : les pastilles, la liste et la famille se touchaient. */
+.pmetiers { display: grid; gap: var(--s3); }
+.pmetiers > select { width: 100%; }

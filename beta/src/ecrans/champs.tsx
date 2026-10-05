@@ -52,7 +52,7 @@ export function MetiersOptChoix({ id, liste, familles, valeurs, onChange }: {
     return [...m.entries()]
   }, [liste])
   return (
-    <div id={id} tabIndex={-1}>
+    <div className="pmetiers" id={id} tabIndex={-1}>
       <div className="pchips">
         {valeurs.map((m) => (
           <span className="pchip on lib" key={m.code}>
