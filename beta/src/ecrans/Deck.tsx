@@ -126,6 +126,13 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   const [panneauFiltres, setPanneauFiltres] = useState(false)
   const [dernier, setDernier] = useState<Offre | null>(null)
   const vu = useRef<Set<number>>(new Set())
+  // raccourcis clavier : la fonction est remise à jour à chaque rendu (elle lit l'état courant)
+  const clavier = useRef<((e: KeyboardEvent) => void) | null>(null)
+  useEffect(() => {
+    const ecoute = (e: KeyboardEvent) => clavier.current?.(e)
+    window.addEventListener('keydown', ecoute)
+    return () => window.removeEventListener('keydown', ecoute)
+  }, [])
 
   const aCombler = manques(profil)
 
@@ -231,6 +238,19 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
     } finally {
       setEnCours(false)
     }
+  }
+
+  /* ← passer, → candidater, ↓ plus tard, Retour arrière : revenir, Espace : page
+     suivante. Jamais pendant une saisie, ni quand une feuille est ouverte. */
+  clavier.current = (e: KeyboardEvent) => {
+    const cible = e.target as HTMLElement | null
+    if (cible?.closest('input, textarea, select, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return
+    if (!courante || enCours || detail || envoyee || panneauFiltres) return
+    if (e.key === 'ArrowRight') { e.preventDefault(); void decide(courante, 'oui') }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); void decide(courante, 'non') }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); void decide(courante, 'plus_tard') }
+    else if (e.key === 'Backspace' && dernier) { e.preventDefault(); void reviens() }
+    else if (e.key === ' ') { e.preventDefault(); window.dispatchEvent(new Event('aj:page-suivante')) }
   }
 
   const actifs = nbActifs(filtres)
@@ -433,32 +453,61 @@ function PanneauFiltres({ f, comptes, total, actifs, change, toutEffacer, fermer
 
 /* Les pages de la carte, une par idée : ce qu'on a en commun, les missions,
    les compétences attendues (dans les mots de l'AVP), le score, les écarts. */
-function pagesDe(o: Offre): { titre: string; corps: React.ReactNode }[] {
+const plat = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+/** Les compétences de la personne, pour surligner celles que le poste demande (de l'affichage, pas un score). */
+function motsDuProfil(p: Profil): string[] {
+  return [...p.competences, ...p.competencesOpt.map((c) => c.nom)]
+    .map((x) => plat(x.trim())).filter((x) => x.length >= 3)
+}
+function jeLAi(texte: string, mots: string[]): boolean {
+  const t = plat(texte)
+  return mots.some((m) => t.includes(m) || (t.length >= 4 && m.includes(t)))
+}
+
+/** La première phrase de la description, sans dépasser deux lignes de carte. */
+function accroche(o: Offre): string | null {
+  const d = (o.description ?? '').split('•')[0]!.trim()
+  if (!d) return null
+  const phrase = /^(.{40,220}?[.!?])(\s|$)/.exec(d)?.[1] ?? d
+  return phrase.length > 220 ? `${phrase.slice(0, 217).trimEnd()}…` : phrase
+}
+
+/* Les pages de la carte, une par idée. La première suffit à comprendre l'offre :
+   une phrase sur le poste et ses premières missions. */
+function pagesDe(o: Offre, p: Profil): { titre: string; corps: React.ReactNode }[] {
+  const phrase = accroche(o)
   const pages: { titre: string; corps: React.ReactNode }[] = [{
-    titre: '',
+    titre: 'L’essentiel',
     corps: (
-      <div className="tags">
-        {[o.metierOpt, ...o.familles].filter((t): t is string => Boolean(t)).map((t) => <span key={t}>{t}</span>)}
-      </div>
+      <>
+        {phrase && <p className="desc accroche">{phrase}</p>}
+        {o.responsabilites.length > 0 && (
+          <ul className="missions">{o.responsabilites.slice(0, 3).map((m) => <li key={m}>{m}</li>)}</ul>
+        )}
+        {!phrase && !o.responsabilites.length && (
+          <div className="tags">{[o.metierOpt, ...o.familles].filter((t): t is string => Boolean(t)).map((t) => <span key={t}>{t}</span>)}</div>
+        )}
+      </>
     ),
   }]
 
-  if (o.responsabilites.length) {
+  if (o.responsabilites.length > 3) {
     pages.push({
-      titre: 'Les missions',
-      corps: <ul className="missions">{o.responsabilites.slice(0, 6).map((m) => <li key={m}>{m}</li>)}</ul>,
+      titre: 'Toutes les missions',
+      corps: <ul className="missions">{o.responsabilites.map((m) => <li key={m}>{m}</li>)}</ul>,
     })
-  } else if (o.description) {
-    pages.push({ titre: 'Le poste', corps: <p className="desc">{o.description}</p> })
   }
 
   if (o.competencesTexte.length) {
+    const mots = motsDuProfil(p)
+    const ok = o.competencesTexte.filter((c) => jeLAi(c.texte, mots)).length
     pages.push({
-      titre: 'Ce que le poste demande',
+      titre: ok ? `Ce que le poste demande · ${ok} chez toi` : 'Ce que le poste demande',
       corps: (
         <div className="tags">
-          {o.competencesTexte.slice(0, 10).map((c) => (
-            <span key={c.texte} className={c.type === 'connaissance' ? 'doux' : ''}>{c.texte}</span>
+          {o.competencesTexte.slice(0, 12).map((c) => (
+            <span key={c.texte} className={jeLAi(c.texte, mots) ? 'has' : c.type === 'connaissance' ? 'doux' : ''}>{c.texte}</span>
           ))}
         </div>
       ),
@@ -467,9 +516,16 @@ function pagesDe(o: Offre): { titre: string; corps: React.ReactNode }[] {
   return pages
 }
 
+/** « Office des postes et télécommunications… » sur chaque carte : OPT-NC suffit. */
+function employeur(o: Offre): string {
+  const e = o.entreprise ?? ''
+  return /^office des postes/i.test(e) ? 'OPT-NC' : e
+}
+
+
 const SEUIL = 90          // pixels au-delà desquels le glissé vaut décision
 
-function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, onRetour }: {
+function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, onDecide, onRetour }: {
   offre: Offre
   profondeur: number
   profil: Profil
@@ -479,8 +535,16 @@ function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, 
   onDecide?: (d: Decision) => void
   onRetour?: () => void
 }) {
-  const pages = useMemo(() => pagesDe(o), [o])
+  const pages = useMemo(() => pagesDe(o, profil), [o, profil])
   const [page, setPage] = useState(0)
+
+  // espace (clavier) : page suivante, sur la carte du dessus seulement
+  useEffect(() => {
+    if (profondeur !== 0) return
+    const suivante = () => setPage((p) => (p + 1) % pages.length)
+    window.addEventListener('aj:page-suivante', suivante)
+    return () => window.removeEventListener('aj:page-suivante', suivante)
+  }, [profondeur, pages.length])
   const courante = pages[page] ?? pages[0]!
 
   /* Une page trop longue pour la carte (dix compétences, six missions) ne doit
@@ -529,9 +593,11 @@ function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, 
     }
     setDx(d)
   }
-  const fin = () => {
+  const fin = (e: React.PointerEvent) => {
     if (!depart.current) return
     const aGlisse = capture.current
+    const boite = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const aGauche = e.clientX - boite.left < boite.width / 3
     depart.current = null
     capture.current = false
     setLache(true)
@@ -542,7 +608,9 @@ function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, 
       return
     }
     setDx(0)
-    if (!aGlisse && pages.length > 1) setPage((p) => (p + 1) % pages.length)
+    if (!aGlisse && pages.length > 1) {
+      setPage((p) => (aGauche ? (p - 1 + pages.length) % pages.length : (p + 1) % pages.length))
+    }
   }
 
   const transform = sortie
@@ -568,6 +636,8 @@ function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, 
       onPointerUp={fin}
       onPointerCancel={fin}
     >
+      <span className={`teinte ${dx > 0 ? 'oui' : 'non'}`} aria-hidden="true"
+        style={{ opacity: Math.min(1, Math.abs(dx) / SEUIL) }} />
       <span className="stamp yes" style={{ opacity: Math.max(0, Math.min(1, dx / SEUIL)) }}>{close ? 'ESSAI' : 'OUI'}</span>
       <span className="stamp no" style={{ opacity: Math.max(0, Math.min(1, -dx / SEUIL)) }}>NON</span>
 
@@ -593,55 +663,73 @@ function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, 
           </div>
           <h2 className="role">{o.titre}</h2>
           <div className="org">
-            {o.entreprise}{o.direction ? ` · ${libDirection(o.direction)}` : o.secteur ? ` · ${o.secteur}` : ''}
+            {employeur(o)}{o.direction ? ` · ${libDirection(o.direction)}` : o.secteur ? ` · ${o.secteur}` : ''}
+          </div>
+          <div className="cles">
+            {(o.ville ?? o.zone) && <span className="cle">{o.ville ?? o.zone}</span>}
+            <span className="cle">{o.contrat}</span>
+            {o.joursRestants !== null && o.joursRestants >= 0 && (
+              <span className={`cle${o.joursRestants <= 7 ? ' urgent' : ''}`}>
+                {o.joursRestants === 0 ? 'Dernier jour' : `Clôture dans ${o.joursRestants} j`}
+              </span>
+            )}
+            {o.codeMetier && profil.metiersOpt.some((m) => m.code === o.codeMetier) && <span className="cle moi">Dans tes métiers visés</span>}
+            {profil.zones.includes(o.zone) && <span className="cle moi">Dans ta zone</span>}
           </div>
         </div>
 
         <div className="pagebox">
-          {courante.titre && <div className="page-lead">{courante.titre}</div>}
+          {courante.titre && (
+            <div className="page-lead">
+              {courante.titre}
+              {pages.length > 1 && <span className="page-n" aria-label={`page ${page + 1} sur ${pages.length}`}>{page + 1}/{pages.length}</span>}
+            </div>
+          )}
           <div ref={corps} className={`page-body${deborde ? ' deborde' : ''}`}>{courante.corps}</div>
         </div>
       </div>
 
       <div className="facts">
         <div className="line">
-          <em>{o.ville ?? o.zone}</em>{o.ville && o.province ? <> <span className="dot" /> {o.province}</> : null}
-          {' '}<span className="dot" />{' '}{o.teletravail === 'non' ? 'sur site' : `télétravail ${o.teletravail}`}
-        </div>
-        <div className="line">
-          <em>{o.contrat}</em>
-          {o.debut && <> <span className="dot" /> dès {o.debut}</>}
-          {o.experienceMin > 0 && <> <span className="dot" /> {o.experienceMin} ans d’expérience</>}
-          {o.nbAgentsEncadres ? <> <span className="dot" /> encadre {o.nbAgentsEncadres} agents</> : null}
-        </div>
-        <div className="line">
-          {o.salaire?.[0]
-            ? <em>{kf(o.salaire[0])}{o.salaire[1] ? ` – ${kf(o.salaire[1])}` : ''} XPF</em>
-            : <em>salaire non annoncé</em>}
-          {o.joursRestants !== null && o.joursRestants >= 0 && <> <span className="dot" /> {o.joursRestants === 0 ? 'dernier jour' : `${o.joursRestants} j restants`}</>}
-          {o.reference && <> <span className="dot" /> réf. {o.reference}</>}
+          {o.province && <span>{o.province}</span>}
+          <span>{o.teletravail === 'non' ? 'sur site' : `télétravail ${o.teletravail}`}</span>
+          {o.debut && <span>dès {o.debut}</span>}
+          {o.experienceMin > 0 && <span>{o.experienceMin} ans d’expérience</span>}
+          {o.nbAgentsEncadres ? <span>encadre {o.nbAgentsEncadres} agents</span> : null}
+          {o.salaire?.[0] ? <em>{kf(o.salaire[0])}{o.salaire[1] ? ` – ${kf(o.salaire[1])}` : ''} XPF</em> : null}
         </div>
       </div>
 
       {jouable && (
         <div className="coins" onPointerDown={(e) => e.stopPropagation()}>
-          <button type="button" className="retour" disabled={!peutRevenir}
-            onClick={(e) => { e.stopPropagation(); onRetour?.() }}
-            aria-label="Revenir sur la dernière décision">
-            <svg><use href="#i-undo" /></svg>
-          </button>
-          <button type="button" className="non"
-            onClick={(e) => { e.stopPropagation(); onDecide?.('non') }} aria-label="Pas intéressé">
-            <svg><use href="#i-x" /></svg>
-          </button>
-          <button type="button" className="fav"
-            onClick={(e) => { e.stopPropagation(); onDecide?.('plus_tard') }} aria-label="Mettre de côté">
-            <svg><use href="#i-star" /></svg>
-          </button>
-          <button type="button" className="oui"
-            onClick={(e) => { e.stopPropagation(); onDecide?.('oui') }} aria-label={close ? 'M’entraîner' : 'Candidater'}>
-            <svg><use href="#i-heart" /></svg>
-          </button>
+          <div className="coin">
+            <button type="button" className="retour" disabled={!peutRevenir}
+              onClick={(e) => { e.stopPropagation(); onRetour?.() }} aria-label="Revenir sur la dernière décision">
+              <svg><use href="#i-undo" /></svg>
+            </button>
+            <span>Retour</span>
+          </div>
+          <div className="coin">
+            <button type="button" className="non"
+              onClick={(e) => { e.stopPropagation(); onDecide?.('non') }} aria-label="Passer">
+              <svg><use href="#i-x" /></svg>
+            </button>
+            <span>Passer</span>
+          </div>
+          <div className="coin">
+            <button type="button" className="fav"
+              onClick={(e) => { e.stopPropagation(); onDecide?.('plus_tard') }} aria-label="Plus tard">
+              <svg><use href="#i-star" /></svg>
+            </button>
+            <span>Plus tard</span>
+          </div>
+          <div className="coin">
+            <button type="button" className="oui"
+              onClick={(e) => { e.stopPropagation(); onDecide?.('oui') }} aria-label={close ? 'M’entraîner' : 'Candidater'}>
+              <svg><use href="#i-heart" /></svg>
+            </button>
+            <span>{close ? 'S’entraîner' : 'Candidater'}</span>
+          </div>
         </div>
       )}
     </article>

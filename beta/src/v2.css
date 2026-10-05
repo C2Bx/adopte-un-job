@@ -361,3 +361,31 @@
   background: var(--accent); margin-right: 8px; vertical-align: middle; }
 /* candidatures : la ligne dont on lit le détail */
 .item.on { box-shadow: inset 3px 0 0 var(--accent), var(--shadow-ui); }
+
+/* --- la carte, retravaillée (05/10) ----------------------------------------- */
+/* les infos clés, sous le titre */
+.card .cles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--s3); }
+.card .cle { font-size: var(--t-xs); font-weight: 600; padding: 4px 10px; border-radius: var(--r-full);
+  background: var(--surface); color: var(--brand); border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent); }
+.card .cle.urgent { background: var(--accent-soft); color: #9A5B10; border-color: var(--accent); }
+.card .cle.moi { background: color-mix(in srgb, var(--yes) 12%, var(--surface)); color: var(--yes);
+  border-color: color-mix(in srgb, var(--yes) 40%, transparent); }
+/* la première page : une phrase sur le poste, puis les premières missions */
+.card .accroche { color: var(--ink); font-size: var(--t-md); line-height: 1.5; margin: 0 0 var(--s3); }
+/* compétences que la personne a déjà */
+.card .tags span.has { background: color-mix(in srgb, var(--yes) 12%, var(--surface)); color: var(--yes);
+  border-color: color-mix(in srgb, var(--yes) 45%, transparent); font-weight: 600; }
+/* repère de page, au bout du titre de page */
+.card .page-n { order: 3; font-family: var(--font-num); font-size: 10px; font-weight: 600; color: var(--ink-3);
+  letter-spacing: 0; text-transform: none; }
+.card .page-lead::after { order: 2; }
+/* pied : une seule ligne de détails secondaires */
+.card .facts .line { flex-wrap: wrap; gap: 4px 0; color: var(--ink-2); }
+.card .facts .line > * + *::before { content: "·"; margin: 0 7px; color: var(--ink-3); }
+/* boutons ronds avec leur libellé */
+.card .coins .coin { display: grid; justify-items: center; gap: 4px; }
+.card .coins .coin span { font-size: 10.5px; font-weight: 600; color: var(--ink-2); }
+/* teinte pendant le glissé : vert vers la droite, rouge vers la gauche */
+.card .teinte { position: absolute; inset: 0; pointer-events: none; z-index: 1; border-radius: inherit; transition: opacity .1s; }
+.card .teinte.oui { background: color-mix(in srgb, var(--yes) 14%, transparent); }
+.card .teinte.non { background: color-mix(in srgb, var(--no) 14%, transparent); }
