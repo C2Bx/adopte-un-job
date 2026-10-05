@@ -272,3 +272,19 @@
 /* carte : fond bleu très léger (un bleu franc très dilué, plus net que le
    bleu marine mêlé au blanc, qui tirait vers le gris) */
 .card { --stage: color-mix(in srgb, var(--surface) 91%, #2F6FD1); }
+
+/* Grand écran, deck ouvert : la carte prend toute la hauteur. L'en-tête (logo et
+   déconnexion) ne réserve plus une rangée sur toute la largeur : il flotte
+   au-dessus de la seule colonne de droite, et les filtres descendent d'autant.
+   Le logo reste visible. Calé à droite de la colonne de la carte (460 px au
+   plus) : il ne peut pas la recouvrir, même quand elle est plus étroite. */
+@media (min-width: 1100px) {
+  .app:has(#ec-swipe:not(.verrouille)) { grid-template-areas: "rail corps" "rail corps"; }
+  .app:has(#ec-swipe:not(.verrouille)) .topbar {
+    grid-area: auto; position: absolute; z-index: 5; top: 0; right: 0;
+    left: calc(92px + var(--s4) + 460px + var(--s7));
+    padding: var(--s4) var(--s7) 0 0; background: transparent;
+  }
+  .app:has(#ec-swipe:not(.verrouille)) #ec-swipe > .stack { padding-top: var(--s4); }
+  .app:has(#ec-swipe:not(.verrouille)) #ec-swipe .filters { margin-top: 56px; }
+}
