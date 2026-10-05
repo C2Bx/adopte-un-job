@@ -5,14 +5,13 @@ Adopte un Job n'a plus de base (05/10/2026) : ce qui etait lu dans les tables
 `occupations`, `skills`, `opt_*` est servi comme une image ou une police, avec
 l'interface. Deux sources, toutes deux publiques et versionnees :
 
-  - les listes ecrites a la main dans scripts/migre.py (METIERS, COMPETENCES),
-    relues ici sans executer le script (il ecrit en base) ;
+  - les listes ecrites a la main ci-dessous (METIERS, COMPETENCES) ;
   - la release SQLite du referentiel metiers de l'OPT-NC
     (github.com/opt-nc/odata-referentiel-metiers), telechargee une fois.
 
 A relancer quand l'une des deux change :  python scripts/referentiel_statique.py
 """
-import ast, json, re, sqlite3, unicodedata, urllib.request
+import json, re, sqlite3, unicodedata, urllib.request
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent
@@ -21,13 +20,45 @@ URL = "https://github.com/opt-nc/odata-referentiel-metiers/releases/download/v2.
 SORTIE = BASE / "beta" / "public" / "referentiel.json"
 
 
-def liste(nom: str):
-    """Une affectation `NOM = [...]` de migre.py, evaluee comme un litteral."""
-    arbre = ast.parse((BASE / "scripts" / "migre.py").read_text(encoding="utf-8"))
-    for n in arbre.body:
-        if isinstance(n, ast.Assign) and any(getattr(t, "id", None) == nom for t in n.targets):
-            return ast.literal_eval(n.value)
-    raise SystemExit(f"{nom} introuvable dans migre.py")
+# Les metiers et competences libres proposes dans le formulaire, ecrits a la
+# main (ils vivaient dans scripts/migre.py, supprime avec la base le 05/10/2026).
+METIERS = [
+    ("support-informatique", "Support informatique", "informatique"),
+    ("administration-systeme", "Administration système", "informatique"),
+    ("developpement", "Développement", "informatique"),
+    ("donnees", "Données", "informatique"),
+    ("telecom", "Télécom & réseaux", "informatique"),
+    ("relation-client", "Relation client", "tertiaire"),
+    ("commerce", "Commerce & vente", "tertiaire"),
+    ("comptabilite", "Comptabilité & gestion", "tertiaire"),
+    ("rh", "Ressources humaines", "tertiaire"),
+    ("formation", "Formation", "tertiaire"),
+    ("logistique", "Logistique & transport", "operations"),
+    ("industrie", "Industrie & maintenance", "operations"),
+    ("btp", "BTP & second œuvre", "operations"),
+    ("securite", "Sécurité", "operations"),
+    ("environnement", "Environnement", "operations"),
+    ("sante", "Santé & social", "services"),
+    ("restauration", "Restauration", "services"),
+    ("hotellerie", "Hôtellerie & tourisme", "services"),
+]
+
+COMPETENCES = [
+    ("informatique", ["Windows Server", "Active Directory", "Réseau", "Système", "Linux", "Docker",
+        "Virtualisation", "SQL", "MySQL", "PostgreSQL", "Base de données", "Python", "JavaScript",
+        "TypeScript", "PHP", "React", "Vue", "Angular", "Node", "HTML", "CSS", "Git", "WordPress",
+        "Symfony", "Laravel", "Java", "API", "Développement web", "Développement", "Intégration",
+        "Cybersécurité", "Support informatique", "Helpdesk", "GLPI", "Sauvegarde", "Maintenance",
+        "Automatisation"]),
+    ("outils", ["Excel", "Word", "PowerPoint", "Bureautique", "Power BI", "Figma", "Photoshop",
+        "Illustrator", "Canva", "SEO", "CRM", "ERP", "Sage"]),
+    ("gestion", ["Gestion de projet", "Management", "Encadrement", "Relation client", "Vente",
+        "Accueil", "Comptabilité", "Paie", "Recrutement", "Formation", "Pédagogie", "Communication",
+        "Rédaction", "Marketing", "Analyse", "Logistique", "Achats", "Qualité"]),
+    ("terrain", ["CACES", "HACCP", "Habilitation électrique", "Soudure", "Lecture de plans",
+        "Sécurité chantier", "Électricité", "Mécanique", "Électrotechnique", "Soins", "Conduite"]),
+    ("transverse", ["Travail en équipe", "Autonomie", "Rigueur", "Organisation"]),
+]
 
 
 def slug(t: str) -> str:
@@ -66,9 +97,9 @@ referentiel = {
     "contrats": ["CDI", "CDD", "Alternance", "Intérim", "Stage"],
     "niveauxLangue": ["A1", "A2", "B1", "B2", "C1", "C2"],
     "formations": {"1": "Bac", "2": "Bac+2", "3": "Bac+3", "4": "Bac+5"},
-    "metiers": [{"slug": s, "label": l, "family": f} for s, l, f in liste("METIERS")],
+    "metiers": [{"slug": s, "label": l, "family": f} for s, l, f in METIERS],
     "competences": [{"slug": slug(l), "label": l, "family": f}
-                    for f, labels in liste("COMPETENCES") for l in labels],
+                    for f, labels in COMPETENCES for l in labels],
     "metiersOpt": sorted(metiers_opt, key=lambda m: ((m["familleLibelle"] or ""), m["nom"])),
     "familles": sorted(familles, key=lambda f: f["libelle"]),
     "competencesOpt": sorted(competences_opt, key=lambda c: c["nom"]),

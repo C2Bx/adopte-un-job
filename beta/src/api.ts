@@ -580,8 +580,6 @@ export const api = {
     })
     return { ok: true, message: 'Mot de passe changé. Connecte-toi.' }
   },
-  changeMotDePasse: (_ancien: string, _nouveau: string) => NON_DISPONIBLE('Le changement de mot de passe') as Promise<{ ok: boolean }>,
-  changeEmail: (_email: string, _motdepasse: string) => NON_DISPONIBLE('Le changement d’adresse') as Promise<{ ok: boolean; email: string }>,
   /** Après expiration du jeton : on se reconnecte avec l'adresse de la session. */
   async reconnexionEquipe(motdepasse: string) {
     const email = lisSession()?.email
@@ -677,10 +675,6 @@ export const api = {
     const r = await brut('GET', `/profils/${moiSession().id}/cv`)
     return URL.createObjectURL(await r.blob())
   },
-  suppressionCvPossible: false,
-  supprimeCV: (_id: number) => NON_DISPONIBLE('La suppression d’un CV') as Promise<{ ok: boolean }>,
-  deposeCV: (_m: unknown) => NON_DISPONIBLE('La lecture dans le navigateur') as Promise<{ cv: { id: number; nom: string } }>,
-  retenuCV: (_id: number, _retenu: unknown, _actif = true) => NON_DISPONIBLE('La lecture dans le navigateur') as Promise<{ cv: CvInfo }>,
 
   /* ----------------------------------------------------------------- deck */
   async deck(f: Filtres = {}) {

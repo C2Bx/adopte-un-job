@@ -98,12 +98,6 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
               </span>
             </div>
 
-            {/* La lecture du CV dans le navigateur (ImportCV, extraction.ts,
-                ocr.ts) est débranchée depuis le 29/09 : le fichier part
-                désormais à la chaîne d'extraction de l'équipe par la
-                passerelle, et revient en JSON Resume. Le code reste dans le
-                dépôt — il marche, il est audité, et il redeviendra le
-                deuxième chemin si la chaîne tarde. */}
             {mode !== 'choix' && <MesCV cv={cv} />}
 
             {/* Les trois façons de remplir son profil, côte à côte. */}

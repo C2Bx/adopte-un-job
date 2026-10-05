@@ -24,8 +24,7 @@ if (!existsSync(html)) {
 
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'wasm-unsafe-eval' blob:",
-  "worker-src 'self' blob:",
+  "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",

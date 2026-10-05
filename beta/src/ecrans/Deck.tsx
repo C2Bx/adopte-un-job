@@ -111,10 +111,6 @@ function useGlisseHorizontal<T extends HTMLElement>() {
 
 type Decision = 'oui' | 'non' | 'plus_tard'
 
-const NIV: Record<number, string> = { 1: 'Bac', 2: 'Bac+2', 3: 'Bac+3', 4: 'Bac+5' }
-const pc = (v: number) => Math.round(v)
-const teinte = (q: number) => (q >= 75 ? 'var(--yes)' : q >= 50 ? 'var(--accent)' : 'var(--no)')
-const conf = (v: number) => (v >= 90 ? 'élevée' : v >= 60 ? 'moyenne' : 'faible')
 const kf = (n: number) => `${Math.round(n / 1000)} k`
 
 export function EcranDeck({ profil, versProfil, onDecision }: Props) {
@@ -290,12 +286,12 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
           )}
         </div>
 
-        {courante?.score && <Panneau offre={courante} profil={profil} />}
+        {courante && <Panneau offre={courante} />}
       </div>
 
-      {detail?.score && (
+      {detail && (
         <Feuille onFermer={() => setDetail(null)}>
-          <Detail offre={detail} profil={profil} />
+          <Detail offre={detail} />
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
             <button className="btn primaire" onClick={() => setDetail(null)}>Fermer</button>
           </div>
@@ -310,9 +306,8 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
             {envoyee.entrainement
               ? <>Cet AVP est clos : ton geste compte pour t’entraîner, aucune candidature n’est envoyée.</>
               : <>
-                  Ta candidature pour <b>{envoyee.offre.titre}</b> est chez {envoyee.offre.entreprise ?? 'l’organisation'}.
-                  Elle voit ton profil <b>sans ton nom</b> ; à la présélection, elle reçoit ton contact, un CV
-                  recentré sur ce poste et ton CV d’origine. Tu suis tout dans « Candidatures ».
+                  Ta candidature pour <b>{envoyee.offre.titre}</b> est chez le recruteur : il lit ton profil
+                  et ton CV. Tu suis sa réponse dans « Candidatures ».
                 </>}
           </p>
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
@@ -365,25 +360,11 @@ function Puces({ f, facettes, bascule }: { f: Filtres; facettes: Facettes; bascu
 /* Les pages de la carte, une par idée : ce qu'on a en commun, les missions,
    les compétences attendues (dans les mots de l'AVP), le score, les écarts. */
 function pagesDe(o: Offre): { titre: string; corps: React.ReactNode }[] {
-  const s = o.score
-  const lex = s?.detail?.lexical ?? null
-  const st = s?.detail?.structurel ?? null
-  const okLex = lex?.ok.map((x) => x.texte) ?? []
-  const okSt = st?.ok.map((x) => x.nom) ?? []
-  const manqueLex = lex?.manque.map((x) => x.texte) ?? []
-  const manqueSt = st?.manque.map((x) => x.nom) ?? []
-  const communs = [...new Set([...okSt, ...okLex])]
-  const manque = [...new Set([...manqueSt.slice(0, 3), ...manqueLex.slice(0, 3)])]
-
   const pages: { titre: string; corps: React.ReactNode }[] = [{
     titre: '',
     corps: (
       <div className="tags">
-        {communs.slice(0, 6).map((c) => <span key={c}>{c}</span>)}
-        {manque.slice(0, 3).map((c) => <span key={c} className="miss">{c} ?</span>)}
-        {communs.length === 0 && manque.length === 0 && o.requis.slice(0, 5).map((c) => <span key={c}>{c}</span>)}
-        {communs.length === 0 && manque.length === 0 && !o.requis.length
-          && [o.metierOpt, ...o.familles].filter((t): t is string => Boolean(t)).map((t) => <span key={t}>{t}</span>)}
+        {[o.metierOpt, ...o.familles].filter((t): t is string => Boolean(t)).map((t) => <span key={t}>{t}</span>)}
       </div>
     ),
   }]
@@ -403,42 +384,10 @@ function pagesDe(o: Offre): { titre: string; corps: React.ReactNode }[] {
       corps: (
         <div className="tags">
           {o.competencesTexte.slice(0, 10).map((c) => (
-            <span key={c.texte} className={okLex.includes(c.texte) ? '' : manqueLex.includes(c.texte) ? 'miss' : 'doux'}>{c.texte}</span>
+            <span key={c.texte} className={c.type === 'connaissance' ? 'doux' : ''}>{c.texte}</span>
           ))}
         </div>
       ),
-    })
-  } else if (o.requis.length || o.souhaite.length) {
-    pages.push({
-      titre: 'Compétences',
-      corps: (
-        <div className="tags">
-          {o.requis.map((c) => <span key={c}>{c}</span>)}
-          {o.souhaite.map((c) => <span key={c} className="doux">{c}</span>)}
-        </div>
-      ),
-    })
-  }
-
-  if (s?.detail) {
-    pages.push({
-      titre: 'Pourquoi ce score',
-      corps: (
-        <ul className="criteres">
-          {[...s.detail.poste, ...s.detail.candidat].map((c) => (
-            <li key={c.cle}>
-              <span>{c.cle}</span>
-              <b>{c.v === null ? 'non renseigné' : `${Math.round(c.v * 100)} %`}</b>
-            </li>
-          ))}
-        </ul>
-      ),
-    })
-  }
-  if (s?.ecarts?.length) {
-    pages.push({
-      titre: 'Ce qui ne colle pas avec tes critères',
-      corps: <ul className="missions ecarts">{s.ecarts.map((e) => <li key={e}>{e}</li>)}</ul>,
     })
   }
   return pages
@@ -456,8 +405,6 @@ function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, 
   onDecide?: (d: Decision) => void
   onRetour?: () => void
 }) {
-  const s = o.score
-  const q = s?.qualite ?? 0
   const pages = useMemo(() => pagesDe(o), [o])
   const [page, setPage] = useState(0)
   const courante = pages[page] ?? pages[0]!
@@ -563,27 +510,13 @@ function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, 
       <div className="stage">
         <div className="hero">
           <div className="hero-top">
-            {/* Le score vient du module de matching de l'équipe ; tant qu'il n'est
-                pas fourni, rien n'est affiché plutôt qu'un « 0 % » trompeur. */}
-            {s && (
-              <button type="button" className="score score-btn"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); onDetail?.() }}
-                aria-label="Voir le détail du score">
-                <span className="gauge"><b style={{ width: `${pc(q)}%`, background: teinte(q) }} /></span>
-                <span className="v" style={{ color: teinte(q) }}>{pc(q)} %</span> compatible
-              </button>
-            )}
-            {close
-              ? <span className="badge-pass close">clos — pour t’entraîner</span>
-              : s?.passerelle && <span className="badge-pass">hors de tes métiers visés</span>}
+            <button type="button" className="score score-btn"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onDetail?.() }}>
+              Voir l’offre
+            </button>
+            {close && <span className="badge-pass close">clos — pour t’entraîner</span>}
           </div>
-          {s && (
-            <div className="conf">
-              confiance {conf(s.confiance)} · {pc(s.confiance)} % des critères renseignés
-              {s.ecarts && s.ecarts.length > 0 && <> · <b style={{ color: 'var(--no)' }}>{s.ecarts.length} écart{s.ecarts.length > 1 ? 's' : ''}</b></>}
-            </div>
-          )}
           <h2 className="role">{o.titre}</h2>
           <div className="org">
             {o.entreprise}{o.direction ? ` · ${libDirection(o.direction)}` : o.secteur ? ` · ${o.secteur}` : ''}
@@ -699,83 +632,10 @@ export function Feuille({ onFermer, children }: { onFermer: () => void; children
   )
 }
 
-/* ------------------------------------------------------------ l'explication */
+/* ------------------------------------------------------------ le détail */
 
-/* Ce qui colle, ce qui reste à vérifier, ce qui ne colle pas. Un pourcentage
-   sans phrase n'est pas exploitable par qui le reçoit. */
-export function explique(o: Offre, p: Profil): { oui: string[]; att: string[]; non: string[] } {
-  const oui: string[] = []
-  const att: string[] = []
-  const s = o.score
-  const st = s?.detail?.structurel ?? null
-  const lex = s?.detail?.lexical ?? null
-
-  if (st && st.ok.length) {
-    oui.push(`${st.ok.length} compétence${st.ok.length > 1 ? 's' : ''} du métier « ${o.metierOpt ?? o.codeMetier} » : ${st.ok.slice(0, 4).map((x) => x.nom).join(', ')}${st.ok.length > 4 ? '…' : ''}`)
-  }
-  if (lex && lex.ok.length) {
-    oui.push(`${lex.ok.length} attente${lex.ok.length > 1 ? 's' : ''} de l’AVP couverte${lex.ok.length > 1 ? 's' : ''} sur ${lex.total} : ${lex.ok.slice(0, 3).map((x) => x.texte).join(' · ')}`)
-  }
-  if (st && st.manque.length) {
-    att.push(`Manque, pour ce métier : ${st.manque.slice(0, 4).map((x) => x.nom).join(', ')}${st.manque.length > 4 ? ` (+${st.manque.length - 4})` : ''}`)
-  }
-  if (lex && lex.manque.length) {
-    att.push(`Non couvert dans l’AVP : ${lex.manque.slice(0, 3).map((x) => x.texte).join(' · ')}${lex.manque.length > 3 ? ` (+${lex.manque.length - 3})` : ''}`)
-  }
-  if (!st && !lex) {
-    const bas = p.competences.map((c) => c.toLowerCase())
-    const jai = (c: string) => bas.includes(c.toLowerCase())
-    const ok = o.requis.filter(jai)
-    const manque = o.requis.filter((c) => !jai(c))
-    if (ok.length) oui.push(`${ok.length} compétence${ok.length > 1 ? 's' : ''} exigée${ok.length > 1 ? 's' : ''} sur ${o.requis.length} : ${ok.join(', ')}`)
-    if (manque.length) att.push(`Manque : ${manque.join(', ')}`)
-  }
-
-  const exp = s?.detail?.poste.find((x) => x.cle === 'Expérience')
-  if (o.experienceMin === 0) oui.push('Aucune expérience exigée')
-  else if (exp?.v === 1) oui.push(`Expérience suffisante pour les ${o.experienceMin} ans demandés`)
-  else if (exp && exp.v === null) att.push(`${o.experienceMin} ans demandés — ton ancienneté n’est pas renseignée`)
-  else att.push(`${o.experienceMin} ans demandés`)
-
-  const niv = p.formations.length ? Math.max(...p.formations.map((f) => f.niveau)) : p.formation
-  if (o.formationMin) {
-    if (niv && niv >= o.formationMin) oui.push(`Niveau ${NIV[niv]} pour ${NIV[o.formationMin]} demandé`)
-    else att.push(`Niveau ${NIV[o.formationMin]} demandé`)
-  }
-  if (p.zones.includes(o.zone)) oui.push(`Dans une zone que tu acceptes (${o.ville ?? o.zone})`)
-  if (p.contrats.includes(o.contrat)) oui.push(`Contrat ${o.contrat}, conforme`)
-  if (p.dispo && o.debut && p.dispo <= o.debut) oui.push('Disponible avant la prise de poste')
-  for (const v of s?.vigilance ?? []) att.push(v)
-  if (s?.passerelle) {
-    att.push(`Métier différent de ceux visés${s.passerelleRaison ? ` — ${s.passerelleRaison}` : ''}`)
-  }
-  return { oui, att, non: s?.ecarts ?? [] }
-}
-
-function Jauges({ parts }: { parts: { cle: string; v: number | null }[] }) {
-  return (
-    <div className="jauges">
-      {parts.map((x) => {
-        const inc = x.v === null
-        const v = Math.round((x.v ?? 0) * 100)
-        return (
-          <div className={`jauge${inc ? ' inconnu' : ''}`} key={x.cle}>
-            <span>{x.cle}</span>
-            <span className="piste">
-              <b style={{ width: `${inc ? 0 : v}%`, background: inc ? 'var(--line)' : teinte(v) }} />
-            </span>
-            <span className="v">{inc ? 'inconnu' : `${v} %`}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-export function BlocScore({ offre: o }: { offre: Offre }) {
-  const s = o.score
-  const st = s?.detail?.structurel ?? null
-  const lex = s?.detail?.lexical ?? null
+/* L'en-tête du détail : le poste, l'employeur, la référence. */
+export function BlocEntete({ offre: o }: { offre: Offre }) {
   return (
     <>
       <div className="titre">{o.titre}</div>
@@ -783,55 +643,6 @@ export function BlocScore({ offre: o }: { offre: Offre }) {
         {o.entreprise} · {o.contrat} · {o.ville ?? o.zone}
         {o.reference ? ` · réf. ${o.reference}` : ''}
       </div>
-      {s?.detail && (
-        <>
-          <h3>Ce que l’employeur regarde</h3>
-          <Jauges parts={s.detail.poste} />
-          <h3>Ce que tu regardes</h3>
-          <Jauges parts={s.detail.candidat} />
-          {(st || lex) && (
-            <>
-              <h3>Les compétences, en détail</h3>
-              <Jauges parts={[
-                ...(st ? [{ cle: `Référentiel OPT (${st.ok.length}/${st.ok.length + st.manque.length})`, v: st.v }] : []),
-                ...(lex ? [{ cle: `Attentes de l’AVP (${lex.ok.length}/${lex.total})`, v: lex.v }] : []),
-              ]} />
-            </>
-          )}
-        </>
-      )}
-      {s && (
-        <p style={{ fontSize: 'var(--t-xs)', color: 'var(--ink-3)', margin: 'var(--s3) 0 0' }}>
-          Compatibilité {s.qualite} % — le plus faible des deux, jamais la moyenne
-          {s.ecarts?.length ? `, moins ${s.ecarts.length} écart${s.ecarts.length > 1 ? 's' : ''}` : ''}.
-          Confiance {conf(s.confiance)}, {s.confiance} % des critères renseignés.
-        </p>
-      )}
-    </>
-  )
-}
-
-export function BlocPourquoi({ offre: o, profil }: { offre: Offre; profil: Profil }) {
-  const w = explique(o, profil)
-  return (
-    <>
-      <h3>Pourquoi ce score</h3>
-      <div className="deux">
-        <div>
-          <b style={{ color: 'var(--yes)', fontSize: 'var(--t-sm)' }}>Ce qui colle</b>
-          <ul>{w.oui.length ? w.oui.map((x) => <li key={x}>{x}</li>) : <li>Rien de mesurable encore</li>}</ul>
-        </div>
-        <div>
-          <b style={{ color: 'var(--accent)', fontSize: 'var(--t-sm)' }}>À vérifier</b>
-          <ul>{w.att.length ? w.att.map((x) => <li key={x}>{x}</li>) : <li>Rien à signaler</li>}</ul>
-        </div>
-      </div>
-      {w.non.length > 0 && (
-        <>
-          <b style={{ color: 'var(--no)', fontSize: 'var(--t-sm)' }}>Ne colle pas avec tes critères — tu peux candidater quand même</b>
-          <ul>{w.non.map((x) => <li key={x}>{x}</li>)}</ul>
-        </>
-      )}
     </>
   )
 }
@@ -892,24 +703,20 @@ export function BlocPoste({ offre: o }: { offre: Offre }) {
 }
 
 /** Dans une feuille, tout à la suite : il n'y a qu'une colonne. */
-export function Detail({ offre: o, profil }: { offre: Offre; profil: Profil }) {
+export function Detail({ offre: o }: { offre: Offre }) {
   return (
     <>
-      <BlocScore offre={o} />
-      <BlocPourquoi offre={o} profil={profil} />
+      <BlocEntete offre={o} />
       <BlocPoste offre={o} />
     </>
   )
 }
 
-function Panneau({ offre: o, profil }: { offre: Offre; profil: Profil }) {
+function Panneau({ offre: o }: { offre: Offre }) {
   return (
     <aside className="side panneau" id="side">
-      <div className="col-p"><BlocScore offre={o} /></div>
-      <div className="col-p">
-        <BlocPourquoi offre={o} profil={profil} />
-        <BlocPoste offre={o} />
-      </div>
+      <div className="col-p"><BlocEntete offre={o} /></div>
+      <div className="col-p"><BlocPoste offre={o} /></div>
     </aside>
   )
 }

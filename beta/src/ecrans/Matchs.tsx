@@ -6,10 +6,10 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
-import { BlocPoste, BlocPourquoi, BlocScore, Detail, Feuille } from './Deck'
+import { BlocEntete, BlocPoste, Detail, Feuille } from './Deck'
 import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
-import type { Interet, Profil, StatutCandidature, StatutEquipe } from '../types'
+import type { Interet, StatutCandidature, StatutEquipe } from '../types'
 
 /* Ce que vaut chaque statut de candidature, dans les mots du candidat. */
 const STATUTS: Record<StatutCandidature, { nom: string; classe: string }> = {
@@ -52,7 +52,6 @@ function depuis(quand: string): string {
   return `le ${new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
 }
 
-const teinte = (q: number) => (q >= 75 ? 'var(--yes)' : q >= 50 ? 'var(--accent)' : 'var(--no)')
 
 /* Au-delà de 1100 px, le détail tient à côté de la liste : ouvrir une feuille
    par-dessus un écran à moitié vide n'a pas de sens. En dessous, la feuille
@@ -77,7 +76,7 @@ function useLarge(): boolean {
   return large
 }
 
-export function EcranMatchs({ profil }: { profil: Profil }) {
+export function EcranMatchs() {
   const [interets, setInterets] = useState<Interet[] | null>(null)
   const [onglet, setOnglet] = useState<Onglet>('oui')
   const [detail, setDetail] = useState<Interet | null>(null)
@@ -192,22 +191,23 @@ export function EcranMatchs({ profil }: { profil: Profil }) {
         )}
 
         {liste.map((x) => {
-          const sc = x.score?.qualite ?? null
+          const j = x.joursRestants
           return (
             <article
               className={`item${x.statut === 'fermee' ? ' closed' : ''}${choisi?.id === x.id ? ' on' : ''}`}
               key={x.id}
               onClick={() => setDetail(x)}
             >
-              <span className="sc" style={{ color: sc === null ? 'var(--ink-3)' : teinte(sc) }}>
-                {sc === null ? '—' : sc}
-                <small>{sc === null ? 'SANS SCORE' : 'SUR 100'}</small>
+              {/* la colonne de gauche dit le temps qui reste avant la clôture */}
+              <span className="sc" style={{ color: j === null || j < 0 ? 'var(--ink-3)' : j <= 3 ? 'var(--no)' : 'var(--ink)' }}>
+                {j === null ? '—' : j < 0 ? '×' : j}
+                <small>{j === null ? 'SANS DATE' : j < 0 ? 'CLOSE' : j === 1 ? 'JOUR' : 'JOURS'}</small>
               </span>
               <div>
                 <h3>{x.titre}</h3>
                 <div className="meta">{x.entreprise} · {x.zone} · {x.contrat}</div>
                 <div className="quand">
-                  Décidé {depuis(x.quand)}{sc === null ? '' : ` · score d’alors ${sc} %`}
+                  Décidé {depuis(x.quand)}
                 </div>
                 {x.candidature && x.candidature.equipe && x.candidature.statut !== 'retiree'
                   ? <span className={`etat ${DECISIONS[x.candidature.equipe].classe}`}>{DECISIONS[x.candidature.equipe].nom}</span>
@@ -216,9 +216,6 @@ export function EcranMatchs({ profil }: { profil: Profil }) {
                   : x.decision === 'oui'
                     ? <span className="etat attente">Geste enregistré (offre close, entraînement)</span>
                     : null}
-                {x.score?.ecarts && x.score.ecarts.length > 0 && (
-                  <span className="etat" style={{ color: 'var(--no)' }}>{x.score.ecarts.length} écart{x.score.ecarts.length > 1 ? 's' : ''} avec tes critères</span>
-                )}
                 <div className="actes" onClick={(e) => e.stopPropagation()}>
                   {/* Une candidature tranchée par un recruteur ne change plus (leur API répond 409). */}
                   {x.candidature && ['preselection', 'entretien', 'acceptee', 'refusee'].includes(x.candidature.statut)
@@ -246,25 +243,18 @@ export function EcranMatchs({ profil }: { profil: Profil }) {
         <aside className="side panneau" id="side-i">
           {choisi
             ? (
-              /* Deux colonnes comme dans le deck : le score d'un côté, ce qu'il
-                 faut en comprendre de l'autre. Tout empiler dans une seule
-                 colonne oblige à faire défiler pour relier un chiffre à sa
-                 raison. */
               <>
-                <div className="col-p"><BlocScore offre={choisi} /></div>
-                <div className="col-p">
-                  <BlocPourquoi offre={choisi} profil={profil} />
-                  <BlocPoste offre={choisi} />
-                </div>
+                <div className="col-p"><BlocEntete offre={choisi} /></div>
+                <div className="col-p"><BlocPoste offre={choisi} /></div>
               </>
             )
-            : <p className="vide-p">Choisis une offre à gauche pour voir le détail de son score.</p>}
+            : <p className="vide-p">Choisis une offre à gauche pour voir son détail.</p>}
         </aside>
       </div>
 
       {detail && !large && (
         <Feuille onFermer={() => setDetail(null)}>
-          <Detail offre={detail} profil={profil} />
+          <Detail offre={detail} />
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
             <button className="btn" onClick={() => setDetail(null)}>Fermer</button>
           </div>

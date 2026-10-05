@@ -178,7 +178,7 @@ export function App() {
           onDecision={() => void rafraichisBadges(moi)}
         />
       )}
-      {onglet === 'interets' && <EcranMatchs profil={profil} />}
+      {onglet === 'interets' && <EcranMatchs />}
       {onglet === 'profil' && <EcranProfil profil={profil} onProfil={setProfil} />}
 
       <nav className={`nav n${ONGLETS.length}`}>

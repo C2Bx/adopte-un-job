@@ -1,7 +1,6 @@
-/* Les formes que rend l'API. Elles ne sont pas devinées : chaque champ ici
-   correspond à une colonne rendue par api/depot.php ou par un module de route.
-   Quand l'API change, c'est ce fichier qui doit échouer à la compilation, pas
-   l'écran au moment du clic. */
+/* Les formes que les écrans connaissent. Les réponses de l'API de l'équipe
+   sont traduites dans ces formes par api.ts : quand leur API change, c'est
+   api.ts qui s'adapte, et ce fichier qui doit échouer à la compilation. */
 
 export interface Utilisateur {
   id: number
@@ -77,33 +76,6 @@ export interface ProfilEnvoi extends Omit<Profil, 'metiersOpt' | 'competencesOpt
   competencesOptSaisies?: string[]
 }
 
-export interface Critere {
-  cle: string
-  poids: number
-  v: number | null
-}
-
-export interface Score {
-  qualite: number
-  poste: number
-  candidat: number
-  confiance: number
-  passerelle?: boolean
-  passerelleRaison?: string | null
-  vigilance?: string[]
-  /** Ce qui ne correspond pas à ce que le candidat a dit vouloir : affiché, jamais éliminatoire. */
-  ecarts?: string[]
-  detail?: {
-    poste: Critere[]
-    candidat: Critere[]
-    couverture: { v: number | null; ok: number[]; manque: number[]; bonus: number[] }
-    structurel?: { v: number | null; ok: { code: string; nom: string; poids: number }[]; manque: { code: string; nom: string; poids: number; niveau?: number | null }[] } | null
-    lexical?: { v: number | null; ok: { texte: string; type: string; mots: string[] }[]; manque: { texte: string; type: string }[]; total: number } | null
-    ecarts?: string[]
-    semantique?: number
-  }
-}
-
 export interface Offre {
   id: number
   source: 'app' | 'opt'
@@ -149,12 +121,6 @@ export interface Offre {
   requis: string[]
   souhaite: string[]
   publiee: string | null
-  score?: Score
-  /** Côté organisation, dans la liste des offres. */
-  candidatures?: number
-  enAttente?: number
-  matchs?: number
-  vues?: number
 }
 
 /** Une offre déjà décidée : l'offre, la décision, et sa suite éventuelle. */
@@ -169,28 +135,6 @@ export interface Interet extends Offre {
 export type StatutEquipe = 'EN_ATTENTE' | 'VALIDEE' | 'REJETEE' | 'ANNULEE'
 
 export type StatutCandidature = 'envoyee' | 'vue' | 'preselection' | 'entretien' | 'acceptee' | 'refusee' | 'retiree'
-
-
-export interface Candidature {
-  id: number
-  statut: StatutCandidature
-  message: string | null
-  qualite: number | null
-  creee: string
-  maj: string
-  decidee: string | null
-  match: number | null
-  offre: Offre
-  dossier: { cvGenere: boolean; cvOriginal: boolean; ouvertPourOrganisation: boolean }
-  score?: { qualite: number | null; detail: Score['detail'] } | null
-}
-
-export interface Evenement {
-  type: string
-  quand: string
-  moi: boolean
-  donnees: Record<string, unknown> | null
-}
 
 export interface Facettes {
   ville: { valeur: string; n: number }[]
