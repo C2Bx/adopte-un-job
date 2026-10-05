@@ -7,7 +7,7 @@ import { api } from '../api'
 import {
   ETAPES, NIVEAUX, anneesExperience, completude, conseils, force, manques,
 } from '../regles'
-import { MesCV } from './MesCV'
+import { CarteCV, MesCV, ZoneCV, useMesCV } from './MesCV'
 import { MonCompte } from './MonCompte'
 import { profilEnvoi } from '../regles'
 import { Spinner } from '../Attente'
@@ -28,6 +28,7 @@ function vierge(p: Profil): boolean {
 
 export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p: Profil) => void }) {
   const [etape, setEtape] = useState(0)
+  const cv = useMesCV()
   const [mode, setMode] = useState<'choix' | 'form' | 'questions'>(() => (vierge(profil) ? 'choix' : 'form'))
   const [ref, setRef] = useState<Referentiels | null>(null)
   const [etat, setEtat] = useState<Etat>('repos')
@@ -102,12 +103,12 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
                 passerelle, et revient en JSON Resume. Le code reste dans le
                 dépôt — il marche, il est audité, et il redeviendra le
                 deuxième chemin si la chaîne tarde. */}
-            {mode !== 'choix' && <MesCV />}
+            {mode !== 'choix' && <MesCV cv={cv} />}
 
             {/* Les trois façons de remplir son profil, côte à côte. */}
             {mode === 'choix' && (
               <div className="qzdepart trois">
-                <MesCV carte />
+                <CarteCV cv={cv} />
                 <div className="qzcarte">
                   <h3>Je pars de zéro</h3>
                   <p>Le formulaire guidé, étape par étape. C’est le chemin principal, pas la solution de repli.</p>
@@ -120,6 +121,7 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
                 </div>
               </div>
             )}
+            {mode === 'choix' && <ZoneCV cv={cv} />}
 
             <MonCompte />
 

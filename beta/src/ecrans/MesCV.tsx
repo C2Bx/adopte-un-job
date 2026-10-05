@@ -1,11 +1,23 @@
-/* Mon CV : le fichier déposé, chiffré sur le serveur. Un seul est « actif » :
-   c'est lui qui part avec une candidature, et c'est lui que la chaîne
-   d'extraction lit pour remplir le profil.
+/* Mon CV : le fichier déposé, chiffré sur le serveur.
 
-   L'écran ne dit de tout cela que ce qui change quelque chose pour la
-   personne : que son format passe, qu'elle n'aura rien à recopier, et que ce
-   n'est pas instantané — sans cette dernière phrase, un profil qui ne bouge
-   pas dans la minute passe pour une panne. */
+   UN SEUL CV par personne. Déposer un nouveau fichier REMPLACE l'ancien : il
+   est effacé sur-le-champ, chez nous et dans l'espace d'échange où la chaîne
+   d'extraction de l'équipe vient le lire. C'est lui qui part avec une
+   candidature, et c'est lui qui remplit le profil. Plusieurs CV voudraient dire
+   plusieurs profils extraits, et aucun moyen de savoir lequel est le bon.
+
+   Supprimer efface vraiment : le fichier chiffré, sa lecture, et la copie de
+   l'espace d'échange, sans attendre le passage suivant du veilleur. Le profil,
+   lui, reste : c'est le sien, il le modifie à part.
+
+   Trois morceaux, un seul état (`useMesCV`, appelé une fois dans l'écran
+   Profil) :
+     - CarteCV  : à côté de « Je pars de zéro » et « Affiner par questions » ;
+     - ZoneCV   : le fichier lui-même, son état, Ouvrir et Supprimer ;
+     - MesCV    : les deux réunis, quand l'écran est en mode formulaire.
+
+   Les anciennes lectures faites dans le navigateur (avant le 29/09) n'ont pas
+   de fichier : elles ne sont pas listées, elles partent avec le compte. */
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
@@ -14,10 +26,12 @@ import { ErreurApi } from '../types'
 import type { CvInfo } from '../types'
 
 const ko = (n: number) => (n >= 1_048_576 ? `${(n / 1_048_576).toFixed(1)} Mo` : `${Math.round(n / 1024)} ko`)
+const jour = (d: string) => {
+  const t = new Date(d.replace(' ', 'T') + 'Z')
+  return Number.isNaN(t.getTime()) ? '' : t.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+}
 
-/* `carte` : la même chose en carte, à côté de « Je pars de zéro » et
-   « Affiner par questions » — les trois façons de remplir son profil. */
-export function MesCV({ carte = false }: { carte?: boolean }) {
+export function useMesCV() {
   const [cvs, setCvs] = useState<CvInfo[] | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
@@ -32,11 +46,13 @@ export function MesCV({ carte = false }: { carte?: boolean }) {
   }, [])
   useEffect(() => { void charge() }, [charge])
 
+  const fichiers = (cvs ?? []).filter((c) => c.fichier)
+  const actif = fichiers.find((c) => c.actif) ?? fichiers[0] ?? null
+
   const depose = async (f: File) => {
     setErreur(null)
     setEnvoi(true)
     try {
-      const actif = cvs?.find((c) => c.actif)
       await api.deposeFichierCV(f, actif?.id)
       await charge()
     } catch (e) {
@@ -47,7 +63,9 @@ export function MesCV({ carte = false }: { carte?: boolean }) {
   }
 
   const supprime = async (c: CvInfo) => {
-    if (!window.confirm(`Supprimer « ${c.nom} » et son fichier ?`)) return
+    if (!window.confirm(`Supprimer « ${c.nom} » ?\n\nLe fichier est effacé de nos serveurs et de l’espace `
+      + 'd’échange avec l’équipe. Ton profil, lui, reste tel quel.')) return
+    setErreur(null)
     try {
       await api.supprimeCV(c.id)
       await charge()
@@ -56,61 +74,82 @@ export function MesCV({ carte = false }: { carte?: boolean }) {
     }
   }
 
+  return { pret: cvs !== null, fichiers, actif, erreur, envoi, depose, supprime }
+}
 
+export type EtatCV = ReturnType<typeof useMesCV>
 
-  if (cvs === null) return null
-  const actif = cvs.find((c) => c.actif) ?? null
-
+function BoutonDepot({ cv }: { cv: EtatCV }) {
   return (
-    <div className={carte ? 'qzcarte mescv-carte' : 'pvoie mescv'}>
-      {carte ? <h3>Mon CV</h3> : <b>Mon CV</b>}
-      {carte ? (
-        <p>
-          PDF, Word, photo… peu importe le format. Ton profil se remplit tout seul à
-          partir de lui : tu relis et tu corriges. Compte quelques minutes, tu peux
-          fermer la page.
-        </p>
-      ) : (
-        <span>
-          PDF, Word, photo… peu importe le format. <b>Ton profil se remplit tout seul</b>
-          à partir de lui : tu n’as rien à recopier, tu relis et tu corriges.
-          Compte quelques minutes — tu peux fermer la page, ça continue sans toi.
-        </span>
-      )}
+    <label className="btn-fichier">
+      {cv.envoi ? <><Spinner />Envoi…</> : cv.actif ? 'Remplacer mon CV' : 'Déposer mon CV'}
+      <input type="file" hidden disabled={cv.envoi}
+        accept=".pdf,.doc,.docx,.odt,.rtf,.txt,image/*"
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void cv.depose(f) }} />
+    </label>
+  )
+}
 
-      {erreur && <div className="pal manque"><b>Problème</b>{erreur}</div>}
+/* La carte, à côté des deux autres façons de remplir son profil. */
+export function CarteCV({ cv }: { cv: EtatCV }) {
+  return (
+    <div className="qzcarte mescv-carte">
+      <h3>Mon CV</h3>
+      <p>
+        PDF, Word, photo… peu importe le format. Ton profil se remplit tout seul à
+        partir de lui : tu relis et tu corriges. Compte quelques minutes, tu peux
+        fermer la page.
+      </p>
+      {cv.erreur && <div className="pal manque"><b>Problème</b>{cv.erreur}</div>}
+      {cv.pret && <BoutonDepot cv={cv} />}
+    </div>
+  )
+}
 
-      <div className="mescv-actions">
-        <label className="btn-fichier">
-          {envoi ? <><Spinner />Envoi…</> : actif?.fichier ? 'Remplacer mon CV' : 'Déposer mon CV'}
-          <input type="file" hidden disabled={envoi}
-            accept=".pdf,.doc,.docx,.odt,.rtf,.txt,image/*"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) void depose(f) }} />
-        </label>
+/* Le fichier déposé : une zone à lui, sous les trois cartes. */
+export function ZoneCV({ cv }: { cv: EtatCV }) {
+  const c = cv.actif
+  if (!cv.pret || !c) return null
+  return (
+    <section className="mescv-zone" aria-label="Mon CV déposé">
+      <div className="mescv-zone-tete">
+        <h3>Mon CV déposé</h3>
+        <span className="pa">Un seul CV : en déposer un autre remplace celui-ci.</span>
       </div>
+      <div className="mescv-fichier">
+        <span className={`mescv-etat ${c.lecture ? 'lu' : 'attente'}`}>
+          {c.lecture ? 'Lu' : <><Spinner />Lecture en cours</>}
+        </span>
+        <span className="mescv-nom">
+          <b>{c.nom}</b>
+          <em>
+            {ko(c.octets)}{jour(c.depose) && ` · déposé le ${jour(c.depose)}`}
+            {c.lecture ? ' · ton profil a été rempli à partir de lui' : ' · ton profil se remplira tout seul'}
+          </em>
+        </span>
+        <span className="mescv-btns">
+          <a className="btn-mini" href={api.urlFichierCV(c.id)} target="_blank" rel="noreferrer">Ouvrir</a>
+          <button type="button" className="btn-mini danger" onClick={() => void cv.supprime(c)}>Supprimer</button>
+        </span>
+      </div>
+    </section>
+  )
+}
 
-      {cvs.length > 0 && (
-        <ul className="mescv-liste">
-          {cvs.map((c) => (
-            <li key={c.id} className={c.actif ? 'on' : ''}>
-              <span>
-                <b>{c.nom}</b>
-                <em>
-                  {ko(c.octets)}
-                  {c.actif && (c.lecture
-                    ? ' · profil rempli à partir de ce CV'
-                    : ' · lecture en cours…')}
-                </em>
-              </span>
-              <span className="mescv-btns">
-                {c.fichier && <a className="btn-mini" href={api.urlFichierCV(c.id)} target="_blank" rel="noreferrer">Ouvrir</a>}
-                <button type="button" className="btn-mini" onClick={() => void supprime(c)}>Supprimer</button>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
+/* Les deux réunis, en mode formulaire. */
+export function MesCV({ cv }: { cv: EtatCV }) {
+  if (!cv.pret) return null
+  return (
+    <div className="pvoie mescv">
+      <b>Mon CV</b>
+      <span>
+        PDF, Word, photo… peu importe le format. <b>Ton profil se remplit tout seul</b>
+        à partir de lui : tu n’as rien à recopier, tu relis et tu corriges.
+        Compte quelques minutes — tu peux fermer la page, ça continue sans toi.
+      </span>
+      {cv.erreur && <div className="pal manque"><b>Problème</b>{cv.erreur}</div>}
+      <div className="mescv-actions"><BoutonDepot cv={cv} /></div>
+      <ZoneCV cv={cv} />
     </div>
   )
 }

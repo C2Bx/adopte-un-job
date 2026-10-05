@@ -17,6 +17,21 @@ require_once __DIR__ . '/documents.php';
 
 const CV_OCTETS_MAX = 10 * 1024 * 1024;
 
+/**
+ * L'espace d'echange suit tout de suite. Un CV remplace ou supprime ne doit pas
+ * rester lisible par l'equipe jusqu'au passage suivant du veilleur (15 min) :
+ * on reecrit `sortant/` maintenant, ce qui retire l'ancien fichier et met
+ * `index.json` a jour. Un echec ici n'empeche rien : le veilleur rattrapera.
+ */
+function suisEchange(PDO $pdo): void
+{
+    try {
+        require_once __DIR__ . '/echange.php';
+        exporteSortant($pdo);
+    } catch (Throwable $e) {
+    }
+}
+
 /* ----------------------------------------------------------------- routes */
 
 /* Le premier de tous : le dernier resume JSON lu. */
@@ -95,9 +110,19 @@ if (route('POST', 'profil/cv/fichier', $seg, $methode) !== false) {
         $rid = (int) $pdo->lastInsertId();
     }
     $pdo->prepare('UPDATE resumes SET is_active = 0 WHERE user_id = ? AND id <> ?')->execute([$id, $rid]);
+    /* Un seul CV par personne : un autre fichier encore garde (ancien depot
+       sur une autre ligne) est efface, fichier et ligne. */
+    $vieux = $pdo->prepare("SELECT id, storage_key FROM resumes WHERE user_id = ? AND id <> ? AND storage_key <> ''");
+    $vieux->execute([$id, $rid]);
+    foreach ($vieux->fetchAll() as $v) {
+        supprimeFichier($v['storage_key']);
+        $pdo->prepare('UPDATE applications SET resume_id = NULL WHERE resume_id = ?')->execute([(int) $v['id']]);
+        $pdo->prepare('DELETE FROM resumes WHERE id = ? AND user_id = ?')->execute([(int) $v['id'], $id]);
+    }
     // les candidatures en cours emportent le nouveau fichier
     $pdo->prepare('UPDATE applications SET resume_id = ? WHERE candidate_id = ? AND statut NOT IN ("refusee","retiree")')->execute([$rid, $id]);
     trace($id, 'depot_fichier_cv', 'resume', $rid);
+    suisEchange($pdo);
     envoie(['cv' => cvPublic(cvDuCandidat($pdo, $id, $rid), derniereLecture($pdo, $rid))], 201);
 }
 
@@ -126,6 +151,7 @@ if (($a = route('DELETE', 'profil/cv/*', $seg, $methode)) !== false && ctype_dig
     $pdo->prepare('UPDATE applications SET resume_id = NULL WHERE resume_id = ?')->execute([(int) $r['id']]);
     $pdo->prepare('DELETE FROM resumes WHERE id = ?')->execute([(int) $r['id']]);
     trace((int) $u['id'], 'suppression_cv', 'resume', (int) $r['id']);
+    suisEchange($pdo);
     envoie(['ok' => true]);
 }
 

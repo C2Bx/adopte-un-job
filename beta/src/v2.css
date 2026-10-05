@@ -84,3 +84,25 @@
 .mescv-carte .mescv-liste li { flex-wrap: wrap; }
 .mescv-carte .mescv-liste li b { overflow-wrap: anywhere; }
 .mescv-carte .pal { width: 100%; }
+
+/* --- le CV déposé : une zone à lui ---------------------------------------- */
+.mescv-zone { margin: 0 0 var(--s6); background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: var(--s4) var(--s5); display: grid; gap: var(--s3); }
+.pvoie .mescv-zone { margin: var(--s2) 0 0; padding: 0; border: 0; width: 100%; }
+.mescv-zone-tete { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s2); }
+.mescv-zone-tete h3 { font-size: var(--t-md); font-weight: 800; }
+.mescv-fichier { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3);
+  border: 1px solid var(--brand); border-radius: var(--r-md); padding: var(--s3) var(--s4); }
+.mescv-nom { flex: 1 1 220px; min-width: 0; display: grid; gap: 2px; font-size: var(--t-sm); }
+.mescv-nom b { font-weight: 600; overflow-wrap: anywhere; }
+.mescv-nom em { font-style: normal; color: var(--ink-3); font-size: var(--t-xs); }
+.mescv-etat { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-xs); font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+.mescv-etat.lu { background: color-mix(in srgb, var(--yes) 14%, transparent); color: var(--yes); }
+.mescv-etat.attente { background: var(--surface-2); color: var(--ink-3); }
+.btn-mini.danger { color: var(--no); }
+
+/* --ok-soft et --no-soft etaient utilises (.pal.ok, .pal.manque, etapes faites)
+   sans jamais etre definis : ces encadres n'avaient pas de fond. */
+:root { --ok-soft: color-mix(in srgb, var(--yes) 14%, transparent);
+        --no-soft: color-mix(in srgb, var(--no) 12%, transparent); }
