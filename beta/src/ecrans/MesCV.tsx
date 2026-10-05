@@ -110,6 +110,13 @@ export function CarteCV({ cv }: { cv: EtatCV }) {
 export function ZoneCV({ cv }: { cv: EtatCV }) {
   const c = cv.actif
   if (!cv.pret || !c) return null
+  /* Le rond ne tourne que pendant la première demi-heure. Au-delà, la lecture
+     n'est plus « en cours » : elle n'a pas eu lieu (au 05/10, la chaîne
+     d'extraction de l'équipe n'est pas encore branchée). Un rond qui tourne
+     depuis des jours ment ; on dit où on en est et quoi faire en attendant. */
+  const depuis = Date.now() - new Date(c.depose.replace(' ', 'T') + 'Z').getTime()
+  const recent = Number.isFinite(depuis) && depuis < 30 * 60 * 1000
+  const etat = c.lecture ? 'lu' : recent ? 'attente' : 'pas-lu'
   return (
     <section className="mescv-zone" aria-label="Mon CV déposé">
       <div className="mescv-zone-tete">
@@ -117,14 +124,16 @@ export function ZoneCV({ cv }: { cv: EtatCV }) {
         <span className="pa">Un seul CV : en déposer un autre remplace celui-ci.</span>
       </div>
       <div className="mescv-fichier">
-        <span className={`mescv-etat ${c.lecture ? 'lu' : 'attente'}`}>
-          {c.lecture ? 'Lu' : <><Spinner />Lecture en cours</>}
+        <span className={`mescv-etat ${etat}`}>
+          {etat === 'lu' ? 'Lu' : etat === 'attente' ? <><Spinner />Lecture en cours</> : 'Pas encore lu'}
         </span>
         <span className="mescv-nom">
           <b>{c.nom}</b>
           <em>
             {ko(c.octets)}{jour(c.depose) && ` · déposé le ${jour(c.depose)}`}
-            {c.lecture ? ' · ton profil a été rempli à partir de lui' : ' · ton profil se remplira tout seul'}
+            {etat === 'lu' ? ' · ton profil a été rempli à partir de lui'
+              : etat === 'attente' ? ' · ton profil se remplira tout seul'
+              : ' · la lecture automatique arrive bientôt ; en attendant, remplis ton profil à la main ou par les questions'}
           </em>
         </span>
         <span className="mescv-btns">

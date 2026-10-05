@@ -106,3 +106,6 @@
    sans jamais etre definis : ces encadres n'avaient pas de fond. */
 :root { --ok-soft: color-mix(in srgb, var(--yes) 14%, transparent);
         --no-soft: color-mix(in srgb, var(--no) 12%, transparent); }
+.mescv-etat.pas-lu { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+/* « Ouvrir » est un lien : sans ça, son libellé reste en haut du bouton */
+.mescv-btns .btn-mini { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }

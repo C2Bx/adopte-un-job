@@ -101,8 +101,10 @@ if (route('POST', 'profil/cv/fichier', $seg, $methode) !== false) {
     $actif = $cvId ? cvDuCandidat($pdo, $id, $cvId) : cvActif($pdo, $id);
     if ($actif) {
         supprimeFichier($actif['storage_key']);
-        $pdo->prepare('UPDATE resumes SET filename = ?, mime = ?, bytes = ?, storage_key = ?, sha256 = ?, enc_iv = ?, enc_tag = ?, is_active = 1 WHERE id = ?')
-            ->execute([$nom, $mime, strlen($contenu), $cle, $sha, $iv, $tag, (int) $actif['id']]);
+        $pdo->prepare('UPDATE resumes SET filename = ?, mime = ?, bytes = ?, storage_key = ?, sha256 = ?, enc_iv = ?, enc_tag = ?, is_active = 1, created_at = ? WHERE id = ?')
+            ->execute([$nom, $mime, strlen($contenu), $cle, $sha, $iv, $tag, maintenant(), (int) $actif['id']]);
+        // created_at = date du depot du fichier : un CV remplace ne garde pas la date de l'ancien
+        $pdo->prepare('DELETE FROM resume_extractions WHERE resume_id = ?')->execute([(int) $actif['id']]);
         $rid = (int) $actif['id'];
     } else {
         $pdo->prepare('INSERT INTO resumes (user_id, filename, mime, bytes, storage_key, sha256, enc_iv, enc_tag, is_active, created_at) VALUES (?,?,?,?,?,?,?,?,1,?)')
