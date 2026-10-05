@@ -168,6 +168,24 @@ function comptesModifiables(): bool
     return defined('COMPTE_ROUTES_EQUIPE') && COMPTE_ROUTES_EQUIPE === true && baseEquipe() !== '';
 }
 
+/**
+ * Leur API traite-t-elle le mot de passe oublie ? Oui depuis le 05/10/2026
+ * (`POST /auth/forgot-password`, `POST /auth/reset-password`). Interrupteur a
+ * part de `comptesModifiables()` : changer son mot de passe ou son adresse
+ * n'existe toujours pas chez eux. Actif par defaut, coupe avec AVP_EQUIPE_OUBLI=0.
+ */
+function oubliPossible(): bool
+{
+    return (defined('OUBLI_EQUIPE') ? OUBLI_EQUIPE === true : true) && baseEquipe() !== '';
+}
+
+function exigeOubliPossible(): void
+{
+    if (!oubliPossible()) {
+        erreur('non_disponible', 'La réinitialisation du mot de passe n’est pas disponible.', 501);
+    }
+}
+
 function exigeComptesModifiables(): void
 {
     if (!comptesModifiables()) {
@@ -219,7 +237,7 @@ function equipeChangeEmail(string $email, string $mdp, string $nouveau): string
 /** POST /auth/forgot-password — reponse identique que l'adresse existe ou non. */
 function equipeOubli(string $email): void
 {
-    exigeComptesModifiables();
+    exigeOubliPossible();
     [$code, ] = httpPostJson(baseEquipe() . '/auth/forgot-password', ['email' => $email], [], 20);
     // Un 404 chez eux voudrait dire « adresse inconnue » : on ne le repercute
     // pas, sinon cette route publie la liste des comptes.
@@ -231,9 +249,10 @@ function equipeOubli(string $email): void
 /** POST /auth/reset-password — le code recu par courriel, et le nouveau mot de passe. */
 function equipeReinit(string $code, string $nouveau): void
 {
-    exigeComptesModifiables();
+    exigeOubliPossible();
+    // leur ResetPasswordRequest : {token, password} (et non newPassword : 400)
     [$http, ] = httpPostJson(baseEquipe() . '/auth/reset-password',
-        ['token' => $code, 'newPassword' => $nouveau], [], 20);
+        ['token' => $code, 'password' => $nouveau], [], 20);
     if ($http < 200 || $http >= 300) {
         erreur('code_invalide', 'Ce code est inconnu, expiré ou déjà utilisé.', 422);
     }

@@ -121,8 +121,8 @@ export const api = {
   /* Ce que le service de comptes permet, avant même d'être connecté : l'écran
      d'accueil n'affiche « mot de passe oublié » que si ça mène quelque part. */
   async capacites() {
-    const d = await appel<{ comptesModifiables: boolean }>('GET', 'auth/moi')
-    return d.comptesModifiables === true
+    const d = await appel<{ comptesModifiables: boolean; oubliPossible?: boolean }>('GET', 'auth/moi')
+    return d.oubliPossible === true
   },
   sessions: () => appel<{ sessions: { courante: boolean; ouverte: string; active: string; expire: string }[] }>('GET', 'auth/sessions'),
   fermeAutresSessions: () => appel<{ ok: boolean }>('DELETE', 'auth/sessions'),

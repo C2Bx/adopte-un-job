@@ -60,12 +60,15 @@ define('SYNC_TOKEN', $cfg('AVP_SYNC_TOKEN', ''));
     reference : aucun doublon possible, quelle que soit la source qui a servi. */
 define('EQUIPE_API_BASE', $cfg('AVP_EQUIPE_API', 'https://hackavp-api.duckdns.org'));
 
-/** Leur API sait-elle changer un mot de passe, une adresse, et traiter un oubli ?
-    Au 29/09 elle ne le sait pas : elle n'expose que /auth/register et /auth/login.
-    Les routes correspondantes repondent donc 501 et l'interface l'explique.
-    Passer a 1 le jour ou l'equipe livre PUT /auth/password, PUT /auth/email,
-    POST /auth/forgot-password et POST /auth/reset-password. */
+/** Leur API sait-elle changer un mot de passe ou une adresse ? Au 05/10 non :
+    ni PUT /auth/password, ni PUT /auth/email. Les routes correspondantes
+    repondent 501 et l'interface l'explique. Passer a 1 le jour ou ils existent. */
 define('COMPTE_ROUTES_EQUIPE', $cfg('AVP_EQUIPE_COMPTE_ROUTES', '') === '1');
+
+/** Le mot de passe oublie, lui, existe chez eux depuis le 05/10/2026
+    (forgot-password / reset-password). Actif par defaut ; 0 pour le couper.
+    Absent d'un config.php plus ancien : equipe.php le considere actif. */
+define('OUBLI_EQUIPE', $cfg('AVP_EQUIPE_OUBLI', '1') === '1');
 
 /** La passerelle d'echange de fichiers : ou vivent les dossiers, et sous quel
     nom. UN seul dossier, celui que voit le compte FTPS partage — il a existe

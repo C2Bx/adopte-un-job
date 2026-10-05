@@ -207,11 +207,15 @@ function synchroniseAvp(PDO $pdo, string $source = 'auto'): array
         $liste = avpDepuisEquipe();
         if ($liste !== null) {
             foreach ($liste as $a) {
-                if (is_array($a)) {
+                // une offre sans reference ne s'importe pas : ne pas la compter
+                if (is_array($a) && trim((string) ($a['reference'] ?? '')) !== '') {
                     $postings[] = jobPostingDepuisEquipe($a);
                 }
             }
             $servie = 'equipe';
+            if ($postings === [] && $source === 'equipe') {
+                erreur('source_illisible', 'L’API d’équipe a répondu, mais aucune offre n’y est reconnaissable.', 502);
+            }
         } elseif ($source === 'equipe') {
             erreur('source_indisponible', 'L’API d’équipe n’a pas répondu.', 502);
         }
@@ -475,17 +479,40 @@ function jobPostingDepuisEquipe(array $a): array
    prioritaire, et une chaine vide desactive la source. */
 const EQUIPE_API_DEFAUT = 'https://hackavp-api.duckdns.org';
 
-/** Les AVP tels que l'API d'equipe les sert, ou null si elle ne repond pas. */
+/**
+ * Les AVP tels que l'API d'equipe les sert (une liste d'`AvpResponse`), ou null
+ * si elle ne repond pas.
+ *
+ * Depuis le 05/10/2026, `GET /avp` est pagine : `{contenu, page, taille,
+ * totalElements, totalPages}`, 50 par page par defaut. L'ancien format (une
+ * liste nue) reste accepte. Lire la page comme une liste prenait `contenu`
+ * pour UNE offre sans reference : rien n'etait importe, et le secours par le
+ * dataset ne se declenchait pas.
+ */
 function avpDepuisEquipe(): ?array
 {
     $base = defined('EQUIPE_API_BASE') ? EQUIPE_API_BASE : EQUIPE_API_DEFAUT;
     if ($base === '') {
         return null;
     }
-    $brut = httpGet(rtrim($base, '/') . '/avp', 30, ['Accept: application/json']);
-    if ($brut === null || $brut === '') {
-        return null;
+    $tout = [];
+    for ($page = 1, $pages = 1; $page <= $pages && $page <= 50; $page++) {
+        $brut = httpGet(rtrim($base, '/') . '/avp?page=' . $page . '&taille=100', 30, ['Accept: application/json']);
+        if ($brut === null || $brut === '') {
+            return $tout ?: null;
+        }
+        $d = json_decode($brut, true);
+        if (!is_array($d)) {
+            return $tout ?: null;
+        }
+        if (array_is_list($d)) {             // ancien format : tout d'un coup
+            return $d;
+        }
+        if (!isset($d['contenu']) || !is_array($d['contenu'])) {
+            return $tout ?: null;
+        }
+        array_push($tout, ...$d['contenu']);
+        $pages = max(1, (int) ($d['totalPages'] ?? 1));
     }
-    $d = json_decode($brut, true);
-    return is_array($d) ? $d : null;
+    return $tout;
 }

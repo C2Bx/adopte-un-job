@@ -150,11 +150,11 @@ if (route('POST', 'auth/deconnexion', $seg, $methode) !== false) {
 if (route('GET', 'auth/moi', $seg, $methode) !== false) {
     $u = utilisateur();
     if (!$u) {
-        envoie(['utilisateur' => null, 'comptesModifiables' => comptesModifiables()]);
+        envoie(['utilisateur' => null, 'comptesModifiables' => comptesModifiables(), 'oubliPossible' => oubliPossible()]);
     }
     envoie(['utilisateur' => ['id' => (int) $u['id'], 'email' => $u['email'],
                               'comptesModifiables' => comptesModifiables()],
-            'comptesModifiables' => comptesModifiables()]);
+            'comptesModifiables' => comptesModifiables(), 'oubliPossible' => oubliPossible()]);
 }
 
 /* Export et suppression sont livres avec la version 1. Ajoutes apres, ils
