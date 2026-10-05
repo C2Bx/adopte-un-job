@@ -29,6 +29,7 @@ profil : l'interface ne le lance que si le parcours est encore vide.
 |---|---|
 | `beta/` | L'application : React 19 + TypeScript strict, Vite. Sortie 100 % statique. Trois écrans : le deck, les candidatures, le profil. |
 | `beta/src/api.ts` | Le seul endroit qui parle à leur API, et qui traduit leurs réponses dans les formes que les écrans connaissent. |
+| `beta/src/filtres.ts` | Les filtres du deck, calculés dans le navigateur : plusieurs choix par catégorie (OU), catégories combinées (ET), compteurs dynamiques. |
 | `beta/public/relais.php` | Un relais **sans état** vers leur API, tant qu'elle n'envoie pas d'en-têtes CORS. Il ne parle qu'à leur adresse, et seulement aux routes listées. |
 | `beta/public/referentiel.json` | Les 84 métiers et 409 compétences du référentiel OPT-NC, servis comme un fichier. |
 | `scripts/referentiel_statique.py` | Régénère ce fichier depuis la [publication officielle de l'OPT](https://github.com/opt-nc/odata-referentiel-metiers). |
@@ -42,8 +43,17 @@ npm run dev        # le relais de production répond en développement (proxy Vi
 npm run build      # dist/ : à déposer tel quel sous /avp/
 ```
 
+## L'interface en bref
+
+- **Swipe** : sur grand écran, filtres et détail de l'offre à gauche (65 %), carte à droite (35 %) sur toute la hauteur. Carte claire, bordure et détails bleu sombre, touches orange (direction artistique « a » de la maquette).
+- **Filtres** : une barre (recherche, bouton Filtres, filtres actifs retirables, nombre d'offres) et un panneau par sections, avec cases à cocher et bascule offres ouvertes / closes.
+- **Candidatures** : la décision du recruteur lue dans leur API, les jours restants avant clôture.
+- **Profil** : à la main, par neuf questions ou depuis le CV. À l'enregistrement, les champs que l'écran n'affiche pas (résumé, réalisations, établissement, mots-clés) sont conservés.
+- L'onglet courant vit dans l'adresse (`#swipe`, `#candidatures`, `#profil`) : un F5 reste sur place.
+
 ## Ce qu'il faut savoir
 
+- **Le relais transmet le jeton** grâce au `.htaccess` (`SetEnvIf Authorization`) : sans lui, Apache le retire et toutes les routes connectées répondent 401.
 - **La session** est le jeton de leur API, valable une heure et sans
   renouvellement. Elle vit dans `sessionStorage` : elle survit à un rechargement,
   pas à la fermeture de l'onglet.
