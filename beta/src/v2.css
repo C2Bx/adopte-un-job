@@ -180,3 +180,29 @@
 /* le bouton « revenir » de la carte : plus visible, même sans action possible */
 .coins .retour { color: #FFC861; background: rgba(255, 200, 97, .10); }
 .coins .retour:disabled { opacity: .55; }
+
+/* --- la carte du deck en clair (05/10) ------------------------------------
+   Fond clair et texte foncé, comme le reste de l'application : la carte prend
+   les couleurs de surface et d'encre du thème au lieu de sa scène sombre. */
+.card {
+  --stage: var(--surface);
+  --stage-ink: var(--ink);
+  --stage-ink-2: var(--ink-2);
+  --stage-line: var(--line);
+}
+.card .stage {
+  background:
+    radial-gradient(115% 70% at 100% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 62%),
+    radial-gradient(100% 70% at 0% 100%, color-mix(in srgb, var(--brand) 7%, transparent), transparent 68%);
+}
+.card .segs i { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.card .score { background: var(--surface-2); color: var(--ink); }
+.card .tags span { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+.card .tags span.doux { color: var(--ink-2); opacity: 1; background: transparent; }
+.card .missions.ecarts li { color: var(--no); }
+/* les boutons ronds, en teintes plus soutenues pour rester lisibles sur le blanc */
+.card .coins button:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.card .coins .retour { color: #B7791F; background: rgba(183, 121, 31, .08); }
+.card .coins .fav    { color: #2F6FD1; }
+.card .coins .non    { color: #D64545; }
+.card .coins .oui    { color: #12946A; }
