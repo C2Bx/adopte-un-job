@@ -1,25 +1,8 @@
-# Le worker pdf.js est un module .mjs : sans ce type, Apache le sert en text/plain
-# et le navigateur refuse de l executer.
-AddType text/javascript .mjs
-# Le modele Tesseract est un binaire : pas de compression a la volee, pas de type texte.
-AddType application/octet-stream .traineddata
-<IfModule mod_deflate.c>
-  SetEnvIfNoCase Request_URI \.traineddata$ no-gzip
-</IfModule>
-
+# Adopte un Job — /avp/ ne sert plus que l'interface (depuis le 05/10/2026).
 # Les en-tetes de securite de la page sont poses par index.php lui-meme
-# (scripts/index-php.mjs). Ils ne sont PAS repris ici : ce fichier vaut pour
-# tout ce qui est sous /avp/, donc aussi pour le wiki du projet — qui charge
-# Google Fonts — et pour l'API. Une CSP « default-src 'self' » heritee y
-# casserait la typographie sans rien proteger de plus.
+# (scripts/index-php.mjs).
 
-# Une adresse du site qui n'existe pas tombait sur la page d'Apache. Elle rend
-# maintenant la meme page d'erreur que l'API, dans la charte de l'application.
-#
-# ErrorDocument ne se declenche QUE sur les erreurs produites par Apache
-# lui-meme : un http_response_code(404) pose par l'API ne passe pas par ici,
-# les deux pages ne se marchent pas dessus.
-#
-# 403 y passe aussi : le verrou sur passerelle-cli.php en produit un vrai.
+# Une adresse qui n'existe pas, ou fermee, rend la page d'erreur de
+# l'application plutot que celle d'Apache.
 ErrorDocument 404 /avp/404.php
 ErrorDocument 403 /avp/404.php
