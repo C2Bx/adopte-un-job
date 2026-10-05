@@ -268,3 +268,7 @@
 .card .facts em { color: var(--brand); }
 .card .score { border-color: var(--brand); color: var(--brand); font-weight: 700; }
 .card .score:hover { background: var(--brand); color: var(--brand-ink); }
+
+/* carte : fond bleu très léger (un bleu franc très dilué, plus net que le
+   bleu marine mêlé au blanc, qui tirait vers le gris) */
+.card { --stage: color-mix(in srgb, var(--surface) 91%, #2F6FD1); }
