@@ -396,3 +396,7 @@
   .card .score-btn { display: none; }
   .card .hero-top:not(:has(> :not(.score-btn))) { display: none; }
 }
+
+/* la recherche : assez large pour lire son texte d'invite en entier */
+.filtres-avp .recherche { min-width: 21.5rem; max-width: 26rem; flex: 0 1 21.5rem; }
+@media (max-width: 480px) { .filtres-avp .recherche { min-width: 17.5rem; } }
