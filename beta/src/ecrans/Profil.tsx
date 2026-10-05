@@ -102,11 +102,12 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
                 passerelle, et revient en JSON Resume. Le code reste dans le
                 dépôt — il marche, il est audité, et il redeviendra le
                 deuxième chemin si la chaîne tarde. */}
-            <MesCV />
-            <MonCompte />
+            {mode !== 'choix' && <MesCV />}
 
+            {/* Les trois façons de remplir son profil, côte à côte. */}
             {mode === 'choix' && (
-              <div className="qzdepart">
+              <div className="qzdepart trois">
+                <MesCV carte />
                 <div className="qzcarte">
                   <h3>Je pars de zéro</h3>
                   <p>Le formulaire guidé, étape par étape. C’est le chemin principal, pas la solution de repli.</p>
@@ -119,6 +120,8 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
                 </div>
               </div>
             )}
+
+            <MonCompte />
 
             {mode === 'questions' && (
               <Questions

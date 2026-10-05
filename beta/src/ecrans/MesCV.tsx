@@ -15,7 +15,9 @@ import type { CvInfo } from '../types'
 
 const ko = (n: number) => (n >= 1_048_576 ? `${(n / 1_048_576).toFixed(1)} Mo` : `${Math.round(n / 1024)} ko`)
 
-export function MesCV() {
+/* `carte` : la même chose en carte, à côté de « Je pars de zéro » et
+   « Affiner par questions » — les trois façons de remplir son profil. */
+export function MesCV({ carte = false }: { carte?: boolean }) {
   const [cvs, setCvs] = useState<CvInfo[] | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
@@ -60,13 +62,21 @@ export function MesCV() {
   const actif = cvs.find((c) => c.actif) ?? null
 
   return (
-    <div className="pvoie mescv">
-      <b>Mon CV</b>
-      <span>
-        PDF, Word, photo… peu importe le format. <b>Ton profil se remplit tout seul</b>
-        à partir de lui : tu n’as rien à recopier, tu relis et tu corriges.
-        Compte quelques minutes — tu peux fermer la page, ça continue sans toi.
-      </span>
+    <div className={carte ? 'qzcarte mescv-carte' : 'pvoie mescv'}>
+      {carte ? <h3>Mon CV</h3> : <b>Mon CV</b>}
+      {carte ? (
+        <p>
+          PDF, Word, photo… peu importe le format. Ton profil se remplit tout seul à
+          partir de lui : tu relis et tu corriges. Compte quelques minutes, tu peux
+          fermer la page.
+        </p>
+      ) : (
+        <span>
+          PDF, Word, photo… peu importe le format. <b>Ton profil se remplit tout seul</b>
+          à partir de lui : tu n’as rien à recopier, tu relis et tu corriges.
+          Compte quelques minutes — tu peux fermer la page, ça continue sans toi.
+        </span>
+      )}
 
       {erreur && <div className="pal manque"><b>Problème</b>{erreur}</div>}
 

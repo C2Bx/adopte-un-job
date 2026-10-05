@@ -69,3 +69,18 @@
 .chip .pre { font-style: normal; font-weight: 600; font-size: var(--t-xs);
   color: var(--ink-3); margin-right: 6px; }
 .chip[aria-pressed="true"] .pre { color: inherit; opacity: .75; }
+
+/* --- les trois façons de remplir son profil, côte à côte ------------------
+   Mon CV, Je pars de zéro, Affiner par questions. Trois colonnes dès que la
+   colonne du profil a la place (requête de conteneur : à côté du guide, la
+   colonne est bien plus étroite que l'écran), une seule en dessous. */
+.pcol-a { container-type: inline-size; }
+.qzdepart.trois { grid-template-columns: 1fr; }
+@container (min-width: 640px) {
+  .qzdepart.trois { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.mescv-carte { margin: 0; }
+.mescv-carte .mescv-liste { width: 100%; }
+.mescv-carte .mescv-liste li { flex-wrap: wrap; }
+.mescv-carte .mescv-liste li b { overflow-wrap: anywhere; }
+.mescv-carte .pal { width: 100%; }
