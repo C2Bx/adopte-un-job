@@ -473,18 +473,58 @@ function profilDepuisDocument(doc: Json, ref: RefStatique): Profil {
   }
 }
 
+/**
+ * Reprend, pour chaque élément réécrit, les champs que l'écran ne connaît pas
+ * (résumé et réalisations d'une expérience, établissement d'une formation,
+ * mots-clés d'une compétence…), pris sur l'élément d'origine. Sans ça, le
+ * premier enregistrement effaçait ce que la lecture du CV avait trouvé.
+ * Rapprochement par clé (le poste, la formation, le nom), puis, à défaut, par
+ * position : une ligne modifiée garde ses compléments.
+ */
+function fusionne(anciens: Json[], nouveaux: Json[], cle: (x: Json) => string): Json[] {
+  const libres = anciens.map((a, i) => ({ a, i, pris: false }))
+  const choisis = nouveaux.map((n) => {
+    const x = libres.find((l) => !l.pris && cle(l.a) === cle(n))
+    if (x) x.pris = true
+    return x
+  })
+  return nouveaux.map((n, i) => {
+    let x = choisis[i]
+    if (!x) {
+      x = libres.find((l) => !l.pris && l.i === i)
+      if (x) x.pris = true
+    }
+    const out: Json = { ...(x?.a ?? {}) }
+    for (const [k, v] of Object.entries(n)) {
+      if (v === undefined) continue
+      if (k === 'keywords' && Array.isArray(out.keywords)) {
+        out.keywords = [...new Set([...liste(out.keywords), ...liste(v)])]
+      } else {
+        out[k] = v
+      }
+    }
+    return out
+  })
+}
+
 /** Le profil des écrans → leur JSON, écrit par-dessus le dernier lu (aucun champ inconnu perdu). */
 function documentDepuisProfil(p: ProfilEnvoi, competencesOpt: CompetenceOpt[], email: string, base: Json): Json {
   const b = objet(base.basics)
   const meta = objet(base.meta)
   const resume = typeof b.summary === 'string' && !b.summary.startsWith('Métiers visés : ') ? b.summary : undefined
-  const work = p.experiences.map((x) => ({ position: x.poste, name: x.secteur, startDate: x.debut || undefined, endDate: x.fin || undefined }))
-  const education = p.formations.map((f) => ({ studyType: NIVEAUX_LIB[Math.max(0, Math.min(3, f.niveau - 1))], area: f.domaine }))
-  const skills = [
+  const work = fusionne(tableau(base.work),
+    p.experiences.map((x) => ({ position: x.poste, name: x.secteur, startDate: x.debut || undefined, endDate: x.fin || undefined })),
+    (x) => plat(`${x.position ?? ''}|${x.name ?? ''}`))
+  const education = fusionne(tableau(base.education),
+    p.formations.map((f) => ({ studyType: NIVEAUX_LIB[Math.max(0, Math.min(3, f.niveau - 1))], area: f.domaine })),
+    (x) => plat(String(x.area ?? '')))
+  const skills = fusionne(tableau(base.skills), [
     ...p.competences.map((name) => ({ name })),
     ...competencesOpt.map((x) => ({ name: x.nom, keywords: [`OPT-NC:${x.code}`] })),
-  ]
-  const languages = p.langues.map((l) => ({ language: l.langue, fluency: l.niveau }))
+  ], (x) => plat(String(x.name ?? '')))
+  const languages = fusionne(tableau(base.languages),
+    p.langues.map((l) => ({ language: l.langue, fluency: l.niveau })),
+    (x) => plat(String(x.language ?? '')))
   const provenance: Json = { ...objet(meta.provenance) }
   for (const [section, plein] of [['basics', Boolean(p.prenom || p.nom || p.telephone)], ['work', work.length > 0],
     ['education', education.length > 0], ['skills', skills.length > 0], ['languages', languages.length > 0]] as const) {
@@ -493,7 +533,7 @@ function documentDepuisProfil(p: ProfilEnvoi, competencesOpt: CompetenceOpt[], e
   return {
     ...base,
     $schema: 'https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json',
-    basics: { ...b, name: `${p.prenom} ${p.nom}`.trim(), email, phone: p.telephone || undefined, summary: resume },
+    basics: { ...b, name: `${p.prenom} ${p.nom}`.trim() || b.name, email, phone: p.telephone || undefined, summary: resume },
     work,
     education,
     skills,
