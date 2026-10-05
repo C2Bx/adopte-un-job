@@ -20,6 +20,16 @@ const ONGLETS: { cle: Onglet; icone: string; nom: string }[] = [
   { cle: 'profil', icone: 'i-user', nom: 'Profil' },
 ]
 
+/* L'onglet vit dans l'adresse (#swipe, #candidatures, #profil) : un F5 garde
+   l'onglet où l'on est, et le bouton « retour » du téléphone revient à
+   l'onglet précédent au lieu de quitter l'application. */
+const ANCRES: Record<Onglet, string> = { swipe: 'swipe', interets: 'candidatures', profil: 'profil' }
+
+function ongletDeLAdresse(): Onglet {
+  const a = window.location.hash.replace(/^#/, '')
+  return (Object.keys(ANCRES) as Onglet[]).find((o) => ANCRES[o] === a) ?? 'swipe'
+}
+
 /* La pastille de « Candidatures » : les présélections en vert s'il y en a,
    sinon les candidatures en attente en rouge. */
 interface Badges { interets: number; interetsMatch: boolean }
@@ -29,8 +39,22 @@ export function App() {
   const [panne, setPanne] = useState(false)
   const [moi, setMoi] = useState<Utilisateur | null>(null)
   const [profil, setProfil] = useState<Profil>(profilVide)
-  const [onglet, setOnglet] = useState<Onglet>('swipe')
+  const [onglet, setOnglet] = useState<Onglet>(ongletDeLAdresse)
   const [badges, setBadges] = useState<Badges>({ interets: 0, interetsMatch: false })
+
+  useEffect(() => {
+    const ancre = '#' + ANCRES[onglet]
+    if (window.location.hash === ancre) return
+    // une adresse sans ancre (premier chargement) se complète sans créer d'étape d'historique
+    if (window.location.hash === '') window.history.replaceState(null, '', ancre)
+    else window.history.pushState(null, '', ancre)
+  }, [onglet])
+
+  useEffect(() => {
+    const suit = () => setOnglet(ongletDeLAdresse())
+    window.addEventListener('popstate', suit)
+    return () => window.removeEventListener('popstate', suit)
+  }, [])
 
   const rafraichisBadges = useCallback(async (u: Utilisateur | null) => {
     if (!u) return
