@@ -166,7 +166,7 @@ export function App() {
             alt="Adopte un Job" className="logo" width={168} height={36} />
         </span>
         <span className="spacer" />
-        <button className="iconbtn" onClick={() => void sors()} title="Se déconnecter" aria-label="Se déconnecter">
+        <button className="iconbtn sortie-haut" onClick={() => void sors()} title="Se déconnecter" aria-label="Se déconnecter">
           <svg><use href="#i-sortie" /></svg>
         </button>
       </header>
@@ -191,6 +191,11 @@ export function App() {
             {o.nom}
           </button>
         ))}
+        {/* sur grand écran, la déconnexion vit en bas du rail ; sur téléphone, dans la barre du haut */}
+        <button className="nav-sortie" onClick={() => void sors()} title="Se déconnecter">
+          <svg><use href="#i-sortie" /></svg>
+          Déconnexion
+        </button>
       </nav>
     </div>
   )
