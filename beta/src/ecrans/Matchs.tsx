@@ -9,7 +9,7 @@ import { api } from '../api'
 import { BlocPoste, BlocPourquoi, BlocScore, Detail, Feuille } from './Deck'
 import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
-import type { Interet, Profil, StatutCandidature } from '../types'
+import type { Interet, Profil, StatutCandidature, StatutEquipe } from '../types'
 
 /* Ce que vaut chaque statut de candidature, dans les mots du candidat. */
 const STATUTS: Record<StatutCandidature, { nom: string; classe: string }> = {
@@ -20,6 +20,15 @@ const STATUTS: Record<StatutCandidature, { nom: string; classe: string }> = {
   acceptee: { nom: 'Candidature acceptée', classe: 'match' },
   refusee: { nom: 'Candidature non retenue', classe: 'refus' },
   retiree: { nom: 'Candidature retirée', classe: '' },
+}
+
+/* La décision du recruteur, lue dans l'API de l'équipe : elle passe avant le
+   statut local, qui ne dit que ce que le candidat a fait. */
+const DECISIONS: Record<StatutEquipe, { nom: string; classe: string }> = {
+  EN_ATTENTE: { nom: 'Chez les recruteurs — en attente de réponse', classe: 'attente' },
+  VALIDEE: { nom: 'Retenue par le recruteur', classe: 'match' },
+  REJETEE: { nom: 'Non retenue par le recruteur', classe: 'refus' },
+  ANNULEE: { nom: 'Candidature annulée', classe: '' },
 }
 
 type Onglet = 'oui' | 'plus_tard' | 'non'
@@ -73,11 +82,16 @@ export function EcranMatchs({ profil }: { profil: Profil }) {
   const [onglet, setOnglet] = useState<Onglet>('oui')
   const [detail, setDetail] = useState<Interet | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
+  const [synchro, setSynchro] = useState(true)
+  const [mdp, setMdp] = useState('')
+  const [reco, setReco] = useState(false)
   const large = useLarge()
 
   const charge = useCallback(async () => {
     try {
-      setInterets(await api.interets())
+      const d = await api.interetsSynchro()
+      setInterets(d.interets)
+      setSynchro(d.equipeConnecte)
     } catch (e) {
       setInterets([])
       setErreur(e instanceof ErreurApi ? e.message : 'Liste indisponible.')
@@ -132,11 +146,36 @@ export function EcranMatchs({ profil }: { profil: Profil }) {
         <div className="col-liste">
         <h2>Mes candidatures</h2>
         <p className="lead">
-          Un « oui » est une candidature : elle part anonyme, l’organisation ouvre ton contact et ton
-          dossier si elle te présélectionne. Ce que tu as écarté ou mis de côté reste ici, révocable.
+          Un « oui » est une candidature : elle part chez les recruteurs avec ton profil, et leur
+          réponse s’affiche ici. Ce que tu as écarté ou mis de côté reste ici, révocable.
         </p>
 
         {erreur && <div className="pal manque"><b>Problème</b>{erreur}</div>}
+
+        {!synchro && (interets ?? []).some((x) => x.candidature) && (
+          <form className="pal" onSubmit={async (ev) => {
+            ev.preventDefault()
+            setReco(true)
+            try {
+              const r = await api.reconnexionEquipe(mdp)
+              setMdp('')
+              if (r.equipeConnecte) await charge()
+            } catch (e) {
+              setErreur(e instanceof ErreurApi ? e.message : 'La reconnexion a échoué.')
+            } finally {
+              setReco(false)
+            }
+          }}>
+            <b>Réponses des recruteurs</b>
+            Pour voir où en sont tes candidatures chez les recruteurs, confirme ton mot de passe
+            (la liaison avec leur plateforme dure une heure).
+            <span style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <input type="password" value={mdp} onChange={(e) => setMdp(e.target.value)} autoComplete="current-password"
+                aria-label="Mot de passe" placeholder="mot de passe" required style={{ flex: 1 }} />
+              <button className="btn-mini" disabled={reco || mdp === ''}>{reco ? '…' : 'Confirmer'}</button>
+            </span>
+          </form>
+        )}
 
         <div className="seg" role="tablist">
           {ONGLETS.map((o) => (
@@ -182,7 +221,9 @@ export function EcranMatchs({ profil }: { profil: Profil }) {
                 <div className="quand">
                   Décidé {depuis(x.quand)}{sc === null ? '' : ` · score d’alors ${sc} %`}
                 </div>
-                {x.candidature
+                {x.candidature && x.candidature.equipe && x.candidature.statut !== 'retiree'
+                  ? <span className={`etat ${DECISIONS[x.candidature.equipe].classe}`}>{DECISIONS[x.candidature.equipe].nom}</span>
+                  : x.candidature
                   ? <span className={`etat ${STATUTS[x.candidature.statut].classe}`}>{STATUTS[x.candidature.statut].nom}</span>
                   : x.decision === 'oui'
                     ? <span className="etat attente">Geste enregistré (offre close, entraînement)</span>

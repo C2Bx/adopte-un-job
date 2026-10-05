@@ -110,6 +110,8 @@ if (route('POST', 'auth/inscription', $seg, $methode) !== false) {
 
     trace($u['id'], 'inscription', 'user', $u['id']);
     $t = ouvreSession($u['id']);
+    // leur jeton, pour leur envoyer le profil et les candidatures (cf. equipe.php)
+    gardeJetonEquipe($pdo, $t, loginEquipeSilencieux($email, $mdp));
     envoie(['jeton' => $t, 'utilisateur' => ['id' => $u['id'], 'email' => $email]], 201);
 }
 
@@ -122,7 +124,7 @@ if (route('POST', 'auth/connexion', $seg, $methode) !== false) {
     /* Leur API repond 401 sans distinguer « compte inconnu » de « mot de passe
        faux » : la precaution qu'on prenait ici (hash factice, temps constant)
        est devenue la leur. */
-    equipeConnecte($email, $mdp);
+    $login = equipeConnecte($email, $mdp);
 
     /* Un compte peut exister chez eux sans exister ici — cree directement sur
        leur API, ou avant que cette application ne lui soit branchee. La
@@ -131,7 +133,20 @@ if (route('POST', 'auth/connexion', $seg, $methode) !== false) {
 
     trace($u['id'], 'connexion', 'user', $u['id']);
     $t = ouvreSession($u['id']);
+    // leur jeton, puis ce qui n'avait pas pu partir (profil, candidatures, retraits)
+    gardeJetonEquipe($pdo, $t, $login);
+    synchroniseEquipe($pdo, (int) $u['id'], false);
     envoie(['jeton' => $t, 'utilisateur' => ['id' => $u['id'], 'email' => $email]]);
+}
+
+/* Leur jeton dure une heure, la session d'ici trente jours : passe l'heure,
+   le candidat confirme son mot de passe pour reprendre la synchronisation. */
+if (route('POST', 'auth/equipe', $seg, $methode) !== false) {
+    $u = exigeConnexion('candidat');
+    limite('equipe:' . $u['id'], 10, 900);
+    $login = equipeConnecte((string) $u['email'], (string) champ('motdepasse', ''));
+    gardeJetonEquipe($pdo, jeton(), $login);
+    envoie(['ok' => true, 'equipeConnecte' => synchroniseEquipe($pdo, (int) $u['id'], true)]);
 }
 
 if (route('POST', 'auth/deconnexion', $seg, $methode) !== false) {
@@ -181,6 +196,7 @@ if (route('GET', 'auth/export', $seg, $methode) !== false) {
 if (route('DELETE', 'auth/compte', $seg, $methode) !== false) {
     $u = exigeConnexion();
     $id = (int) $u['id'];
+    effaceChezEquipe($pdo, $id);
     // Anonymisation plutot que suppression : les statistiques du projet
     // survivent, et plus aucune donnee personnelle ne subsiste.
     $pdo->prepare(
@@ -347,6 +363,7 @@ if (route('PUT', 'profil', $seg, $methode) !== false) {
     // Le profil a change : les scores en cache ne valent plus rien.
     $pdo->prepare('DELETE FROM match_scores WHERE candidate_id = ?')->execute([$id]);
     trace($id, 'maj_profil', 'candidate', $id);
+    profilModifieEquipe($pdo, $id);
     envoie(['profil' => profilComplet($pdo, $id)]);
 }
 
@@ -417,12 +434,23 @@ if (route('POST', 'swipes', $seg, $methode) !== false) {
             envoie(['ok' => true, 'candidature' => null, 'entrainement' => true, 'message' => 'Offre close : geste enregistré pour t’entraîner, sans candidature.']);
         }
         $a = candidate($pdo, $candId, $o, (string) champ('message', ''));
+        synchroniseEquipe($pdo, $candId, false);
         envoie(['ok' => true, 'candidature' => ['id' => (int) $a['id'], 'statut' => $a['statut']], 'match' => null], 201);
+    }
+    /* Changer d'avis sur une candidature (oui -> non / plus tard) la retire :
+       chez eux, c'est un dislike, qui la passe en ANNULEE. */
+    $st = $pdo->prepare('SELECT id, statut FROM applications WHERE job_id = ? AND candidate_id = ?');
+    $st->execute([(int) $o['id'], $candId]);
+    $app = $st->fetch();
+    if ($app && in_array($app['statut'], ['envoyee', 'vue'], true)) {
+        $pdo->prepare('UPDATE applications SET statut = "retiree", updated_at = ? WHERE id = ?')->execute([maintenant(), (int) $app['id']]);
+        evenement($pdo, (int) $app['id'], $candId, 'retiree', ['motif' => 'changement_avis']);
     }
     $pdo->prepare(
         'INSERT INTO swipes (sens, job_id, candidate_id, acteur_id, decision, created_at) VALUES ("candidat",?,?,?,?,?)
          ON DUPLICATE KEY UPDATE decision = VALUES(decision), created_at = VALUES(created_at)'
     )->execute([(int) $o['id'], $candId, $candId, $decision, maintenant()]);
+    synchroniseEquipe($pdo, $candId, false);
     envoie(['ok' => true, 'candidature' => null, 'match' => null]);
 }
 
@@ -443,6 +471,7 @@ if (($a = route('DELETE', 'swipes/*', $seg, $methode)) !== false) {
         evenement($pdo, (int) $app['id'], $id, 'retiree');
     }
     $pdo->prepare('DELETE FROM swipes WHERE sens = "candidat" AND job_id = ? AND candidate_id = ?')->execute([$jobId, $id]);
+    synchroniseEquipe($pdo, $id, false);
     envoie(['ok' => true]);
 }
 
@@ -451,11 +480,14 @@ if (($a = route('DELETE', 'swipes/*', $seg, $methode)) !== false) {
 if (route('GET', 'interets', $seg, $methode) !== false) {
     $u = exigeConnexion('candidat');
     $id = (int) $u['id'];
+    // rattrapage et statuts : la reponse des recruteurs, lue chez eux
+    $equipeOk = synchroniseEquipe($pdo, $id, true);
     $st = $pdo->prepare(
         'SELECT s.decision, s.created_at AS quand, j.*,
                 c.name AS entreprise, c.sector AS secteur, c.size AS taille, c.pitch,
                 ms.qualite, ms.fit_recruteur, ms.fit_candidat, ms.confiance, ms.detail,
-                a.id AS application_id, a.statut AS application_statut, a.match_id
+                a.id AS application_id, a.statut AS application_statut, a.match_id,
+                a.equipe_statut, a.equipe_statut_le
            FROM swipes s
            JOIN jobs j ON j.id = s.job_id
            JOIN companies c ON c.id = j.company_id
@@ -492,10 +524,13 @@ if (route('GET', 'interets', $seg, $methode) !== false) {
         $o['decision'] = $ligne['decision'];
         $o['quand'] = $ligne['quand'];
         $o['match'] = $ligne['match_id'] === null ? null : (int) $ligne['match_id'];
-        $o['candidature'] = $ligne['application_id'] ? ['id' => (int) $ligne['application_id'], 'statut' => $ligne['application_statut']] : null;
+        $o['candidature'] = $ligne['application_id'] ? [
+            'id' => (int) $ligne['application_id'], 'statut' => $ligne['application_statut'],
+            'equipe' => $ligne['equipe_statut'], 'equipeLe' => $ligne['equipe_statut_le'],
+        ] : null;
         $out[] = $o;
     }
-    envoie(['interets' => $out]);
+    envoie(['interets' => $out, 'equipeConnecte' => $equipeOk]);
 }
 
 /* ============================================================ notifications */

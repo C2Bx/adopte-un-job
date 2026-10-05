@@ -196,6 +196,9 @@ export const api = {
     const d = await appel<{ interets: Interet[] }>('GET', 'interets')
     return d.interets
   },
+  /* La même liste, et si la synchronisation avec l'API de l'équipe a pu se faire. */
+  interetsSynchro: () => appel<{ interets: Interet[]; equipeConnecte: boolean }>('GET', 'interets'),
+  reconnexionEquipe: (motdepasse: string) => appel<{ ok: boolean; equipeConnecte: boolean }>('POST', 'auth/equipe', { motdepasse }),
 
   /* --------------------------------------------------------- candidatures */
   candidate: (offre: number, message?: string) => appel<{ candidature: Candidature }>('POST', 'candidatures', { offre, message }),

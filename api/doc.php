@@ -17,6 +17,7 @@ function routesDocumentees(): array
 
         ['POST', 'auth/inscription', 'Créer un compte — relayé vers POST /auth/register de l’API de l’équipe, qui exige prénom et nom', 'compte', 'public',
             ['email' => 'string', 'motdepasse' => 'string ≥ 12', 'prenom' => 'string', 'nom' => 'string'], ['jeton', 'utilisateur']],
+        ['POST', 'auth/equipe', 'Reprendre la synchronisation avec l’API de l’équipe (leur jeton dure 1 h) : le mot de passe courant est revérifié chez eux', 'compte', 'candidat', ['motdepasse' => 'string'], ['ok', 'equipeConnecte']],
         ['POST', 'auth/connexion', 'Ouvrir une session (cookie + jeton) — les identifiants sont vérifiés par POST /auth/login de l’API de l’équipe', 'compte', 'public', ['email' => 'string', 'motdepasse' => 'string'], ['jeton', 'utilisateur']],
         ['POST', 'auth/deconnexion', 'Fermer la session courante', 'compte', 'session'],
         ['GET', 'auth/moi', 'Le compte connecté', 'compte', 'public'],

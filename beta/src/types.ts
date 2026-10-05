@@ -162,8 +162,11 @@ export interface Interet extends Offre {
   decision: 'oui' | 'non' | 'plus_tard'
   quand: string
   match: number | null
-  candidature: { id: number; statut: StatutCandidature } | null
+  candidature: { id: number; statut: StatutCandidature; equipe?: StatutEquipe | null; equipeLe?: string | null } | null
 }
+
+/** La decision du recruteur, lue dans l'API de l'equipe (AVPRO-NC decide). */
+export type StatutEquipe = 'EN_ATTENTE' | 'VALIDEE' | 'REJETEE' | 'ANNULEE'
 
 export type StatutCandidature = 'envoyee' | 'vue' | 'preselection' | 'entretien' | 'acceptee' | 'refusee' | 'retiree'
 

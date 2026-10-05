@@ -257,3 +257,334 @@ function equipeReinit(string $code, string $nouveau): void
         erreur('code_invalide', 'Ce code est inconnu, expiré ou déjà utilisé.', 422);
     }
 }
+
+/* ======================================== synchronisation des candidatures
+   Depuis le 05/10/2026, leur API porte le cycle de candidature : le candidat
+   depose son profil (PUT /profils/moi), un like sur un AVP cree une
+   candidature EN_ATTENTE, un recruteur (AVPRO-NC) la passe en VALIDEE ou
+   REJETEE. Cette application reste le cote candidat : elle leur envoie le
+   profil et les swipes, et affiche la decision. Elle ne decide de rien.
+
+   Leurs routes candidat exigent le jeton de l'utilisateur (JWT, 1 h). Il est
+   garde ici, chiffre, dans la ligne de session : il meurt avec elle. Passe
+   l'heure, rien ne casse : ce qui n'a pas pu partir est marque, et repart a
+   la reconnexion suivante (synchroniseEquipe).
+
+   Aucune de ces fonctions n'echoue a voix haute : leur API arretee ne doit
+   jamais empecher de se connecter, d'enregistrer un profil ou de swiper. */
+
+/** La cle du jeton : derivee de la cle des CV, pour ne pas reutiliser la meme. */
+function cleJetonEquipe(): string
+{
+    return strlen(CV_CLE) === 64 ? hash_hmac('sha256', 'jeton-equipe', hex2bin(CV_CLE), true) : '';
+}
+
+/** Range leur jeton (LoginResponse) dans la session donnee. */
+function gardeJetonEquipe(PDO $pdo, string $session, array $login): void
+{
+    $jwt = (string) ($login['accessToken'] ?? '');
+    $cle = cleJetonEquipe();
+    if ($jwt === '' || $cle === '' || $session === '') {
+        return;
+    }
+    $iv = random_bytes(12);
+    $tag = '';
+    $c = openssl_encrypt($jwt, 'aes-256-gcm', $cle, OPENSSL_RAW_DATA, $iv, $tag);
+    if ($c === false) {
+        return;
+    }
+    // expiresIn : en secondes (au-dela de deux jours, ce seraient des millisecondes)
+    $ei = (int) ($login['expiresIn'] ?? 3600);
+    $s = $ei > 172800 ? intdiv($ei, 1000) : $ei;
+    try {
+        $pdo->prepare('UPDATE sessions SET equipe_jeton = ?, equipe_iv = ?, equipe_tag = ?, equipe_expire = ? WHERE token = ?')
+            ->execute([base64_encode($c), bin2hex($iv), bin2hex($tag), gmdate('Y-m-d H:i:s', time() + max(60, $s) - 60), $session]);
+    } catch (PDOException $e) {
+        // migration 008 pas encore appliquee : la synchro attendra
+    }
+}
+
+/** Leur jeton pour la session courante, s'il est encore valable. */
+function jetonEquipeSession(PDO $pdo): ?string
+{
+    $cle = cleJetonEquipe();
+    if ($cle === '' || baseEquipe() === '') {
+        return null;
+    }
+    try {
+        $st = $pdo->prepare('SELECT equipe_jeton, equipe_iv, equipe_tag FROM sessions WHERE token = ? AND equipe_expire > ?');
+        $st->execute([jeton(), maintenant()]);
+        $r = $st->fetch();
+    } catch (PDOException $e) {
+        return null;
+    }
+    if (!$r || !$r['equipe_jeton']) {
+        return null;
+    }
+    $jwt = openssl_decrypt((string) base64_decode((string) $r['equipe_jeton']), 'aes-256-gcm', $cle,
+        OPENSSL_RAW_DATA, hex2bin((string) $r['equipe_iv']), hex2bin((string) $r['equipe_tag']));
+    return $jwt === false ? null : $jwt;
+}
+
+/** Oublie leur jeton de la session courante (refuse par eux : 401). */
+function oublieJetonEquipe(PDO $pdo): void
+{
+    try {
+        $pdo->prepare('UPDATE sessions SET equipe_jeton = NULL, equipe_iv = NULL, equipe_tag = NULL, equipe_expire = NULL WHERE token = ?')
+            ->execute([jeton()]);
+    } catch (PDOException $e) {
+    }
+}
+
+/** Un appel a leur API pour le compte de l'utilisateur. Rend [code, corps decode]. */
+function appelEquipe(string $methode, string $chemin, string $jwt, ?array $corps = null, int $timeout = 10): array
+{
+    if (!function_exists('curl_init')) {
+        return [0, null];
+    }
+    $ch = curl_init(baseEquipe() . $chemin);
+    $entetes = ['Accept: application/json', 'User-Agent: adopte-un-job/1.0', 'Authorization: Bearer ' . $jwt];
+    $opts = [CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => $methode, CURLOPT_CONNECTTIMEOUT => 6,
+             CURLOPT_TIMEOUT => $timeout, CURLOPT_SSL_VERIFYPEER => !SSL_INSECURE];
+    if ($corps !== null) {
+        $entetes[] = 'Content-Type: application/json';
+        $opts[CURLOPT_POSTFIELDS] = json_encode($corps === [] ? new stdClass() : $corps, JSON_UNESCAPED_UNICODE);
+    }
+    $opts[CURLOPT_HTTPHEADER] = $entetes;
+    curl_setopt_array($ch, $opts);
+    $r = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+    if ($r === false) {
+        return [0, null];
+    }
+    $d = json_decode((string) $r, true);
+    return [$code, is_array($d) ? $d : null];
+}
+
+/** Leur identifiant d'AVP pour une offre d'ici. La cle commune est la reference OPT. */
+function avpIdEquipe(array $job): ?int
+{
+    // 1. memorise a la synchronisation (jobPostingDepuisEquipe : source_equipe.id)
+    $pile = [json_decode((string) ($job['json_data'] ?? ''), true)];
+    while ($pile) {
+        $x = array_pop($pile);
+        if (!is_array($x)) {
+            continue;
+        }
+        foreach ($x as $k => $v) {
+            if ($k === 'source_equipe' && is_array($v) && !empty($v['id'])) {
+                return (int) $v['id'];
+            }
+            if (is_array($v)) {
+                $pile[] = $v;
+            }
+        }
+    }
+    // 2. sinon, leur catalogue public, une fois par requete
+    static $carte = null;
+    if ($carte === null) {
+        $carte = [];
+        foreach (avpDepuisEquipe() ?? [] as $a) {
+            if (isset($a['reference'], $a['id'])) {
+                $carte[(string) $a['reference']] = (int) $a['id'];
+            }
+        }
+    }
+    return $carte[(string) ($job['external_id'] ?? '')] ?? null;
+}
+
+/** Leur connexion, sans jamais echouer : [] si elle n'aboutit pas. */
+function loginEquipeSilencieux(string $email, string $mdp): array
+{
+    if (baseEquipe() === '') {
+        return [];
+    }
+    [$code, $corps] = httpPostJson(baseEquipe() . '/auth/login', ['email' => $email, 'password' => $mdp], [], 15);
+    $d = json_decode((string) $corps, true);
+    return ($code >= 200 && $code < 300 && is_array($d)) ? $d : [];
+}
+
+/**
+ * Apres un enregistrement de profil : le profil est marque « a renvoyer »,
+ * et part tout de suite si le dernier envoi date de plus de 30 s. L'ecran de
+ * profil enregistre a chaque pause de frappe : sans ce frein, chaque mot
+ * deviendrait un appel a leur API. Ce qui n'est pas parti part a la
+ * synchronisation suivante.
+ */
+function profilModifieEquipe(PDO $pdo, int $userId): void
+{
+    try {
+        $st = $pdo->prepare('SELECT equipe_profil_le FROM candidates WHERE user_id = ?');
+        $st->execute([$userId]);
+        $dernier = $st->fetchColumn();
+        $pdo->prepare('UPDATE candidates SET equipe_profil_le = NULL WHERE user_id = ?')->execute([$userId]);
+    } catch (PDOException $e) {
+        return;
+    }
+    if ($dernier && strtotime($dernier . ' UTC') > time() - 30) {
+        return;
+    }
+    $jwt = jetonEquipeSession($pdo);
+    if ($jwt !== null) {
+        envoieProfilEquipe($pdo, $userId, $jwt);
+    }
+}
+
+/** PUT /profils/moi : le profil, au format JSON Resume. */
+function envoieProfilEquipe(PDO $pdo, int $userId, string $jwt): bool
+{
+    require_once __DIR__ . '/documents.php';
+    $st = $pdo->prepare('SELECT email FROM users WHERE id = ?');
+    $st->execute([$userId]);
+    $doc = jsonResume(profilComplet($pdo, $userId), (string) $st->fetchColumn());
+    [$code, ] = appelEquipe('PUT', '/profils/moi', $jwt, $doc, 15);
+    if ($code === 401) {
+        oublieJetonEquipe($pdo);
+    }
+    if ($code >= 200 && $code < 300) {
+        try {
+            $pdo->prepare('UPDATE candidates SET equipe_profil_le = ? WHERE user_id = ?')->execute([maintenant(), $userId]);
+        } catch (PDOException $e) {
+        }
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Le swipe chez eux : like = candidature EN_ATTENTE, dislike = ANNULEE.
+ * Rend leur code HTTP (0 : pas parti). 409 = deja tranchee par un recruteur,
+ * 400 = date limite passee, 403 = pas de profil chez eux.
+ */
+function envoieSwipeEquipe(PDO $pdo, int $userId, array $job, bool $like, string $jwt): int
+{
+    $avp = avpIdEquipe($job);
+    if ($avp === null) {
+        return 0;
+    }
+    [$code, ] = appelEquipe('PUT', '/swipes/candidats/avp/' . $avp, $jwt, ['estLike' => $like]);
+    if ($code === 403 && envoieProfilEquipe($pdo, $userId, $jwt)) {
+        // pas encore de profil chez eux : il vient de partir, on reessaie
+        [$code, ] = appelEquipe('PUT', '/swipes/candidats/avp/' . $avp, $jwt, ['estLike' => $like]);
+    }
+    if ($code === 401) {
+        oublieJetonEquipe($pdo);
+        return $code;
+    }
+    if (($code >= 200 && $code < 300) || $code === 409) {
+        try {
+            if ($like) {
+                $pdo->prepare('UPDATE applications SET equipe_envoi_le = ? WHERE job_id = ? AND candidate_id = ?')
+                    ->execute([maintenant(), (int) $job['id'], $userId]);
+            } else {
+                $pdo->prepare('UPDATE applications SET equipe_envoi_le = ?, equipe_statut = "ANNULEE", equipe_statut_le = ? WHERE job_id = ? AND candidate_id = ?')
+                    ->execute([maintenant(), maintenant(), (int) $job['id'], $userId]);
+            }
+        } catch (PDOException $e) {
+        }
+    }
+    return $code;
+}
+
+/** GET /candidatures/moi : les statuts decides chez eux, rapportes sur les candidatures d'ici. */
+function lisStatutsEquipe(PDO $pdo, int $userId, string $jwt): bool
+{
+    $statuts = [];
+    for ($page = 1, $pages = 1; $page <= $pages && $page <= 20; $page++) {
+        [$code, $d] = appelEquipe('GET', '/candidatures/moi?page=' . $page . '&taille=100', $jwt);
+        if ($code === 401) {
+            oublieJetonEquipe($pdo);
+            return false;
+        }
+        if ($code !== 200 || !is_array($d)) {
+            return false;
+        }
+        foreach ((array) ($d['contenu'] ?? []) as $c) {
+            if (isset($c['avpReference'], $c['statut'])) {
+                $statuts[(string) $c['avpReference']] = (string) $c['statut'];
+            }
+        }
+        $pages = max(1, (int) ($d['totalPages'] ?? 1));
+    }
+    try {
+        $maj = $pdo->prepare('UPDATE applications a JOIN jobs j ON j.id = a.job_id
+                                 SET a.equipe_statut = ?, a.equipe_statut_le = ?
+                               WHERE a.candidate_id = ? AND j.external_id = ?');
+        foreach ($statuts as $ref => $s) {
+            if (in_array($s, ['EN_ATTENTE', 'VALIDEE', 'REJETEE', 'ANNULEE'], true)) {
+                $maj->execute([$s, maintenant(), $userId, $ref]);
+            }
+        }
+    } catch (PDOException $e) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Rattrapage : le profil s'il n'est jamais parti, les candidatures restees en
+ * route, les retraits pas encore transmis, puis les statuts. Borne a 25 envois.
+ * Rend true si leur jeton est disponible (la synchro a pu se faire).
+ */
+function synchroniseEquipe(PDO $pdo, int $userId, bool $statuts = true): bool
+{
+    $jwt = jetonEquipeSession($pdo);
+    if ($jwt === null) {
+        return false;
+    }
+    try {
+        $st = $pdo->prepare('SELECT equipe_profil_le FROM candidates WHERE user_id = ?');
+        $st->execute([$userId]);
+        if ($st->fetchColumn() === null) {
+            envoieProfilEquipe($pdo, $userId, $jwt);
+        }
+        $st = $pdo->prepare(
+            'SELECT a.statut AS a_statut, a.equipe_envoi_le, a.equipe_statut, j.* FROM applications a JOIN jobs j ON j.id = a.job_id
+              WHERE a.candidate_id = ? AND (
+                    (a.statut IN ("envoyee","vue") AND a.equipe_envoi_le IS NULL)
+                 OR (a.statut = "retiree" AND a.equipe_envoi_le IS NOT NULL AND (a.equipe_statut IS NULL OR a.equipe_statut = "EN_ATTENTE")))
+              LIMIT 25'
+        );
+        $st->execute([$userId]);
+        foreach ($st->fetchAll() as $r) {
+            $like = $r['a_statut'] !== 'retiree';
+            if ($like && $r['expires_at'] !== null && $r['expires_at'] <= maintenant()) {
+                continue;                       // offre expiree : refusee chez eux (400)
+            }
+            if (envoieSwipeEquipe($pdo, $userId, $r, $like, $jwt) === 401) {
+                return false;
+            }
+        }
+    } catch (PDOException $e) {
+        return false;
+    }
+    if ($statuts) {
+        lisStatutsEquipe($pdo, $userId, $jwt);
+    }
+    return true;
+}
+
+/**
+ * Avant l'anonymisation d'un compte : chez eux, rien ne se supprime (aucune
+ * route DELETE). On vide au moins le profil et on annule les candidatures en
+ * attente. Leur compte, lui, subsiste : a leur demander.
+ */
+function effaceChezEquipe(PDO $pdo, int $userId): void
+{
+    $jwt = jetonEquipeSession($pdo);
+    if ($jwt === null) {
+        return;
+    }
+    appelEquipe('PUT', '/profils/moi', $jwt, []);
+    try {
+        $st = $pdo->prepare('SELECT j.* FROM applications a JOIN jobs j ON j.id = a.job_id
+                              WHERE a.candidate_id = ? AND a.equipe_envoi_le IS NOT NULL
+                                AND (a.equipe_statut IS NULL OR a.equipe_statut = "EN_ATTENTE") LIMIT 50');
+        $st->execute([$userId]);
+        foreach ($st->fetchAll() as $j) {
+            envoieSwipeEquipe($pdo, $userId, $j, false, $jwt);
+        }
+    } catch (PDOException $e) {
+    }
+}

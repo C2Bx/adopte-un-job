@@ -169,6 +169,7 @@ if (($a = route('PUT', 'candidatures/*/statut', $seg, $methode)) !== false) {
         ->execute([maintenant(), (int) $cand['id']]);
     evenement($pdo, (int) $cand['id'], (int) $u['id'], 'retiree', ['motif' => mb_substr((string) champ('motif', ''), 0, 500) ?: null]);
     trace((int) $u['id'], 'statut_candidature_retiree', 'application', (int) $cand['id']);
+    synchroniseEquipe($pdo, (int) $u['id'], false);
     envoie(['candidature' => candidaturePublique($pdo, candidatureParId($pdo, (int) $cand['id']))]);
 }
 
