@@ -80,7 +80,51 @@ function arboPartenaire(string $code): string
             @mkdir($base . $sous, 0750, true);
         }
     }
+    verrouilleFtps($base);
     return $base;
+}
+
+/** Les deux comptes FTPS de la passerelle (cf. outils/passerelle_comptes.py). */
+const FTPS_COMPTE_DEPOT = 'avp-echange';
+const FTPS_COMPTE_LECTURE = 'avp-lecture';
+
+/**
+ * Les CV et les profils se LISENT, ils ne se deposent pas.
+ *
+ * Plesk accepte un reglage « lecture seule » sur un compte FTP supplementaire,
+ * mais l'ignore sous Linux : tous les comptes d'un abonnement sont le meme
+ * utilisateur systeme. Ce qui tient, c'est le serveur FTP lui-meme (ProFTPD),
+ * par un `.ftpaccess` dans chaque dossier :
+ *
+ *   - partout : aucune ecriture, aucun chmod, pour les deux comptes ;
+ *   - entrant/ : le compte de depot y ecrit, et seulement des `.json` — un PDF,
+ *     une image ou un dossier sont refuses au moment du depot (« Forbidden
+ *     filename »), avant meme d'arriver sur le disque.
+ *
+ * Les regles visent les comptes par leur nom : un compte d'administration
+ * temporaire (passerelle_comptes.py) garde la main pour reparer. Le veilleur,
+ * lui, ecrit par le systeme de fichiers et n'est pas concerne. Il les reecrit a
+ * chaque passage : une arborescence recreee retrouve ses verrous toute seule.
+ * Verifie le 05/10/2026 : ecriture, suppression, renommage, chmod et creation
+ * de dossier refuses ; lecture intacte.
+ */
+function verrouilleFtps(string $base): void
+{
+    $lecture = "<Limit WRITE SITE_CHMOD>\n"
+             . "  DenyUser " . FTPS_COMPTE_DEPOT . "\n"
+             . "  DenyUser " . FTPS_COMPTE_LECTURE . "\n"
+             . "</Limit>\n";
+    $depot = "<Limit WRITE>\n"
+           . "  AllowUser " . FTPS_COMPTE_DEPOT . "\n"
+           . "</Limit>\n"
+           . "<Limit MKD XMKD RMD XRMD SITE_CHMOD>\n"
+           . "  DenyUser " . FTPS_COMPTE_DEPOT . "\n"
+           . "</Limit>\n"
+           . 'PathAllowFilter "' . chr(92) . '.[jJ][sS][oO][nN]$"' . "\n";
+    // l'exception d'abord : le parent verrouille, entrant/ doit deja la porter
+    ecritSiChange("$base/entrant/.ftpaccess", $depot);
+    ecritSiChange("$base/sortant/.ftpaccess", $lecture);   // le compte lecture est chroote ici
+    ecritSiChange("$base/.ftpaccess", $lecture);
 }
 
 /* ============================================================== le sortant */
@@ -430,6 +474,11 @@ function ingereEntrant(PDO $pdo): array
             }
 
             $octets = (int) filesize($chemin);
+            /* Un document qui n'est pas du JSON (un CV en PDF deguise en .json,
+               par exemple) n'est pas garde : rejets/ n'est pas un second depot
+               de CV. Seule la raison reste. */
+            $conserve = $raison === null
+                || json_decode((string) file_get_contents($chemin), true, 32) !== null;
             if ($raison === null) {
                 $mois = gmdate('Y-m');
                 @mkdir("$base/traites/$mois", 0750, true);
@@ -437,9 +486,15 @@ function ingereEntrant(PDO $pdo): array
                 journalEchange($pdo, $code, 'entrant', $nom, 'accepte', "profil $uid mis à jour", $uid, $octets);
                 $acceptes++;
             } else {
-                rename($chemin, "$base/rejets/$nom");
+                if ($conserve) {
+                    rename($chemin, "$base/rejets/$nom");
+                } else {
+                    unlink($chemin);
+                }
                 file_put_contents("$base/rejets/$nom.erreur.txt",
                     "Refusé le " . maintenant() . " (UTC)\n\n$raison\n\n"
+                    . ($conserve ? '' : "Ce n'est pas du JSON : le fichier n'a pas été conservé.\n"
+                        . "Les CV se lisent dans sortant/cv/, ils ne se déposent pas.\n\n")
                     . "Le format attendu est JSON Resume (jsonresume.org).\n"
                     . "\n"
                     . "Pour que le fichier retombe sur la bonne personne, gardez le nom que porte\n"
