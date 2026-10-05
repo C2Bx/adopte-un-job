@@ -113,3 +113,25 @@
 /* Métiers visés : les pastilles, la liste et la famille se touchaient. */
 .pmetiers { display: grid; gap: var(--s3); }
 .pmetiers > select { width: 100%; }
+
+/* Sur la carte (fond sombre), les listes prenaient les couleurs des pages
+   claires (--ink-2, --line) : texte sombre sur fond sombre. */
+.card .missions { color: var(--stage-ink-2); }
+.card .missions li::marker { color: var(--stage-ink-2); }
+.card .missions.ecarts li { color: #FFB3A8; }
+.card .criteres li { border-bottom-color: var(--stage-line); }
+.card .criteres span { color: var(--stage-ink-2); }
+.card .criteres b { color: var(--stage-ink); }
+
+/* La recherche reste à gauche quand on fait défiler les filtres : collée au
+   bord de la barre (sticky dans le conteneur qui défile), sur un fond opaque
+   qui masque les chips qui passent dessous. Le fondu de gauche de la barre est
+   retiré, sinon il estomperait la recherche elle-même. */
+.filtres-avp {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent 100%);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent 100%);
+}
+.filtres-avp .recherche {
+  position: sticky; left: 0; z-index: 2;
+  box-shadow: calc(var(--s4) * -1) 0 0 var(--bg), 12px 0 14px -6px var(--bg);
+}

@@ -9,7 +9,7 @@
    cacher la carte. Le glissé gauche/droite reste le geste du produit ; un
    « oui » est une candidature. */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
 import { manques } from '../regles'
 import { Attente } from '../Attente'
@@ -460,6 +460,23 @@ function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, 
   const pages = useMemo(() => pagesDe(o), [o])
   const [page, setPage] = useState(0)
   const courante = pages[page] ?? pages[0]!
+
+  /* Une page trop longue pour la carte (dix compétences, six missions) ne doit
+     pas être coupée net : elle devient défilable, et le bas s'estompe pour le
+     montrer (`.page-body.deborde`). Le glissé de la carte ne réagit qu'au
+     mouvement horizontal, le défilement vertical reste libre. */
+  const corps = useRef<HTMLDivElement>(null)
+  const [deborde, setDeborde] = useState(false)
+  useLayoutEffect(() => {
+    const el = corps.current
+    if (!el) return
+    el.scrollTop = 0
+    const mesure = () => setDeborde(el.scrollHeight > el.clientHeight + 2)
+    mesure()
+    const ro = new ResizeObserver(mesure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [page, o])
   const close = o.statut !== 'publiee' || (o.joursRestants !== null && o.joursRestants < 0)
 
   /* Le glissé. La capture du pointeur n'est prise qu'après un vrai mouvement :
@@ -570,7 +587,7 @@ function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, 
 
         <div className="pagebox">
           {courante.titre && <div className="page-lead">{courante.titre}</div>}
-          <div className="page-body">{courante.corps}</div>
+          <div ref={corps} className={`page-body${deborde ? ' deborde' : ''}`}>{courante.corps}</div>
         </div>
       </div>
 
