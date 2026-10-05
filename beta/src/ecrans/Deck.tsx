@@ -1,20 +1,17 @@
-/* Le deck. Les offres et leur score viennent du serveur : un score calculé dans
-   le navigateur se modifie dans le navigateur.
-
-   Depuis le 21/09, les offres sont les AVP réels de l'OPT-NC. Les filtres sont
-   ceux de l'API OPT (ville, province, famille, direction, contrat, encadrement)
-   et ils viennent du serveur avec leurs comptes : une puce n'apparaît que si
-   elle filtre quelque chose. Rien n'élimine : un profil peut candidater à
-   n'importe quel poste, et un écart (zone, contrat…) s'affiche au lieu de
-   cacher la carte. Le glissé gauche/droite reste le geste du produit ; un
-   « oui » est une candidature. */
+/* Le deck : les AVP réels de l'OPT-NC, lus dans l'API de l'équipe une fois par
+   chargement. Les filtres s'appliquent ensuite dans le navigateur (filtres.ts) :
+   plusieurs choix par catégorie, compteurs qui disent ce qu'on verrait en
+   touchant une puce, effet instantané. Le glissé gauche/droite reste le geste
+   du produit ; un « oui » est une candidature. */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
 import { manques } from '../regles'
 import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
-import type { Facettes, Filtres, Offre, Profil } from '../types'
+import type { Offre, Profil } from '../types'
+import { CATEGORIES, OPTIONS, basculeOption, basculeValeur, compteurs, efface, nbActifs, resultats } from '../filtres'
+import type { Categorie, Compteurs, Filtres } from '../filtres'
 
 /* Les directions de l'OPT arrivent en capitales sans accents (« DIRECTION DE LA
    POSTE… ») : on les rend lisibles sans prétendre restituer les accents. */
@@ -115,8 +112,8 @@ const kf = (n: number) => `${Math.round(n / 1000)} k`
 
 export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   const barreFiltres = useGlisseHorizontal<HTMLDivElement>()
-  const [offres, setOffres] = useState<Offre[] | null>(null)
-  const [facettes, setFacettes] = useState<Facettes | null>(null)
+  // toutes les offres du jeu courant (ouvertes ou closes) ; les filtres s'y appliquent sans réseau
+  const [toutes, setToutes] = useState<Offre[] | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
   const [envoyee, setEnvoyee] = useState<{ offre: Offre; entrainement: boolean } | null>(null)
@@ -128,20 +125,23 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
 
   const aCombler = manques(profil)
 
-  const charge = useCallback(async (f: Filtres) => {
-    if (aCombler.length) { setOffres([]); return }
+  const charge = useCallback(async (clos: boolean) => {
+    if (aCombler.length) { setToutes([]); return }
     setErreur(null)
+    setToutes(null)
     try {
-      const d = await api.deck(f)
-      setOffres(d.offres)
-      setFacettes(d.facettes)
+      setToutes(await api.deck(clos))
     } catch (e) {
-      setOffres([])
+      setToutes([])
       setErreur(e instanceof ErreurApi ? e.message : 'Le deck n’a pas pu être chargé.')
     }
   }, [aCombler.length])
 
-  useEffect(() => { void charge(filtres) }, [charge, filtres])
+  // on ne recharge que si le jeu change (ouvertes ↔ closes) ; le reste filtre sur place
+  useEffect(() => { void charge(Boolean(filtres.clos)) }, [charge, filtres.clos])
+
+  const offres = useMemo(() => (toutes ? resultats(toutes, filtres) : null), [toutes, filtres])
+  const comptes = useMemo(() => (toutes ? compteurs(toutes, filtres) : null), [toutes, filtres])
 
   // La recherche part quand la frappe s'arrête, pas à chaque lettre.
   useEffect(() => {
@@ -200,14 +200,14 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
     setEnCours(true)
     // On retire la carte tout de suite : attendre le réseau pour la faire
     // disparaître donnerait l'impression que le geste n'a pas été pris.
-    setOffres((l) => (l ?? []).filter((x) => x.id !== o.id))
+    setToutes((l) => (l ?? []).filter((x) => x.id !== o.id))
     setDernier(o)
     try {
       const r = await api.swipe(o.id, decision)
       if (decision === 'oui') setEnvoyee({ offre: o, entrainement: o.statut === 'close' && r.ok })
       onDecision?.()
     } catch (e) {
-      setOffres((l) => [o, ...(l ?? [])])
+      setToutes((l) => [o, ...(l ?? [])])
       setDernier(null)
       setErreur(e instanceof ErreurApi ? e.message : 'La décision n’a pas été enregistrée.')
     } finally {
@@ -220,7 +220,7 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
     setEnCours(true)
     try {
       await api.annuleSwipe(dernier.id)
-      setOffres((l) => [dernier, ...(l ?? [])])
+      setToutes((l) => [dernier, ...(l ?? [])])
       setDernier(null)
       onDecision?.()
     } catch (e) {
@@ -230,9 +230,8 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
     }
   }
 
-  const actifs = Object.entries(filtres).filter(([k, v]) => k !== 'q' && v).length
-  const bascule = (k: keyof Filtres, v: string | boolean) =>
-    setFiltres((f) => ({ ...f, [k]: f[k] === v ? undefined : v }))
+  const actifs = nbActifs(filtres)
+  const toutEffacer = () => { setFiltres(efface); setRecherche('') }
 
   return (
     <div className="screen" id="ec-swipe">
@@ -242,9 +241,10 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
             type="search" className="recherche" value={recherche} placeholder="Chercher un poste, un mot, un service…"
             onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher dans les offres"
           />
-          <button className="chip" aria-pressed={actifs === 0 && !filtres.q}
-            onClick={() => { setFiltres({}); setRecherche('') }}>Pour toi</button>
-          {facettes && <Puces f={filtres} facettes={facettes} bascule={bascule} />}
+          {comptes && (
+            <Puces f={filtres} comptes={comptes} total={offres?.length ?? 0} actifs={actifs}
+              change={setFiltres} toutEffacer={toutEffacer} />
+          )}
         </div>
 
         <div className="zone-deck">
@@ -253,14 +253,14 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
           {offres !== null && !courante && (
             <div className="empty">
               <div>
-                <h2>{actifs || filtres.q ? 'Aucune offre avec ces filtres' : 'Tu as vu tout ce qui correspond'}</h2>
+                <h2>{actifs ? 'Aucune offre avec ces filtres' : 'Tu as vu tout ce qui correspond'}</h2>
                 <p>
-                  {erreur ?? (actifs || filtres.q
-                    ? 'Tes filtres sont trop stricts pour ce qui reste. Retire-en un, ou touche « Pour toi ».'
+                  {erreur ?? (actifs
+                    ? 'Tes filtres sont trop stricts pour ce qui reste : retire-en un, ou efface-les tous.'
                     : 'Aucune autre offre ouverte aujourd’hui. Les AVP de l’OPT-NC arrivent au fil de l’eau — reviens demain, ou entraîne-toi sur les offres closes.')}
                 </p>
-                <div className="btns" style={{ marginTop: 'var(--s5)', justifyContent: 'center' }}>
-                  {(actifs > 0 || filtres.q) && <button className="btn primaire" onClick={() => { setFiltres({}); setRecherche('') }}>Tout réafficher</button>}
+                <div className="btns vide-actions">
+                  {actifs > 0 && <button className="btn primaire" onClick={toutEffacer}>Effacer les filtres</button>}
                   {!filtres.clos && <button className="btn" onClick={() => setFiltres((f) => ({ ...f, clos: true }))}>M’entraîner sur les offres closes</button>}
                 </div>
               </div>
@@ -321,36 +321,52 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
 
 /* ------------------------------------------------------------------ filtres */
 
-/* Les puces viennent des facettes du serveur : chaque valeur avec son compte
-   sur les offres ouvertes. Une valeur à zéro n'est pas affichée — sauf si
-   elle est active, pour ne pas disparaître sous le doigt. */
-function Puces({ f, facettes, bascule }: { f: Filtres; facettes: Facettes; bascule: (k: keyof Filtres, v: string | boolean) => void }) {
-  /* `prefixe` qualifie la puce quand son libellé ne suffit pas : « Services
-     bancaires » est à la fois une famille de métiers et une direction de
-     l'OPT, et deux boutons au même nom avec deux comptes différents ne se
-     distinguent pas. */
-  const chip = (k: keyof Filtres, v: string | boolean, nom: string, n?: number, prefixe?: string) => {
-    const on = f[k] === v
-    if (!on && n !== undefined && n === 0) return null
+/* Les puces, rangées par catégorie (Lieu, Métier, Direction, Contrat, puis les
+   options). Une puce active est pleine, avec une croix ; une puce inactive dit
+   combien d'offres on verrait en la touchant. « Effacer » n'apparaît que s'il y
+   a quelque chose à effacer, avec le nombre de filtres actifs. */
+function Puces({ f, comptes, total, actifs, change, toutEffacer }: {
+  f: Filtres
+  comptes: Compteurs
+  total: number
+  actifs: number
+  change: (maj: (f: Filtres) => Filtres) => void
+  toutEffacer: () => void
+}) {
+  const puce = (cle: string, on: boolean, nom: string, n: number, agir: () => void, titre?: string) => {
+    if (!on && n === 0) return null
     return (
-      <button key={`${k}:${String(v)}`} className="chip" aria-pressed={on} onClick={() => bascule(k, v)}
-        aria-label={prefixe ? `${prefixe} ${nom}` : undefined}>
-        {prefixe && <i className="pre">{prefixe}</i>}{nom}{n !== undefined && <span className="cpt">{n}</span>}
+      <button key={cle} className={`chip${on ? ' on' : ''}`} aria-pressed={on} onClick={agir}
+        aria-label={`${titre ? `${titre} : ` : ''}${nom}${on ? ', actif : toucher pour retirer' : `, ${n} offre${n > 1 ? 's' : ''}`}`}>
+        {nom}
+        {on ? <span className="croix" aria-hidden="true">✕</span> : <span className="cpt">{n}</span>}
       </button>
     )
   }
+  const libelle = (cle: Categorie, v: string) => (cle === 'directions' ? libDirection(v) : v)
   return (
     <>
-      {facettes.ville.slice(0, 6).map((x) => chip('ville', x.valeur, x.valeur, x.n))}
-      {facettes.province.length > 1 && facettes.province.map((x) => chip('province', x.valeur, x.valeur.replace('province ', ''), x.n))}
-      {facettes.famille.slice(0, 8).map((x) => chip('famille', x.valeur, x.valeur, x.n))}
-      {facettes.contrat.length > 1 && facettes.contrat.map((x) => chip('contrat', x.valeur, x.valeur, x.n))}
-      {chip('teletravail', true, 'Télétravail', facettes.teletravail)}
-      {chip('encadrement', true, 'Encadrement', facettes.encadrement)}
-      {chip('debutant', true, 'Débutant accepté', facettes.debutant)}
-      {chip('salaire', true, 'Salaire annoncé', facettes.salaire)}
-      {facettes.direction.slice(0, 4).map((x) => chip('direction', x.valeur, libDirection(x.valeur), x.n, 'Direction'))}
-      {chip('clos', true, 'Offres closes (entraînement)')}
+      <span className="filtres-total" aria-live="polite"><b>{total}</b> offre{total > 1 ? 's' : ''}</span>
+      {actifs > 0 && (
+        <button className="chip efface" onClick={toutEffacer}>Effacer <span className="cpt">{actifs}</span></button>
+      )}
+      {CATEGORIES.map(({ cle, titre }) => {
+        const valeurs = comptes.categories[cle].filter((x) => x.n > 0 || f[cle]?.includes(x.valeur))
+        if (valeurs.length < 2 && !f[cle]?.length) return null       // une seule valeur ne filtre rien
+        return [
+          <span key={`t:${cle}`} className="filtres-groupe">{titre}</span>,
+          ...valeurs.map((x) => puce(`${cle}:${x.valeur}`, Boolean(f[cle]?.includes(x.valeur)),
+            libelle(cle, x.valeur), x.n, () => change((g) => basculeValeur(g, cle, x.valeur)), titre)),
+        ]
+      })}
+      <span className="filtres-groupe">Options</span>
+      {OPTIONS.map(({ cle, titre }) => puce(`o:${cle}`, Boolean(f[cle]), titre, comptes.options[cle],
+        () => change((g) => basculeOption(g, cle))))}
+      <span className="filtres-groupe">Offres</span>
+      <button className={`chip${f.clos ? ' on' : ''}`} aria-pressed={Boolean(f.clos)}
+        onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: g.clos ? undefined : true }))}>
+        {f.clos ? <>Offres closes <span className="croix" aria-hidden="true">✕</span></> : 'Offres closes (entraînement)'}
+      </button>
     </>
   )
 }

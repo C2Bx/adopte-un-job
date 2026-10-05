@@ -136,40 +136,6 @@ export type StatutEquipe = 'EN_ATTENTE' | 'VALIDEE' | 'REJETEE' | 'ANNULEE'
 
 export type StatutCandidature = 'envoyee' | 'vue' | 'preselection' | 'entretien' | 'acceptee' | 'refusee' | 'retiree'
 
-export interface Facettes {
-  ville: { valeur: string; n: number }[]
-  province: { valeur: string; n: number }[]
-  direction: { valeur: string; n: number }[]
-  contrat: { valeur: string; n: number }[]
-  zone: { valeur: string; n: number }[]
-  source: { valeur: string; n: number }[]
-  famille: { valeur: string; n: number }[]
-  metier: { valeur: string; nom: string | null; n: number }[]
-  teletravail: number
-  encadrement: number
-  debutant: number
-  salaire: number
-}
-
-/** Les filtres du catalogue et du deck — les mêmes que ceux de l'API OPT. */
-export interface Filtres {
-  q?: string
-  ville?: string
-  province?: string
-  famille?: string
-  direction?: string
-  contrat?: string
-  zone?: string
-  metier?: string
-  teletravail?: boolean
-  encadrement?: boolean
-  debutant?: boolean
-  salaire?: boolean
-  source?: '' | 'app' | 'opt'
-  statut?: 'ouvert' | 'clos' | 'tous'
-  clos?: boolean
-}
-
 export interface CvInfo {
   id: number
   nom: string

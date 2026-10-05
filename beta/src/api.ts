@@ -17,7 +17,7 @@
 
 import { ErreurApi } from './types'
 import type {
-  CompetenceOpt, CvInfo, Facettes, Filtres, Interet, MetierOpt, Offre, Profil, ProfilEnvoi,
+  CompetenceOpt, CvInfo, Interet, MetierOpt, Offre, Profil, ProfilEnvoi,
   Referentiels, StatutCandidature, StatutEquipe, Utilisateur,
 } from './types'
 
@@ -271,56 +271,6 @@ function offres(): Promise<Offre[]> {
     offresCache = { quand: Date.now(), offres: p }
   }
   return offresCache.offres
-}
-
-function texteRecherche(o: Offre): string {
-  return plat([o.titre, o.description, o.metierOpt, o.direction, o.unite, o.ville, ...o.familles,
-    ...o.responsabilites, ...o.competencesTexte.map((c) => c.texte)].filter(Boolean).join(' '))
-}
-
-function passeFiltres(o: Offre, f: Filtres): boolean {
-  if (f.q && !plat(f.q).split(/\s+/).every((m) => texteRecherche(o).includes(m))) return false
-  if (f.ville && o.ville !== f.ville) return false
-  if (f.province && o.province !== f.province) return false
-  if (f.famille && !o.familles.includes(f.famille)) return false
-  if (f.direction && o.direction !== f.direction) return false
-  if (f.contrat && o.contrat !== f.contrat) return false
-  if (f.zone && o.zone !== f.zone) return false
-  if (f.metier && o.codeMetier !== f.metier) return false
-  if (f.teletravail && o.teletravail === 'non') return false
-  if (f.encadrement && !(o.nbAgentsEncadres && o.nbAgentsEncadres > 0)) return false
-  if (f.debutant && o.experienceMin > 0) return false
-  if (f.salaire && !o.salaire) return false
-  return true
-}
-
-function facettesDe(l: Offre[]): Facettes {
-  const compte = (vals: (string | null)[]) => {
-    const m = new Map<string, number>()
-    for (const v of vals) if (v) m.set(v, (m.get(v) ?? 0) + 1)
-    return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([valeur, n]) => ({ valeur, n }))
-  }
-  const metiers = new Map<string, { nom: string | null; n: number }>()
-  for (const o of l) {
-    if (!o.codeMetier) continue
-    const x = metiers.get(o.codeMetier) ?? { nom: o.metierOpt, n: 0 }
-    x.n++
-    metiers.set(o.codeMetier, x)
-  }
-  return {
-    ville: compte(l.map((o) => o.ville)),
-    province: compte(l.map((o) => o.province)),
-    direction: compte(l.map((o) => o.direction)),
-    contrat: compte(l.map((o) => o.contrat)),
-    zone: compte(l.map((o) => o.zone)),
-    source: [],
-    famille: compte(l.flatMap((o) => o.familles)),
-    metier: [...metiers.entries()].map(([valeur, x]) => ({ valeur, nom: x.nom, n: x.n })),
-    teletravail: l.filter((o) => o.teletravail !== 'non').length,
-    encadrement: l.filter((o) => (o.nbAgentsEncadres ?? 0) > 0).length,
-    debutant: l.filter((o) => o.experienceMin === 0).length,
-    salaire: l.filter((o) => o.salaire).length,
-  }
 }
 
 /* ======================================== « plus tard » et retours arrière */
@@ -717,16 +667,19 @@ export const api = {
   },
 
   /* ----------------------------------------------------------------- deck */
-  async deck(f: Filtres = {}) {
+  /**
+   * Les offres du deck : ouvertes (ou closes, pour s'entraîner), sans celles
+   * déjà décidées ni mises de côté, les plus urgentes d'abord. Les filtres
+   * s'appliquent ensuite dans le navigateur (filtres.ts), sans rappel réseau.
+   */
+  async deck(clos = false) {
     const [toutes, swipes] = await Promise.all([offres(), toutesPages<SwipeEquipe>('/swipes/candidats')])
     const l = local()
     const decides = new Set(swipes.map((s) => s.avpId).filter((id) => !l.rendus.includes(id)))
     const plusTard = new Set(l.plusTard.map((x) => x.id))
-    const base = toutes.filter((o) => (f.clos ? o.statut === 'close' : o.statut !== 'close')
-      && !decides.has(o.id) && !plusTard.has(o.id))
-    const filtrees = base.filter((o) => passeFiltres(o, f))
+    return toutes
+      .filter((o) => (clos ? o.statut === 'close' : o.statut !== 'close') && !decides.has(o.id) && !plusTard.has(o.id))
       .sort((a, b) => (a.joursRestants ?? 9999) - (b.joursRestants ?? 9999))
-    return { offres: filtrees, facettes: facettesDe(base), filtres: f }
   },
   async vue(_id: number, _source: string) { return { ok: true } },
   async swipe(offre: number, decision: 'oui' | 'non' | 'plus_tard', _message?: string) {
