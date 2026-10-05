@@ -389,3 +389,10 @@
 .card .teinte { position: absolute; inset: 0; pointer-events: none; z-index: 1; border-radius: inherit; transition: opacity .1s; }
 .card .teinte.oui { background: color-mix(in srgb, var(--yes) 14%, transparent); }
 .card .teinte.non { background: color-mix(in srgb, var(--no) 14%, transparent); }
+
+/* « Voir l'offre » ouvre le détail sur téléphone ; sur grand écran, le détail est
+   déjà affiché à côté de la carte : le bouton n'y sert à rien. */
+@media (min-width: 1100px) {
+  .card .score-btn { display: none; }
+  .card .hero-top:not(:has(> :not(.score-btn))) { display: none; }
+}
