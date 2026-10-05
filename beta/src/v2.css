@@ -149,3 +149,13 @@
   #ec-swipe > .stack { grid-template-areas: "deck filtres" "deck panneau"; }
   #ec-swipe .filters { padding-left: 0; padding-right: 0; }
 }
+
+/* Une pastille qui porte une croix « Retirer » : le style n'existait que pour
+   les compétences rattachées automatiquement (.pchip.lib). Une compétence
+   choisie à la main gardait un bouton blanc, celui du navigateur. */
+.pchip:has(> button) { display: inline-flex; align-items: center; gap: 6px; padding-right: 6px; }
+.pchip > button { border: none; background: rgba(255,255,255,.25); color: inherit; cursor: pointer;
+  width: 22px; height: 22px; border-radius: var(--r-full); font-size: 11px; display: grid; place-items: center; }
+.pchip > button:hover { background: rgba(255,255,255,.4); }
+/* les pastilles et le champ de recherche qui suit se touchaient */
+.pchips + .psaisie { margin-top: var(--s3); }
