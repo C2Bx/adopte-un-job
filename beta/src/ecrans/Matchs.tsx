@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
-import { BlocEntete, BlocPoste, Detail, Feuille } from './Deck'
+import { Detail, Feuille } from './Deck'
 import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
 import type { Interet, StatutCandidature, StatutEquipe } from '../types'
@@ -244,8 +244,7 @@ export function EcranMatchs() {
           {choisi
             ? (
               <>
-                <div className="col-p"><BlocEntete offre={choisi} /></div>
-                <div className="col-p"><BlocPoste offre={choisi} /></div>
+                <Detail offre={choisi} />
               </>
             )
             : <p className="vide-p">Choisis une offre à gauche pour voir son détail.</p>}

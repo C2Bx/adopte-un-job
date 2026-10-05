@@ -309,12 +309,12 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
           )}
         </div>
 
-        {courante && <Panneau offre={courante} />}
+        {courante && <Panneau offre={courante} profil={profil} />}
       </div>
 
       {detail && (
         <Feuille onFermer={() => setDetail(null)}>
-          <Detail offre={detail} />
+          <Detail offre={detail} profil={profil} />
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
             <button className="btn primaire" onClick={() => setDetail(null)}>Fermer</button>
           </div>
@@ -796,89 +796,128 @@ export function Feuille({ onFermer, children }: { onFermer: () => void; children
 
 /* ------------------------------------------------------------ le détail */
 
-/* L'en-tête du détail : le poste, l'employeur, la référence. */
-export function BlocEntete({ offre: o }: { offre: Offre }) {
+/* ------------------------------------------------- le détail de l'offre */
+
+/** « SECTION MAGASINS ET TRANSPORTS » → « Section magasins et transports » (les AVP arrivent en capitales). */
+function casse(t: string | null): string | null {
+  if (!t) return null
+  if (t !== t.toUpperCase() || !/[A-ZÀ-Ý]/.test(t)) return t
+  const bas = t.toLowerCase().replace(/[a-zà-ÿ']+/g, (m) => ACCENTS[m] ?? m)
+  return bas.charAt(0).toUpperCase() + bas.slice(1)
+}
+const date = (d: string | null) => {
+  if (!d) return null
+  const t = new Date(`${d.slice(0, 10)}T12:00:00`)
+  return Number.isNaN(t.getTime()) ? d : t.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+/* L'en-tête : l'employeur et la direction, le poste, puis les mêmes pastilles
+   que sur la carte (lieu, contrat, clôture, repères du profil). */
+export function BlocEntete({ offre: o, profil }: { offre: Offre; profil?: Profil }) {
   return (
-    <>
-      <div className="titre">{o.titre}</div>
-      <div className="org">
-        {o.entreprise} · {o.contrat} · {o.ville ?? o.zone}
-        {o.reference ? ` · réf. ${o.reference}` : ''}
+    <header className="do-entete">
+      <div className="do-org">{employeur(o)}{o.direction ? ` · ${libDirection(o.direction)}` : ''}</div>
+      <h2 className="do-titre">{o.titre}</h2>
+      <div className="cles">
+        {(o.ville ?? o.zone) && <span className="cle">{o.ville ?? o.zone}</span>}
+        <span className="cle">{o.contrat}</span>
+        {o.teletravail !== 'non' && <span className="cle">Télétravail {o.teletravail}</span>}
+        {o.joursRestants !== null && o.joursRestants >= 0 && (
+          <span className={`cle${o.joursRestants <= 7 ? ' urgent' : ''}`}>
+            {o.joursRestants === 0 ? 'Dernier jour' : `Clôture dans ${o.joursRestants} j`}
+          </span>
+        )}
+        {o.joursRestants !== null && o.joursRestants < 0 && <span className="cle">Close</span>}
+        {profil && o.codeMetier && profil.metiersOpt.some((m) => m.code === o.codeMetier) && <span className="cle moi">Dans tes métiers visés</span>}
+        {profil && profil.zones.includes(o.zone) && <span className="cle moi">Dans ta zone</span>}
       </div>
-    </>
+    </header>
   )
 }
 
-/* Le poste tel que l'AVP le décrit : missions, attentes, conditions. */
-export function BlocPoste({ offre: o }: { offre: Offre }) {
-  const lignes = (o.description ?? '').split('•').map((x) => x.trim()).filter(Boolean)
-  const [tete, ...puces] = lignes
+/* Le poste : la description, les missions, puis ce qu'il demande, rangé en
+   savoir-faire et connaissances (celles qu'on a déjà sont surlignées). */
+export function BlocPoste({ offre: o, profil }: { offre: Offre; profil?: Profil }) {
+  const [tete, ...puces] = (o.description ?? '').split('•').map((x) => x.trim()).filter(Boolean)
+  const mots = profil ? motsDuProfil(profil) : []
+  const savoirFaire = o.competencesTexte.filter((c) => c.type !== 'connaissance')
+  const connaissances = o.competencesTexte.filter((c) => c.type === 'connaissance')
+  const acquises = o.competencesTexte.filter((c) => jeLAi(c.texte, mots)).length
+  const etiquettes = (l: { texte: string }[]) => (
+    <div className="tags">
+      {l.map((c) => <span key={c.texte} className={jeLAi(c.texte, mots) ? 'has' : ''}>{c.texte}</span>)}
+    </div>
+  )
   return (
-    <>
-      {o.description && (
-        <>
+    <div className="do-poste">
+      {tete && (
+        <section>
           <h3>Le poste</h3>
-          <p style={{ fontSize: 'var(--t-sm)', color: 'var(--ink-2)', margin: '0 0 var(--s3)' }}>{tete}</p>
-          {puces.length > 0 && (
-            <ul style={{ margin: 0, paddingLeft: 'var(--s5)', fontSize: 'var(--t-sm)', color: 'var(--ink-2)' }}>
-              {puces.map((m) => <li key={m} style={{ marginBottom: 'var(--s2)' }}>{m}</li>)}
-            </ul>
-          )}
-        </>
+          <p className="do-desc">{tete}</p>
+          {puces.length > 0 && <ul className="do-liste">{puces.map((m) => <li key={m}>{m}</li>)}</ul>}
+        </section>
       )}
       {o.responsabilites.length > 0 && (
-        <>
-          <h3>Missions</h3>
-          <ul style={{ margin: 0, paddingLeft: 'var(--s5)', fontSize: 'var(--t-sm)', color: 'var(--ink-2)' }}>
-            {o.responsabilites.map((m) => <li key={m} style={{ marginBottom: 'var(--s2)' }}>{m}</li>)}
-          </ul>
-        </>
+        <section>
+          <h3>Missions <span className="do-n">{o.responsabilites.length}</span></h3>
+          <ul className="do-liste">{o.responsabilites.map((m) => <li key={m}>{m}</li>)}</ul>
+        </section>
       )}
       {o.competencesTexte.length > 0 && (
-        <>
-          <h3>Attentes du poste</h3>
-          <div className="tags">
-            {o.competencesTexte.map((c) => <span key={c.texte} className={c.type === 'connaissance' ? 'doux' : ''}>{c.texte}</span>)}
-          </div>
-        </>
+        <section>
+          <h3>Ce que le poste demande{acquises > 0 && <span className="do-acquis">{acquises} chez toi</span>}</h3>
+          {savoirFaire.length > 0 && <><div className="do-sous">Savoir-faire et savoir-être</div>{etiquettes(savoirFaire)}</>}
+          {connaissances.length > 0 && <><div className="do-sous">Connaissances</div>{etiquettes(connaissances)}</>}
+        </section>
       )}
-      <h3>{o.source === 'opt' ? 'L’AVP' : 'L’organisation'}</h3>
-      {o.pitch && <p style={{ fontSize: 'var(--t-sm)', color: 'var(--ink-2)', margin: '0 0 var(--s3)' }}>{o.pitch}</p>}
-      <dl className="kv2">
-        {o.direction && <><dt>Direction</dt><dd>{o.direction}</dd></>}
-        {o.unite && <><dt>Unité</dt><dd>{o.unite}</dd></>}
-        {o.metierOpt && <><dt>Métier OPT</dt><dd>{o.metierOpt}{o.codeMetier ? ` (${o.codeMetier})` : ''}</dd></>}
-        {o.familles.length > 0 && <><dt>Famille</dt><dd>{o.familles.join(', ')}</dd></>}
-        {(o.lieu || o.adresse) && <><dt>Lieu</dt><dd>{[o.lieu, o.adresse].filter(Boolean).join(', ')}</dd></>}
-        {o.conditions && <><dt>Horaires</dt><dd>{o.conditions}</dd></>}
-        {o.avantages && <><dt>Indemnités</dt><dd>{o.avantages}</dd></>}
-        {o.exigencesPhysiques && <><dt>Conditions physiques</dt><dd>{o.exigencesPhysiques}</dd></>}
-        {o.qualifications && <><dt>Habilitations</dt><dd>{o.qualifications}</dd></>}
-        {o.experienceTexte && <><dt>Expérience</dt><dd>{o.experienceTexte}</dd></>}
-        {o.taille && <><dt>Effectif</dt><dd>{o.taille} agents</dd></>}
-        <dt>Publiée</dt><dd>{(o.datePublication ?? o.publiee ?? '').slice(0, 10) || '—'}</dd>
-        {o.expire && <><dt>Clôture</dt><dd>{o.expire.slice(0, 10)}</dd></>}
-        {o.url && <><dt>Source</dt><dd><a href={o.url} target="_blank" rel="noreferrer">annonce officielle</a></dd></>}
-      </dl>
-    </>
+    </div>
   )
 }
 
-/** Dans une feuille, tout à la suite : il n'y a qu'une colonne. */
-export function Detail({ offre: o }: { offre: Offre }) {
+/* « En bref » : les faits de l'AVP, sans capitales criardes, dates en clair. */
+export function EnBref({ offre: o }: { offre: Offre }) {
+  const lignes: [string, React.ReactNode][] = []
+  const ajoute = (k: string, v: React.ReactNode) => { if (v) lignes.push([k, v]) }
+  ajoute('Direction', o.direction ? libDirection(o.direction) : null)
+  ajoute('Unité', casse(o.unite))
+  ajoute('Métier OPT', o.metierOpt ? `${casse(o.metierOpt)}${o.codeMetier ? ` (${o.codeMetier})` : ''}` : null)
+  ajoute('Famille', o.familles.join(', '))
+  ajoute('Lieu', [casse(o.lieu), o.adresse].filter(Boolean).join(', '))
+  ajoute('Prise de poste', o.debut ? (/^\d{4}-\d{2}/.test(o.debut) ? date(`${o.debut}-01`)?.replace(/^1er? /, '') : o.debut) : null)
+  ajoute('Expérience', o.experienceTexte)
+  ajoute('Horaires', o.conditions)
+  ajoute('Habilitations', o.qualifications)
+  ajoute('Conditions physiques', o.exigencesPhysiques)
+  ajoute('Indemnités', o.avantages)
+  ajoute('Publiée le', date(o.datePublication ?? o.publiee))
+  ajoute('Clôture le', date(o.expire))
+  ajoute('Référence', o.reference)
   return (
-    <>
-      <BlocEntete offre={o} />
-      <BlocPoste offre={o} />
-    </>
+    <aside className="do-bref">
+      <h3>En bref</h3>
+      <dl>{lignes.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+      {o.url && <a className="do-lien" href={o.url} target="_blank" rel="noreferrer">Fiche métier OPT-NC ↗</a>}
+    </aside>
   )
 }
 
-function Panneau({ offre: o }: { offre: Offre }) {
+/** Le détail complet : à côté du deck, dans une feuille sur téléphone, dans Candidatures. */
+export function Detail({ offre: o, profil }: { offre: Offre; profil?: Profil }) {
+  return (
+    <div className="detail-offre">
+      <div className="do-principal">
+        <BlocEntete offre={o} profil={profil} />
+        <BlocPoste offre={o} profil={profil} />
+      </div>
+      <EnBref offre={o} />
+    </div>
+  )
+}
+
+function Panneau({ offre: o, profil }: { offre: Offre; profil: Profil }) {
   return (
     <aside className="side panneau" id="side">
-      <div className="col-p"><BlocEntete offre={o} /></div>
-      <div className="col-p"><BlocPoste offre={o} /></div>
+      <Detail offre={o} profil={profil} />
     </aside>
   )
 }
