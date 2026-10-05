@@ -57,6 +57,7 @@ function useGlisseHorizontal<T extends HTMLElement>() {
     const bas = (ev: PointerEvent) => {
       if (ev.pointerType === 'touch') return                     // le doigt fait mieux
       if ((ev.target as HTMLElement).closest('input, textarea')) return   // on saisit, on ne glisse pas
+      if (barre.scrollWidth <= barre.clientWidth + 1) return     // barre à la ligne (souris) : rien à faire glisser
       tire = { x: ev.clientX, left: barre.scrollLeft, bouge: false, id: ev.pointerId }
     }
     const bouge = (ev: PointerEvent) => {
@@ -84,6 +85,7 @@ function useGlisseHorizontal<T extends HTMLElement>() {
     }
     const molette = (ev: WheelEvent) => {
       if (Math.abs(ev.deltaY) <= Math.abs(ev.deltaX)) return     // déjà horizontal
+      if (barre.scrollWidth <= barre.clientWidth + 1) return     // rien à défiler : la molette fait défiler la page
       barre.scrollLeft += ev.deltaY
       ev.preventDefault()
     }
@@ -120,6 +122,8 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   const [detail, setDetail] = useState<Offre | null>(null)
   const [filtres, setFiltres] = useState<Filtres>({})
   const [recherche, setRecherche] = useState('')
+  // à la souris, la barre passe à la ligne : repliée sur deux lignes, dépliable
+  const [deplie, setDeplie] = useState(false)
   const [dernier, setDernier] = useState<Offre | null>(null)
   const vu = useRef<Set<number>>(new Set())
 
@@ -236,11 +240,14 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   return (
     <div className="screen" id="ec-swipe">
       <div className="stack">
-        <div className="filters filtres-avp" ref={barreFiltres}>
+        <div className={`filters filtres-avp${deplie ? ' deplie' : ''}`} ref={barreFiltres}>
           <input
             type="search" className="recherche" value={recherche} placeholder="Chercher un poste, un mot, un service…"
             onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher dans les offres"
           />
+          <button type="button" className="chip bascule-filtres" aria-expanded={deplie} onClick={() => setDeplie((d) => !d)}>
+            {deplie ? 'Moins de filtres ▴' : 'Tous les filtres ▾'}
+          </button>
           {comptes && (
             <Puces f={filtres} comptes={comptes} total={offres?.length ?? 0} actifs={actifs}
               change={setFiltres} toutEffacer={toutEffacer} />

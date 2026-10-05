@@ -206,3 +206,22 @@
 .card .coins .fav    { color: #2F6FD1; }
 .card .coins .non    { color: #D64545; }
 .card .coins .oui    { color: #12946A; }
+
+/* --- filtres à la souris (grand écran, pointeur précis) ---------------------
+   Une barre qui défile à l'horizontale se manie bien au doigt, mal à la souris.
+   Ici les puces passent à la ligne, repliées sur deux lignes ; « Tous les
+   filtres » déplie le reste. Au doigt, la barre défilante reste. */
+.bascule-filtres { display: none; }
+@media (min-width: 1100px) and (pointer: fine) {
+  #ec-swipe .filtres-avp {
+    flex-wrap: wrap; overflow: hidden; row-gap: var(--s2);
+    max-height: calc(2 * 38px + var(--s2) + var(--s3) + var(--s2));
+    -webkit-mask-image: none; mask-image: none; cursor: default;
+  }
+  #ec-swipe .filtres-avp.deplie { max-height: none; overflow: visible; }
+  #ec-swipe .filtres-avp .recherche { position: static; box-shadow: none; }
+  .bascule-filtres { display: inline-flex; order: -1; border-style: dashed; color: var(--brand); }
+  #ec-swipe .filtres-avp .recherche { order: -2; }
+  .filtres-total { order: -1; }
+  .chip.efface { order: -1; }
+}
