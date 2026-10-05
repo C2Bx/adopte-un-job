@@ -122,8 +122,8 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   const [detail, setDetail] = useState<Offre | null>(null)
   const [filtres, setFiltres] = useState<Filtres>({})
   const [recherche, setRecherche] = useState('')
-  // à la souris, la barre passe à la ligne : repliée sur deux lignes, dépliable
-  const [deplie, setDeplie] = useState(false)
+  // le panneau des filtres (une feuille, sur téléphone comme sur ordinateur)
+  const [panneauFiltres, setPanneauFiltres] = useState(false)
   const [dernier, setDernier] = useState<Offre | null>(null)
   const vu = useRef<Set<number>>(new Set())
 
@@ -240,17 +240,14 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   return (
     <div className="screen" id="ec-swipe">
       <div className="stack">
-        <div className={`filters filtres-avp${deplie ? ' deplie' : ''}`} ref={barreFiltres}>
+        <div className="filters filtres-avp" ref={barreFiltres}>
           <input
             type="search" className="recherche" value={recherche} placeholder="Chercher un poste, un mot, un service…"
             onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher dans les offres"
           />
-          <button type="button" className="chip bascule-filtres" aria-expanded={deplie} onClick={() => setDeplie((d) => !d)}>
-            {deplie ? 'Moins de filtres ▴' : 'Tous les filtres ▾'}
-          </button>
           {comptes && (
-            <Puces f={filtres} comptes={comptes} total={offres?.length ?? 0} actifs={actifs}
-              change={setFiltres} toutEffacer={toutEffacer} />
+            <BarreFiltres f={filtres} total={offres?.length ?? 0} actifs={actifs}
+              ouvre={() => setPanneauFiltres(true)} change={setFiltres} toutEffacer={toutEffacer} />
           )}
         </div>
 
@@ -305,6 +302,13 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
         </Feuille>
       )}
 
+      {panneauFiltres && comptes && (
+        <Feuille onFermer={() => setPanneauFiltres(false)}>
+          <PanneauFiltres f={filtres} comptes={comptes} total={offres?.length ?? 0} actifs={actifs}
+            change={setFiltres} toutEffacer={toutEffacer} fermer={() => setPanneauFiltres(false)} />
+        </Feuille>
+      )}
+
       {envoyee && (
         <Feuille onFermer={() => setEnvoyee(null)}>
           <div className="eyebrow">{envoyee.entrainement ? 'Entraînement' : 'Candidature envoyée'}</div>
@@ -328,53 +332,101 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
 
 /* ------------------------------------------------------------------ filtres */
 
-/* Les puces, rangées par catégorie (Lieu, Métier, Direction, Contrat, puis les
-   options). Une puce active est pleine, avec une croix ; une puce inactive dit
-   combien d'offres on verrait en la touchant. « Effacer » n'apparaît que s'il y
-   a quelque chose à effacer, avec le nombre de filtres actifs. */
-function Puces({ f, comptes, total, actifs, change, toutEffacer }: {
-  f: Filtres
-  comptes: Compteurs
-  total: number
-  actifs: number
-  change: (maj: (f: Filtres) => Filtres) => void
-  toutEffacer: () => void
+type Maj = (maj: (f: Filtres) => Filtres) => void
+
+const libelleValeur = (cle: Categorie, v: string) => (cle === 'directions' ? libDirection(v) : v)
+
+/* La barre : la recherche, le bouton qui ouvre le panneau, puis les filtres
+   ACTIFS seulement, chacun retirable d'une croix. On voit d'un coup d'œil ce
+   qui filtre, et le nombre d'offres qui restent. */
+function BarreFiltres({ f, total, actifs, ouvre, change, toutEffacer }: {
+  f: Filtres; total: number; actifs: number; ouvre: () => void; change: Maj; toutEffacer: () => void
 }) {
-  const puce = (cle: string, on: boolean, nom: string, n: number, agir: () => void, titre?: string) => {
-    if (!on && n === 0) return null
-    return (
-      <button key={cle} className={`chip${on ? ' on' : ''}`} aria-pressed={on} onClick={agir}
-        aria-label={`${titre ? `${titre} : ` : ''}${nom}${on ? ', actif : toucher pour retirer' : `, ${n} offre${n > 1 ? 's' : ''}`}`}>
-        {nom}
-        {on ? <span className="croix" aria-hidden="true">✕</span> : <span className="cpt">{n}</span>}
-      </button>
-    )
-  }
-  const libelle = (cle: Categorie, v: string) => (cle === 'directions' ? libDirection(v) : v)
+  const nbFiltres = actifs - (f.q ? 1 : 0)
   return (
     <>
-      <span className="filtres-total" aria-live="polite"><b>{total}</b> offre{total > 1 ? 's' : ''}</span>
-      {actifs > 0 && (
-        <button className="chip efface" onClick={toutEffacer}>Effacer <span className="cpt">{actifs}</span></button>
-      )}
-      {CATEGORIES.map(({ cle, titre }) => {
-        const valeurs = comptes.categories[cle].filter((x) => x.n > 0 || f[cle]?.includes(x.valeur))
-        if (valeurs.length < 2 && !f[cle]?.length) return null       // une seule valeur ne filtre rien
-        return [
-          <span key={`t:${cle}`} className="filtres-groupe">{titre}</span>,
-          ...valeurs.map((x) => puce(`${cle}:${x.valeur}`, Boolean(f[cle]?.includes(x.valeur)),
-            libelle(cle, x.valeur), x.n, () => change((g) => basculeValeur(g, cle, x.valeur)), titre)),
-        ]
-      })}
-      <span className="filtres-groupe">Options</span>
-      {OPTIONS.map(({ cle, titre }) => puce(`o:${cle}`, Boolean(f[cle]), titre, comptes.options[cle],
-        () => change((g) => basculeOption(g, cle))))}
-      <span className="filtres-groupe">Offres</span>
-      <button className={`chip${f.clos ? ' on' : ''}`} aria-pressed={Boolean(f.clos)}
-        onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: g.clos ? undefined : true }))}>
-        {f.clos ? <>Offres closes <span className="croix" aria-hidden="true">✕</span></> : 'Offres closes (entraînement)'}
+      <button type="button" className={`chip ouvre-filtres${nbFiltres ? ' on' : ''}`} onClick={ouvre} aria-haspopup="dialog">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
+        Filtres{nbFiltres > 0 && <span className="pastille">{nbFiltres}</span>}
       </button>
+      {f.clos && (
+        <button className="chip actif" onClick={() => change((g) => ({ ...efface(g), q: g.q }))}>
+          Offres closes <span className="croix" aria-hidden="true">✕</span>
+        </button>
+      )}
+      {CATEGORIES.flatMap(({ cle, titre }) => (f[cle] ?? []).map((v) => (
+        <button key={`${cle}:${v}`} className="chip actif" aria-label={`Retirer le filtre ${titre} : ${libelleValeur(cle, v)}`}
+          onClick={() => change((g) => basculeValeur(g, cle, v))}>
+          {libelleValeur(cle, v)} <span className="croix" aria-hidden="true">✕</span>
+        </button>
+      )))}
+      {OPTIONS.filter(({ cle }) => f[cle]).map(({ cle, titre }) => (
+        <button key={cle} className="chip actif" aria-label={`Retirer le filtre ${titre}`}
+          onClick={() => change((g) => basculeOption(g, cle))}>
+          {titre} <span className="croix" aria-hidden="true">✕</span>
+        </button>
+      ))}
+      {actifs > 0 && <button className="lien-efface" onClick={toutEffacer}>Tout effacer</button>}
+      <span className="filtres-total" aria-live="polite"><b>{total}</b> offre{total > 1 ? 's' : ''}</span>
     </>
+  )
+}
+
+/* Le panneau : une section par catégorie, des cases à cocher avec, pour
+   chacune, le nombre d'offres qu'on verrait en la cochant compte tenu du reste.
+   Plusieurs cases dans une section = l'une OU l'autre ; d'une section à
+   l'autre = les deux. Le bouton du bas dit combien d'offres on va voir. */
+function PanneauFiltres({ f, comptes, total, actifs, change, toutEffacer, fermer }: {
+  f: Filtres; comptes: Compteurs; total: number; actifs: number; change: Maj; toutEffacer: () => void; fermer: () => void
+}) {
+  const ligne = (cle: string, coche: boolean, nom: string, n: number, agir: () => void) => (
+    <label key={cle} className={`pf-ligne${!coche && n === 0 ? ' vide' : ''}`}>
+      <input type="checkbox" checked={coche} disabled={!coche && n === 0} onChange={agir} />
+      <span className="pf-nom">{nom}</span>
+      <span className="pf-n">{n}</span>
+    </label>
+  )
+  return (
+    <div className="pf">
+      <div className="pf-tete">
+        <h2>Filtres</h2>
+        <p>{total} offre{total > 1 ? 's' : ''} correspond{total > 1 ? 'ent' : ''}</p>
+      </div>
+
+      <div className="pf-jeu" role="radiogroup" aria-label="Offres à afficher">
+        <button role="radio" aria-checked={!f.clos} className={!f.clos ? 'on' : ''}
+          onClick={() => change((g) => ({ ...efface(g), q: g.q }))}>Ouvertes</button>
+        <button role="radio" aria-checked={Boolean(f.clos)} className={f.clos ? 'on' : ''}
+          onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: true }))}>Closes (entraînement)</button>
+      </div>
+
+      {CATEGORIES.map(({ cle, titre }) => {
+        const valeurs = comptes.categories[cle]
+        if (valeurs.length < 2 && !f[cle]?.length) return null       // une seule valeur ne filtre rien
+        return (
+          <section key={cle} className="pf-section">
+            <h3>{titre}{f[cle]?.length ? <span className="pf-choix">{f[cle]!.length} choisi{f[cle]!.length > 1 ? 's' : ''}</span> : null}</h3>
+            <div className="pf-lignes">
+              {valeurs.map((x) => ligne(`${cle}:${x.valeur}`, Boolean(f[cle]?.includes(x.valeur)),
+                libelleValeur(cle, x.valeur), x.n, () => change((g) => basculeValeur(g, cle, x.valeur))))}
+            </div>
+          </section>
+        )
+      })}
+
+      <section className="pf-section">
+        <h3>Options</h3>
+        <div className="pf-lignes">
+          {OPTIONS.map(({ cle, titre }) => ligne(`o:${cle}`, Boolean(f[cle]), titre, comptes.options[cle],
+            () => change((g) => basculeOption(g, cle))))}
+        </div>
+      </section>
+
+      <div className="pf-pied">
+        <button className="btn" disabled={actifs === 0} onClick={toutEffacer}>Tout effacer</button>
+        <button className="btn primaire" onClick={fermer}>Voir {total} offre{total > 1 ? 's' : ''}</button>
+      </div>
+    </div>
   )
 }
 

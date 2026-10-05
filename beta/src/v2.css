@@ -207,27 +207,45 @@
 .card .coins .non    { color: #D64545; }
 .card .coins .oui    { color: #12946A; }
 
-/* --- filtres à la souris (grand écran, pointeur précis) ---------------------
-   Une barre qui défile à l'horizontale se manie bien au doigt, mal à la souris.
-   Ici les puces passent à la ligne, repliées sur deux lignes ; « Tous les
-   filtres » déplie le reste. Au doigt, la barre défilante reste. */
-.bascule-filtres { display: none; }
-@media (min-width: 1100px) and (pointer: fine) {
-  #ec-swipe .filtres-avp {
-    flex-wrap: wrap; overflow: hidden; row-gap: var(--s2);
-    max-height: calc(2 * 38px + var(--s2) + var(--s3) + var(--s2));
-    -webkit-mask-image: none; mask-image: none; cursor: default;
-  }
-  #ec-swipe .filtres-avp.deplie { max-height: none; overflow: visible; }
-  #ec-swipe .filtres-avp .recherche { position: static; box-shadow: none; }
-  .bascule-filtres { display: inline-flex; order: -1; border-style: dashed; color: var(--brand); }
-  #ec-swipe .filtres-avp .recherche { order: -2; }
-  .filtres-total { order: -1; }
-  .chip.efface { order: -1; }
-}
 
 /* carte : pas de dégradé, fond un peu plus soutenu que la page ; les étiquettes
    et le bouton « Voir l'offre » restent blancs pour se détacher du fond */
 .card { --stage: color-mix(in srgb, var(--surface) 94%, var(--ink)); }
 .card .stage { background: none; }
 .card .tags span, .card .score { background: var(--surface); }
+
+/* --- barre et panneau des filtres ----------------------------------------- */
+.filtres-avp { flex-wrap: nowrap; }
+.chip.ouvre-filtres { font-weight: 700; color: var(--ink); }
+.chip.ouvre-filtres svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.chip.ouvre-filtres .pastille { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--r-full);
+  background: var(--brand-ink); color: var(--brand); font-size: var(--t-xs); display: grid; place-items: center; }
+.chip.actif { background: color-mix(in srgb, var(--brand) 10%, var(--surface)); border-color: var(--brand); color: var(--brand); }
+.chip.actif .croix { background: color-mix(in srgb, var(--brand) 16%, transparent); }
+.chip.actif:hover { background: color-mix(in srgb, var(--brand) 18%, var(--surface)); }
+.lien-efface { flex: none; border: none; background: none; color: var(--ink-2); font: inherit; font-size: var(--t-sm);
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 0 var(--s2); white-space: nowrap; }
+.lien-efface:hover { color: var(--no); }
+.filtres-total { margin-left: auto; }
+
+.pf { display: grid; gap: var(--s4); text-align: left; }
+.pf-tete h2 { text-align: left; margin: 0; }
+.pf-tete p { margin: 2px 0 0; color: var(--ink-2); font-size: var(--t-sm); }
+.pf-jeu { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: var(--r-full);
+  background: var(--surface-2); }
+.pf-jeu button { border: none; background: transparent; border-radius: var(--r-full); padding: 8px var(--s3);
+  font: inherit; font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.pf-jeu button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(15, 26, 43, .12); }
+.pf-section h3 { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2);
+  font-size: var(--t-xs); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 var(--s2); }
+.pf-choix { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--brand); }
+.pf-lignes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px var(--s4); }
+.pf-ligne { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--s2);
+  padding: 8px var(--s2); border-radius: var(--r-sm); cursor: pointer; font-size: var(--t-sm); color: var(--ink); }
+.pf-ligne:hover { background: var(--surface-2); }
+.pf-ligne input { width: 18px; height: 18px; accent-color: var(--brand); margin: 0; cursor: pointer; }
+.pf-ligne .pf-n { font-family: var(--font-num); font-size: var(--t-xs); color: var(--ink-3); }
+.pf-ligne.vide { color: var(--ink-3); cursor: default; }
+.pf-ligne.vide input { cursor: default; }
+.pf-pied { position: sticky; bottom: calc(var(--s4) * -1); display: grid; grid-template-columns: auto 1fr; gap: var(--s3);
+  padding: var(--s3) 0 var(--s4); background: var(--surface); border-top: 1px solid var(--line); margin-top: var(--s2); }
