@@ -288,3 +288,18 @@
   .app:has(#ec-swipe:not(.verrouille)) #ec-swipe > .stack { padding-top: var(--s4); }
   .app:has(#ec-swipe:not(.verrouille)) #ec-swipe .filters { margin-top: 56px; }
 }
+
+/* Grand écran : la carte à DROITE, les filtres et le détail de l'offre à gauche.
+   L'en-tête (logo, déconnexion) flotte au-dessus de la colonne de gauche ; il
+   s'arrête avant la colonne de la carte (460 px au plus), sans jamais la couvrir. */
+@media (min-width: 1100px) {
+  #ec-swipe > .stack {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 460px);
+    grid-template-areas: "filtres deck" "panneau deck";
+    padding-left: var(--s7); padding-right: var(--s4);
+  }
+  .app:has(#ec-swipe:not(.verrouille)) .topbar {
+    left: 92px; right: calc(var(--s4) + 460px + var(--s7));
+    padding: var(--s4) 0 0 var(--s7);
+  }
+}
