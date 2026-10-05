@@ -60,8 +60,11 @@ unset($query['p']);
 $url = CIBLE . $chemin . ($query ? '?' . http_build_query($query) : '');
 
 $entetes = ['Accept: ' . ($_SERVER['HTTP_ACCEPT'] ?? 'application/json')];
-if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-    $entetes[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
+// Apache ne passe l'en-tete a PHP que par le .htaccess (SetEnvIf), parfois
+// sous le nom REDIRECT_ apres une reecriture.
+$auth = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+if ($auth !== '') {
+    $entetes[] = 'Authorization: ' . $auth;
 } elseif (function_exists('getallheaders')) {
     foreach (getallheaders() as $k => $v) {
         if (strcasecmp($k, 'Authorization') === 0) {

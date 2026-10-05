@@ -2,6 +2,11 @@
 # Les en-tetes de securite de la page sont poses par index.php lui-meme
 # (scripts/index-php.mjs).
 
+# Apache ne transmet pas l'en-tete Authorization a PHP : sans cette ligne, le
+# relais (relais.php) envoie les requetes a l'API de l'equipe SANS le jeton de
+# la personne, l'API repond 401 et l'interface la renvoie a la connexion.
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
 # Une adresse qui n'existe pas, ou fermee, rend la page d'erreur de
 # l'application plutot que celle d'Apache.
 ErrorDocument 404 /avp/404.php
