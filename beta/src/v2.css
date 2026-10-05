@@ -317,12 +317,12 @@
    (fait pour signaler une barre qui défile) coupait « 21 offres », posé au bout. */
 .filtres-avp { -webkit-mask-image: none; mask-image: none; padding-right: var(--s2); }
 
-/* Grand écran : 35 % à gauche (filtres, détail), 65 % à droite (la carte).
+/* Grand écran : 65 % à gauche (filtres, détail), 35 % à droite (la carte).
    L'en-tête flotte sur la colonne de gauche et s'arrête avant la carte : sa
-   limite droite reprend la même répartition (65 % de la largeur utile). */
+   limite droite reprend la même répartition (35 % de la largeur utile). */
 @media (min-width: 1100px) {
-  #ec-swipe > .stack { grid-template-columns: minmax(0, 35fr) minmax(340px, 65fr); }
+  #ec-swipe > .stack { grid-template-columns: minmax(0, 65fr) minmax(340px, 35fr); }
   .app:has(#ec-swipe:not(.verrouille)) .topbar {
-    right: calc(var(--s4) + var(--s7) + (100% - 92px - 2 * var(--s7) - var(--s4)) * .65);
+    right: calc(var(--s4) + var(--s7) + max(340px, (100% - 92px - 2 * var(--s7) - var(--s4)) * .35));
   }
 }
