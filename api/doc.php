@@ -48,8 +48,8 @@ function routesDocumentees(): array
             ['nom', 'mime', 'octets', 'sha256', 'moteur', 'version', 'brut', 'retenu'], ['cv']],
         ['GET', 'profil/cv/{id}', 'Un CV et sa dernière lecture', 'cv', 'candidat'],
         ['PUT', 'profil/cv/{id}', 'Ce que l’utilisateur a gardé après relecture ; « actif » pour le désigner', 'cv', 'candidat', ['retenu' => 'objet', 'actif' => 'bool?']],
-        ['DELETE', 'profil/cv/{id}', 'Supprimer un CV et son fichier', 'cv', 'candidat'],
-        ['POST', 'profil/cv/fichier', 'Déposer le fichier d’origine (multipart, champ « fichier », 10 Mo, PDF/JPEG/PNG/WebP) — chiffré au repos', 'cv', 'candidat'],
+        ['DELETE', 'profil/cv/{id}', 'Supprimer mon CV : fichier, lecture et copie de l’espace d’échange, effacés sur-le-champ', 'cv', 'candidat'],
+        ['POST', 'profil/cv/fichier', 'Déposer mon CV (multipart, champ « fichier », 10 Mo ; PDF, Word, ODT, RTF, texte, images) — chiffré au repos ; un seul CV : remplace et efface le précédent', 'cv', 'candidat'],
         ['GET', 'profil/cv/{id}/fichier', 'Relire son propre fichier', 'cv', 'candidat'],
 
         ['GET', 'avp', 'Catalogue des AVP (public), filtres et facettes, page de 30', 'avp', 'public',

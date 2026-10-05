@@ -136,8 +136,8 @@ ouverts) · `GET metiers/{code}` (compétences attendues, pondérées) ·
 |---|---|
 | `GET/PUT profil` | Le profil complet. Les compétences libres sont **rattachées au référentiel OPT** (slug exact, sinon recouvrement de mots) ; `metiersOpt[]` et `competencesOptSaisies[]` s'ajoutent aux champs maison. Tout changement invalide les scores en cache |
 | `POST profil/cv` | Journalise une **lecture faite dans l'appareil** : métadonnées + JSON brut + JSON retenu. Le fichier n'est pas dans cet appel |
-| `POST profil/cv/fichier` | Dépose le **fichier d'origine** (multipart, champ `fichier`, 10 Mo, PDF/JPEG/PNG/WebP — type lu dans les octets). Chiffré AES-256-GCM sur le serveur, devient le CV actif, suit les candidatures en cours |
-| `GET profil/cv`, `GET/PUT/DELETE profil/cv/{id}`, `GET profil/cv/{id}/fichier` | Mes CV, ce que j'ai retenu après relecture, lequel est actif, relire ou supprimer mon fichier |
+| `POST profil/cv/fichier` | Dépose le **fichier d'origine** (multipart, champ `fichier`, 10 Mo ; PDF, Word, OpenDocument, RTF, texte, JPEG/PNG/WebP/HEIC/TIFF — type lu dans les octets). Chiffré AES-256-GCM sur le serveur. **Un seul CV par personne** : il remplace le précédent, dont le fichier et la lecture sont effacés sur-le-champ, ainsi que tout autre fichier encore gardé. Suit les candidatures en cours. L'espace d'échange (`sortant/`) est réécrit aussitôt |
+| `GET profil/cv`, `GET/PUT/DELETE profil/cv/{id}`, `GET profil/cv/{id}/fichier` | Mon CV et sa lecture, relire ou supprimer mon fichier. `DELETE` efface le fichier chiffré, sa lecture **et** sa copie dans l'espace d'échange, sans attendre le veilleur |
 | `GET profil/cv.pdf` | Le CV **généré depuis le profil** (PDF) |
 | `GET profil/jsonresume` | Le profil au format [JSON Resume](https://jsonresume.org) — la première des « API nécessaires » : le CV en résumé JSON |
 

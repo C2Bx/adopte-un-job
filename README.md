@@ -2,9 +2,9 @@
 
 Un poste qui te correspond, pas trente CV envoyés. Application de mise en
 relation **candidat ↔ AVP réels de l'OPT-NC** en mode « swipe », avec un **score
-de compatibilité explicable**, une **lecture de CV dans l'appareil** (PDF, scan
-ou photo) et un **dossier de candidature** — CV recentré sur le poste, plus le
-CV d'origine, chiffré au repos.
+de compatibilité explicable**, un **CV déposé dans n'importe quel format** (PDF,
+Word, photo…) qui remplit le profil, et un **dossier de candidature** — CV
+recentré sur le poste, plus le CV d'origine, chiffré au repos.
 
 L'employeur, c'est l'OPT-NC : il publie ses AVP dans son propre système, pas
 ici. L'application est donc entièrement du côté du candidat, et la candidature
@@ -16,7 +16,8 @@ premier hackathon dédié à l'emploi dans la fonction publique en Nouvelle-Cal�
 ## Ce que ça fait
 
 **Candidat.** Un profil structuré (ce qu'on vise, pas seulement ce qu'on a
-fait), rempli à la main ou amorcé depuis un CV lu dans le navigateur. Les
+fait), rempli de trois façons : à la main, par neuf questions, ou à partir du
+CV déposé. Les
 compétences libres sont rattachées aux **409 compétences du référentiel
 OPT-NC**, le métier visé à l'un de ses **84 métiers**. Le deck propose les AVP
 ouverts, scorés et triés, avec les **mêmes filtres que la recherche officielle**
@@ -41,11 +42,27 @@ format JSON Resume).
 | `site/` | Le site de documentation du projet : produit, matching, extraction, arbitrages, API, techno… |
 | `scripts/` | Migration du schéma (`migre.py`, avec le référentiel OPT-NC), recette de l'API (`essai_api.py`, CLI ou HTTPS), **banc d'essai de la lecture de CV** sur un corpus. |
 
-## Lecture de CV : PDF, scan, photo
+## Le CV : un seul, n'importe quel format
 
-Le CV est lu par le navigateur ; ce qui est envoyé, c'est le résultat relu,
-puis — si l'utilisateur le veut — le fichier lui-même, chiffré côté serveur
-(AES-256-GCM), joint au dossier de candidature et supprimé avec le compte.
+- **Un seul CV par personne.** En déposer un nouveau **remplace** l'ancien : le
+  fichier précédent est effacé du serveur sur-le-champ, avec sa lecture.
+- **Formats** : PDF, Word (`.doc`, `.docx`), OpenDocument, RTF, texte, images
+  (JPEG, PNG, WebP, HEIC, TIFF), 10 Mo maximum. Le type est lu dans les octets,
+  pas dans ce que déclare le navigateur.
+- **Chiffré au repos** (AES-256-GCM, hors du docroot). Il part avec les
+  candidatures en cours.
+- **Supprimer efface vraiment** : le fichier, sa lecture, et la copie mise à
+  disposition de la chaîne d'extraction de l'équipe, sans attendre son passage
+  suivant. Le profil, lui, reste.
+- **La lecture** est faite par la chaîne d'extraction de l'équipe HackAVP (MS1),
+  qui renvoie un JSON Resume. Tant qu'elle n'a pas lu le fichier, l'écran le dit
+  (« Lecture en cours », puis « Pas encore lu » au-delà d'une demi-heure).
+
+### L'ancienne lecture dans le navigateur (débranchée le 29/09/2026)
+
+Le code reste dans le dépôt (`beta/src/extraction.ts`, `ocr.ts`, `ImportCV.tsx`),
+audité et fonctionnel : il redeviendrait le second chemin si la chaîne de
+l'équipe tardait.
 
 - **PDF avec texte** → pdf.js donne des fragments positionnés ; on reconstruit
   la mise en page (colonnes, bandeau d'identité par taille de police), puis des
