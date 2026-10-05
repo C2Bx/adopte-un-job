@@ -326,3 +326,38 @@
     right: calc(var(--s4) + var(--s7) + max(340px, (100% - 92px - 2 * var(--s7) - var(--s4)) * .35));
   }
 }
+
+/* --- les touches orange de la direction artistique retenue (maquette « a ») ---
+   Le bleu sombre porte la structure, l'orange signale : là où l'on est, ce qui
+   est actif, ce qui compte. Par petites touches, jamais en aplat. */
+
+/* titres d'écran : un trait orange dessous */
+#ec-profil h2:first-of-type::after, #ec-interets h2:first-of-type::after {
+  content: ""; display: block; width: 48px; height: 4px; border-radius: var(--r-full);
+  background: var(--accent); margin-top: var(--s2);
+}
+/* navigation : l'onglet actif est marqué d'un trait orange */
+.nav button[aria-current="page"]::before {
+  content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 28px; height: 3px; border-radius: 0 0 var(--r-full) var(--r-full); background: var(--accent);
+}
+@media (min-width: 720px) {
+  .nav button[aria-current="page"]::before {
+    top: 50%; left: 0; transform: translateY(-50%); width: 3px; height: 28px;
+    border-radius: 0 var(--r-full) var(--r-full) 0;
+  }
+}
+/* carte : la page affichée et le titre de page */
+.card .segs i.on { background: var(--accent); }
+.card .page-lead::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); flex: none; }
+/* filtres : le compte des filtres actifs, le nombre d'offres, les sections du panneau */
+.chip.ouvre-filtres .pastille { background: var(--accent); color: #1A1206; }
+.filtres-total b { color: var(--accent); }
+.pf-section h3::before { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); margin-right: 6px; display: inline-block; }
+.pf-section h3 { justify-content: flex-start; }
+.pf-choix { margin-left: auto; color: var(--accent); }
+/* détail de l'offre : les intertitres */
+.panneau h3::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 2px;
+  background: var(--accent); margin-right: 8px; vertical-align: middle; }
+/* candidatures : la ligne dont on lit le détail */
+.item.on { box-shadow: inset 3px 0 0 var(--accent), var(--shadow-ui); }
