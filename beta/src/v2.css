@@ -141,3 +141,11 @@
    couleurs de la carte sombre (texte presque blanc, illisible). */
 .panneau .tags span { color: var(--ink); border-color: var(--line); background: var(--surface-2); }
 .panneau .tags span.doux { color: var(--ink-2); opacity: 1; background: transparent; }
+
+/* Grand écran : la carte prend toute la hauteur à gauche ; la recherche et les
+   filtres ne coiffent que la colonne de droite, au-dessus du détail de l'offre.
+   La carte y gagne la hauteur de la barre de filtres pour ses informations. */
+@media (min-width: 1100px) {
+  #ec-swipe > .stack { grid-template-areas: "deck filtres" "deck panneau"; }
+  #ec-swipe .filters { padding-left: 0; padding-right: 0; }
+}
