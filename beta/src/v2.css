@@ -135,3 +135,9 @@
   position: sticky; left: 0; z-index: 2;
   box-shadow: calc(var(--s4) * -1) 0 0 var(--bg), 12px 0 14px -6px var(--bg);
 }
+
+/* Le détail d'une offre (panneau à côté du deck, feuille sur téléphone,
+   candidatures) est sur fond clair : ses étiquettes ne prennent pas les
+   couleurs de la carte sombre (texte presque blanc, illisible). */
+.panneau .tags span { color: var(--ink); border-color: var(--line); background: var(--surface-2); }
+.panneau .tags span.doux { color: var(--ink-2); opacity: 1; background: transparent; }
