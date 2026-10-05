@@ -249,3 +249,22 @@
 .pf-ligne.vide input { cursor: default; }
 .pf-pied { position: sticky; bottom: calc(var(--s4) * -1); display: grid; grid-template-columns: auto 1fr; gap: var(--s3);
   padding: var(--s3) 0 var(--s4); background: var(--surface); border-top: 1px solid var(--line); margin-top: var(--s2); }
+
+/* carte : du relief en bleu sombre (la couleur de la marque), pour qu'elle
+   se détache et paraisse moins blanche */
+.card {
+  --stage: color-mix(in srgb, var(--surface) 94%, var(--brand));
+  border: 2px solid var(--brand);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--brand) 18%, transparent),
+              0 22px 44px -22px color-mix(in srgb, var(--brand) 55%, transparent);
+}
+.card .role { color: var(--brand); }
+.card .segs i { background: color-mix(in srgb, var(--brand) 18%, transparent); }
+.card .segs i.on { background: var(--brand); }
+.card .page-lead { color: var(--brand); }
+.card .page-lead::after { background: color-mix(in srgb, var(--brand) 30%, transparent); }
+.card .tags span { border-color: color-mix(in srgb, var(--brand) 28%, transparent); }
+.card .facts { border-top-color: color-mix(in srgb, var(--brand) 22%, transparent); }
+.card .facts em { color: var(--brand); }
+.card .score { border-color: var(--brand); color: var(--brand); font-weight: 700; }
+.card .score:hover { background: var(--brand); color: var(--brand-ink); }
