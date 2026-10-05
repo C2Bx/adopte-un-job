@@ -132,7 +132,6 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   const charge = useCallback(async (clos: boolean) => {
     if (aCombler.length) { setToutes([]); return }
     setErreur(null)
-    setToutes(null)
     try {
       setToutes(await api.deck(clos))
     } catch (e) {
@@ -350,7 +349,7 @@ function BarreFiltres({ f, total, actifs, ouvre, change, toutEffacer }: {
         Filtres{nbFiltres > 0 && <span className="pastille">{nbFiltres}</span>}
       </button>
       {f.clos && (
-        <button className="chip actif" onClick={() => change((g) => ({ ...efface(g), q: g.q }))}>
+        <button className="chip actif" onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: undefined }))}>
           Offres closes <span className="croix" aria-hidden="true">✕</span>
         </button>
       )}
@@ -395,7 +394,7 @@ function PanneauFiltres({ f, comptes, total, actifs, change, toutEffacer, fermer
 
       <div className="pf-jeu" role="radiogroup" aria-label="Offres à afficher">
         <button role="radio" aria-checked={!f.clos} className={!f.clos ? 'on' : ''}
-          onClick={() => change((g) => ({ ...efface(g), q: g.q }))}>Ouvertes</button>
+          onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: undefined }))}>Ouvertes</button>
         <button role="radio" aria-checked={Boolean(f.clos)} className={f.clos ? 'on' : ''}
           onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: true }))}>Closes (entraînement)</button>
       </div>
