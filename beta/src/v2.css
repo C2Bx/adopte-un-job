@@ -225,3 +225,9 @@
   .filtres-total { order: -1; }
   .chip.efface { order: -1; }
 }
+
+/* carte : pas de dégradé, fond un peu plus soutenu que la page ; les étiquettes
+   et le bouton « Voir l'offre » restent blancs pour se détacher du fond */
+.card { --stage: color-mix(in srgb, var(--surface) 94%, var(--ink)); }
+.card .stage { background: none; }
+.card .tags span, .card .score { background: var(--surface); }
