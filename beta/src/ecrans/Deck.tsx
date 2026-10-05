@@ -177,8 +177,8 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
                 <h2>Le deck s’ouvre avec ton profil</h2>
                 <p>
                   Il reste {aCombler.length} information{aCombler.length > 1 ? 's' : ''} à
-                  renseigner. Sans elles, aucun score n’est calculable : ce qu’on afficherait
-                  serait un ordre au hasard présenté comme une pertinence.
+                  renseigner. Quand tu candidates, c’est ton profil que le recruteur
+                  lit : sans elles, ta candidature arriverait vide.
                 </p>
                 <ul className="v-liste">
                   {aCombler.map((m) => (
@@ -208,7 +208,7 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
     setDernier(o)
     try {
       const r = await api.swipe(o.id, decision)
-      if (decision === 'oui') setEnvoyee({ offre: o, entrainement: Boolean(r.entrainement) })
+      if (decision === 'oui') setEnvoyee({ offre: o, entrainement: o.statut === 'close' && r.ok })
       onDecision?.()
     } catch (e) {
       setOffres((l) => [o, ...(l ?? [])])
@@ -382,7 +382,8 @@ function pagesDe(o: Offre): { titre: string; corps: React.ReactNode }[] {
         {communs.slice(0, 6).map((c) => <span key={c}>{c}</span>)}
         {manque.slice(0, 3).map((c) => <span key={c} className="miss">{c} ?</span>)}
         {communs.length === 0 && manque.length === 0 && o.requis.slice(0, 5).map((c) => <span key={c}>{c}</span>)}
-        {communs.length === 0 && manque.length === 0 && !o.requis.length && <span className="doux">score calculé sur le métier et le parcours</span>}
+        {communs.length === 0 && manque.length === 0 && !o.requis.length
+          && [o.metierOpt, ...o.familles].filter((t): t is string => Boolean(t)).map((t) => <span key={t}>{t}</span>)}
       </div>
     ),
   }]
@@ -562,13 +563,17 @@ function Carte({ offre: o, profondeur, peutRevenir, occupe, onDetail, onDecide, 
       <div className="stage">
         <div className="hero">
           <div className="hero-top">
-            <button type="button" className="score score-btn"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onDetail?.() }}
-              aria-label="Voir le détail du score">
-              <span className="gauge"><b style={{ width: `${pc(q)}%`, background: teinte(q) }} /></span>
-              <span className="v" style={{ color: teinte(q) }}>{pc(q)} %</span> compatible
-            </button>
+            {/* Le score vient du module de matching de l'équipe ; tant qu'il n'est
+                pas fourni, rien n'est affiché plutôt qu'un « 0 % » trompeur. */}
+            {s && (
+              <button type="button" className="score score-btn"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onDetail?.() }}
+                aria-label="Voir le détail du score">
+                <span className="gauge"><b style={{ width: `${pc(q)}%`, background: teinte(q) }} /></span>
+                <span className="v" style={{ color: teinte(q) }}>{pc(q)} %</span> compatible
+              </button>
+            )}
             {close
               ? <span className="badge-pass close">clos — pour t’entraîner</span>
               : s?.passerelle && <span className="badge-pass">hors de tes métiers visés</span>}

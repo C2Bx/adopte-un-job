@@ -24,3 +24,6 @@ __pycache__/
 # Google Drive en depose un dans chaque dossier
 desktop.ini
 Thumbs.db
+
+# referentiel OPT telecharge par scripts/referentiel_statique.py
+scripts/ref-metiers-opt-nc.sqlite

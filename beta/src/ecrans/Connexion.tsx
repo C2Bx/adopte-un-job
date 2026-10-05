@@ -67,8 +67,8 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
 
         <h1>Un poste qui te correspond, pas trente CV envoyés.</h1>
         <p className="lead">
-          Tu décris ce que tu cherches. On te propose les postes ouverts à l’OPT-NC qui collent, avec
-          le pourcentage et surtout <b>pourquoi</b>. L’employeur ne voit ton nom qu’en te présélectionnant.
+          Tu décris ce que tu cherches, ou tu déposes ton CV. Tu fais défiler les vrais postes ouverts
+          à l’OPT-NC : <b>à droite pour candidater</b>, à gauche pour passer.
         </p>
 
         <div className="prole" role="tablist" aria-label="Type de compte">
@@ -153,8 +153,8 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
         </form>
 
         <p className="accueil-note">
-          Projet d’étudiants. Les données sont réelles et enregistrées :
-          l’export et la suppression du compte sont disponibles dès maintenant.
+          Projet d’étudiants du #HackAVP. Ton compte, ton profil et ton CV sont enregistrés
+          dans l’API commune de l’équipe : les données sont réelles.
         </p>
       </div>
     </div>

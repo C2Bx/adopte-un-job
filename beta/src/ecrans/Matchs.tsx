@@ -120,18 +120,6 @@ export function EcranMatchs({ profil }: { profil: Profil }) {
     }
   }
 
-  /* Retirer une candidature déjà ouverte : elle reste dans la liste, avec son
-     nouveau statut — l'organisation le voit aussi. */
-  const retire = async (x: Interet) => {
-    if (!x.candidature) return
-    if (!window.confirm('Retirer cette candidature ? L’organisation en sera informée.')) return
-    try {
-      await api.statutCandidature(x.candidature.id, 'retiree')
-      setInterets((l) => (l ?? []).map((y) => (y.id === x.id ? { ...y, candidature: { ...y.candidature!, statut: 'retiree' } } : y)))
-    } catch (e) {
-      setErreur(e instanceof ErreurApi ? e.message : 'Le retrait n’a pas été enregistré.')
-    }
-  }
 
   const liste = (interets ?? []).filter((x) => x.decision === onglet)
   const compte = (d: Onglet) => (interets ?? []).filter((x) => x.decision === d).length
@@ -232,14 +220,10 @@ export function EcranMatchs({ profil }: { profil: Profil }) {
                   <span className="etat" style={{ color: 'var(--no)' }}>{x.score.ecarts.length} écart{x.score.ecarts.length > 1 ? 's' : ''} avec tes critères</span>
                 )}
                 <div className="actes" onClick={(e) => e.stopPropagation()}>
-                  {x.candidature && ['preselection', 'entretien', 'acceptee'].includes(x.candidature.statut)
-                    ? <>
-                        <a className="fort" href={api.urlCvCandidature(x.candidature.id)} target="_blank" rel="noreferrer">CV envoyé (PDF)</a>
-                        <button onClick={() => void retire(x)}>Retirer ma candidature</button>
-                      </>
-                    : x.candidature && x.candidature.statut === 'refusee'
-                      ? <button className="fort" onClick={() => void reviens(x)}>Retirer de la liste</button>
-                      : <>
+                  {/* Une candidature tranchée par un recruteur ne change plus (leur API répond 409). */}
+                  {x.candidature && ['preselection', 'entretien', 'acceptee', 'refusee'].includes(x.candidature.statut)
+                    ? null
+                    : <>
                           <button className="fort" onClick={() => void reviens(x)}>{x.decision === 'oui' ? 'Annuler et remettre dans le deck' : 'Remettre dans le deck'}</button>
                           {ONGLETS.filter((o) => o.cle !== x.decision).map((o) => (
                             <button key={o.cle} onClick={() => void redecide(x, o.cle)}>

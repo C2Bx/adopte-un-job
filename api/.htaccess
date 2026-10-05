@@ -1,3 +1,8 @@
+# FERMEE le 05/10/2026 : Adopte un Job ne fait plus que l'interface, tout passe
+# par l'API de l'equipe (beta/src/api.ts, beta/public/relais.php). Ce dossier
+# n'est plus servi. Pour le rouvrir : retirer la ligne ci-dessous.
+Require all denied
+
 # L'en-tete Authorization n'atteint pas PHP par defaut : sans cette ligne, un
 # client natif (Bearer) est toujours « non connecte ».
 SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1

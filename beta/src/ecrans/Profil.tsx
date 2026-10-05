@@ -28,7 +28,8 @@ function vierge(p: Profil): boolean {
 
 export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p: Profil) => void }) {
   const [etape, setEtape] = useState(0)
-  const cv = useMesCV()
+  // quand la lecture du CV a rempli le profil chez l'équipe, on le relit
+  const cv = useMesCV(() => { void api.profil().then(onProfil).catch(() => undefined) })
   const [mode, setMode] = useState<'choix' | 'form' | 'questions'>(() => (vierge(profil) ? 'choix' : 'form'))
   const [ref, setRef] = useState<Referentiels | null>(null)
   const [etat, setEtat] = useState<Etat>('repos')

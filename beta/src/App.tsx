@@ -106,6 +106,13 @@ export function App() {
 
   useEffect(() => { void demarre() }, [demarre])
 
+  // Leur jeton dure une heure, sans renouvellement : à expiration, retour à la connexion.
+  useEffect(() => {
+    const sortie = () => { setMoi(null); setProfil(profilVide) }
+    window.addEventListener('aj:session-expiree', sortie)
+    return () => window.removeEventListener('aj:session-expiree', sortie)
+  }, [])
+
   const entre = async (u: Utilisateur) => {
     setMoi(u)
     await chargeProfil(u)

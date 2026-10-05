@@ -1,23 +1,16 @@
-/* Mon CV : le fichier déposé, chiffré sur le serveur.
+/* Mon CV : le fichier, déposé dans l'API de l'équipe (plus rien chez nous).
 
-   UN SEUL CV par personne. Déposer un nouveau fichier REMPLACE l'ancien : il
-   est effacé sur-le-champ, chez nous et dans l'espace d'échange où la chaîne
-   d'extraction de l'équipe vient le lire. C'est lui qui part avec une
-   candidature, et c'est lui qui remplit le profil. Plusieurs CV voudraient dire
-   plusieurs profils extraits, et aucun moyen de savoir lequel est le bon.
+   UN SEUL CV par personne : leur API range le fichier sous `cv_<id>.pdf` ou
+   `.jpg`, et un nouveau dépôt remplace l'ancien. PDF, PNG ou JPEG seulement.
 
-   Supprimer efface vraiment : le fichier chiffré, sa lecture, et la copie de
-   l'espace d'échange, sans attendre le passage suivant du veilleur. Le profil,
-   lui, reste : c'est le sien, il le modifie à part.
+   La lecture (le traitement n8n de Florian) REMPLACE le profil chez eux. La
+   règle est de ne jamais écraser ce que la personne a saisi : on ne la lance
+   donc que si le parcours est vide. Sinon le CV est joint, la saisie reste, et
+   l'écran le dit. Leur route attend la fin de la lecture : jusqu'à 3 minutes.
 
    Trois morceaux, un seul état (`useMesCV`, appelé une fois dans l'écran
-   Profil) :
-     - CarteCV  : à côté de « Je pars de zéro » et « Affiner par questions » ;
-     - ZoneCV   : le fichier lui-même, son état, Ouvrir et Supprimer ;
-     - MesCV    : les deux réunis, quand l'écran est en mode formulaire.
-
-   Les anciennes lectures faites dans le navigateur (avant le 29/09) n'ont pas
-   de fichier : elles ne sont pas listées, elles partent avec le compte. */
+   Profil) : CarteCV (à côté des deux autres façons de remplir son profil),
+   ZoneCV (le fichier, son état, Ouvrir), MesCV (les deux, en mode formulaire). */
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
@@ -27,64 +20,78 @@ import type { CvInfo } from '../types'
 
 const ko = (n: number) => (n >= 1_048_576 ? `${(n / 1_048_576).toFixed(1)} Mo` : `${Math.round(n / 1024)} ko`)
 const jour = (d: string) => {
-  const t = new Date(d.replace(' ', 'T') + 'Z')
+  const t = new Date(d)
   return Number.isNaN(t.getTime()) ? '' : t.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
 }
+const FORMATS = '.pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg'
 
-export function useMesCV() {
-  const [cvs, setCvs] = useState<CvInfo[] | null>(null)
+type Lecture = 'repos' | 'en_cours' | 'faite' | 'gardee' | 'echec'
+
+export function useMesCV(onProfilLu?: () => void) {
+  const [actif, setActif] = useState<CvInfo | null>(null)
+  const [pret, setPret] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
+  const [lecture, setLecture] = useState<Lecture>('repos')
 
   const charge = useCallback(async () => {
     try {
-      setCvs((await api.cvs()).cv)
+      setActif((await api.cvs()).actif)
     } catch (e) {
-      setCvs([])
-      setErreur(e instanceof ErreurApi ? e.message : 'Liste indisponible.')
+      setErreur(e instanceof ErreurApi ? e.message : 'Ton CV n’a pas pu être lu.')
+    } finally {
+      setPret(true)
     }
   }, [])
   useEffect(() => { void charge() }, [charge])
-
-  const fichiers = (cvs ?? []).filter((c) => c.fichier)
-  const actif = fichiers.find((c) => c.actif) ?? fichiers[0] ?? null
 
   const depose = async (f: File) => {
     setErreur(null)
     setEnvoi(true)
     try {
-      await api.deposeFichierCV(f, actif?.id)
-      await charge()
+      setActif(await api.deposeFichierCV(f))
     } catch (e) {
       setErreur(e instanceof ErreurApi ? e.message : 'Le fichier n’a pas pu être déposé.')
-    } finally {
       setEnvoi(false)
+      return
     }
-  }
-
-  const supprime = async (c: CvInfo) => {
-    if (!window.confirm(`Supprimer « ${c.nom} » ?\n\nLe fichier est effacé de nos serveurs et de l’espace `
-      + 'd’échange avec l’équipe. Ton profil, lui, reste tel quel.')) return
-    setErreur(null)
+    setEnvoi(false)
+    setLecture('en_cours')
     try {
-      await api.supprimeCV(c.id)
+      const lance = await api.lisCV()
+      setLecture(lance ? 'faite' : 'gardee')
+      if (lance) onProfilLu?.()
       await charge()
     } catch (e) {
-      setErreur(e instanceof ErreurApi ? e.message : 'Suppression impossible.')
+      setLecture('echec')
+      setErreur(e instanceof ErreurApi ? e.message : 'La lecture du CV a échoué.')
     }
   }
 
-  return { pret: cvs !== null, fichiers, actif, erreur, envoi, depose, supprime }
+  const ouvre = async () => {
+    // la fenêtre s'ouvre tout de suite, sinon le navigateur la bloque après l'attente
+    const w = window.open('', '_blank')
+    try {
+      const url = await api.urlFichierCV()
+      if (w) w.location.href = url
+      else window.location.href = url
+    } catch (e) {
+      w?.close()
+      setErreur(e instanceof ErreurApi ? e.message : 'Le fichier n’a pas pu être ouvert.')
+    }
+  }
+
+  return { pret, actif, erreur, envoi, lecture, depose, ouvre }
 }
 
 export type EtatCV = ReturnType<typeof useMesCV>
 
 function BoutonDepot({ cv }: { cv: EtatCV }) {
+  const occupe = cv.envoi || cv.lecture === 'en_cours'
   return (
     <label className="btn-fichier">
       {cv.envoi ? <><Spinner />Envoi…</> : cv.actif ? 'Remplacer mon CV' : 'Déposer mon CV'}
-      <input type="file" hidden disabled={cv.envoi}
-        accept=".pdf,.doc,.docx,.odt,.rtf,.txt,image/*"
+      <input type="file" hidden disabled={occupe} accept={FORMATS}
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void cv.depose(f) }} />
     </label>
   )
@@ -96,9 +103,9 @@ export function CarteCV({ cv }: { cv: EtatCV }) {
     <div className="qzcarte mescv-carte">
       <h3>Mon CV</h3>
       <p>
-        PDF, Word, photo… peu importe le format. Ton profil se remplit tout seul à
-        partir de lui : tu relis et tu corriges. Compte quelques minutes, tu peux
-        fermer la page.
+        PDF ou photo (PNG, JPEG). S’il n’y a encore rien dans ton profil, il se remplit
+        tout seul à partir de lui : tu relis et tu corriges. Un Word : enregistre-le
+        d’abord en PDF.
       </p>
       {cv.erreur && <div className="pal manque"><b>Problème</b>{cv.erreur}</div>}
       {cv.pret && <BoutonDepot cv={cv} />}
@@ -109,14 +116,16 @@ export function CarteCV({ cv }: { cv: EtatCV }) {
 /* Le fichier déposé : une zone à lui, sous les trois cartes. */
 export function ZoneCV({ cv }: { cv: EtatCV }) {
   const c = cv.actif
-  if (!cv.pret || !c) return null
-  /* Le rond ne tourne que pendant la première demi-heure. Au-delà, la lecture
-     n'est plus « en cours » : elle n'a pas eu lieu (au 05/10, la chaîne
-     d'extraction de l'équipe n'est pas encore branchée). Un rond qui tourne
-     depuis des jours ment ; on dit où on en est et quoi faire en attendant. */
-  const depuis = Date.now() - new Date(c.depose.replace(' ', 'T') + 'Z').getTime()
-  const recent = Number.isFinite(depuis) && depuis < 30 * 60 * 1000
-  const etat = c.lecture ? 'lu' : recent ? 'attente' : 'pas-lu'
+  if (!cv.pret || (!c && cv.lecture === 'repos')) return null
+  const etat = cv.lecture === 'en_cours' ? 'attente' : c?.lecture || cv.lecture === 'faite' ? 'lu' : 'pas-lu'
+  const phrase = {
+    en_cours: 'lecture en cours : jusqu’à 3 minutes, ne ferme pas la page',
+    faite: 'ton profil a été rempli à partir de lui : relis-le et corrige',
+    gardee: 'ton profil était déjà rempli : ta saisie est gardée, le CV est joint à tes candidatures',
+    echec: 'la lecture a échoué : remplis ton profil à la main ou par les questions',
+    repos: c?.lecture ? 'ton profil a été rempli à partir de lui'
+      : 'joint à tes candidatures ; ta saisie n’est jamais remplacée par la lecture',
+  }[cv.lecture]
   return (
     <section className="mescv-zone" aria-label="Mon CV déposé">
       <div className="mescv-zone-tete">
@@ -125,21 +134,21 @@ export function ZoneCV({ cv }: { cv: EtatCV }) {
       </div>
       <div className="mescv-fichier">
         <span className={`mescv-etat ${etat}`}>
-          {etat === 'lu' ? 'Lu' : etat === 'attente' ? <><Spinner />Lecture en cours</> : 'Pas encore lu'}
+          {etat === 'attente' ? <><Spinner />Lecture en cours</> : etat === 'lu' ? 'Lu' : 'Joint'}
         </span>
         <span className="mescv-nom">
-          <b>{c.nom}</b>
+          <b>{c?.nom ?? 'Ton CV'}</b>
           <em>
-            {ko(c.octets)}{jour(c.depose) && ` · déposé le ${jour(c.depose)}`}
-            {etat === 'lu' ? ' · ton profil a été rempli à partir de lui'
-              : etat === 'attente' ? ' · ton profil se remplira tout seul'
-              : ' · la lecture automatique arrive bientôt ; en attendant, remplis ton profil à la main ou par les questions'}
+            {c && c.octets > 0 && `${ko(c.octets)} · `}
+            {c && jour(c.depose) && `déposé le ${jour(c.depose)} · `}
+            {phrase}
           </em>
         </span>
-        <span className="mescv-btns">
-          <a className="btn-mini" href={api.urlFichierCV(c.id)} target="_blank" rel="noreferrer">Ouvrir</a>
-          <button type="button" className="btn-mini danger" onClick={() => void cv.supprime(c)}>Supprimer</button>
-        </span>
+        {c && (
+          <span className="mescv-btns">
+            <button type="button" className="btn-mini" onClick={() => void cv.ouvre()}>Ouvrir</button>
+          </span>
+        )}
       </div>
     </section>
   )
@@ -152,9 +161,9 @@ export function MesCV({ cv }: { cv: EtatCV }) {
     <div className="pvoie mescv">
       <b>Mon CV</b>
       <span>
-        PDF, Word, photo… peu importe le format. <b>Ton profil se remplit tout seul</b>
-        à partir de lui : tu n’as rien à recopier, tu relis et tu corriges.
-        Compte quelques minutes — tu peux fermer la page, ça continue sans toi.
+        PDF ou photo (PNG, JPEG). <b>Ta saisie n’est jamais remplacée</b> : la lecture
+        automatique ne remplit que les profils encore vides. Un Word : enregistre-le
+        d’abord en PDF.
       </span>
       {cv.erreur && <div className="pal manque"><b>Problème</b>{cv.erreur}</div>}
       <div className="mescv-actions"><BoutonDepot cv={cv} /></div>

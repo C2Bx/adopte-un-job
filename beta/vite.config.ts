@@ -14,7 +14,8 @@ export default defineConfig({
   server: {
     proxy: {
       // En développement, l'API de production répond ; on évite CORS.
-      '/avp/app/api': { target: 'https://zako.nc', changeOrigin: true, secure: false },
+      // le relais vers l'API de l'équipe (pas de CORS chez eux)
+      '/avp/relais.php': { target: 'https://zako.nc', changeOrigin: true, secure: false },
     },
   },
 })

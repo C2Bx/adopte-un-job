@@ -13,6 +13,28 @@ part vers le contact indiqué par l'avis.
 Projet d'étudiants, candidat au **#HackAVP** (OPT-NC · Station N · OPEN NC),
 premier hackathon dédié à l'emploi dans la fonction publique en Nouvelle-Calédonie.
 
+## Depuis le 5 octobre 2026 : une interface, rien d'autre
+
+Adopte un Job **ne garde plus rien** : ni base de données, ni API à lui, ni CV.
+Il affiche ce que l'**API commune de l'équipe HackAVP** lui donne (comptes,
+profils, CV, offres, swipes, candidatures) et lui transmet ce que la personne
+saisit.
+
+- `beta/src/api.ts` : le seul endroit qui parle à leur API, et qui traduit leurs
+  réponses dans les formes que les écrans connaissent.
+- `beta/public/relais.php` : un relais **sans état** vers leur API, tant qu'elle
+  n'envoie pas d'en-têtes CORS. Il ne parle qu'à leur adresse, et seulement aux
+  routes listées.
+- `beta/public/referentiel.json` : les 84 métiers et 409 compétences de l'OPT-NC,
+  servis comme un fichier (`python scripts/referentiel_statique.py` le régénère
+  depuis la publication officielle de l'OPT).
+- Restent dans le navigateur : la session (leur jeton, une heure), le « plus
+  tard » (leur API ne le connaît pas).
+- **La lecture du CV ne remplace jamais une saisie** : leur traitement n'est lancé
+  que sur un profil encore vide.
+- Le dossier `api/` est l'**ancienne API**, fermée en production (`Require all
+  denied`) et gardée pour l'historique. Une partie de ce qui suit la décrit.
+
 ## Ce que ça fait
 
 **Candidat.** Un profil structuré (ce qu'on vise, pas seulement ce qu'on a

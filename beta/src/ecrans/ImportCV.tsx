@@ -105,7 +105,7 @@ export function ImportCV({ profil, onProfil, onRelecture }: Props) {
         brut: { ...r.trouve, _confiance: r.confiance }, retenu: {},
       }).then((d) => {
         cvId.current = d.cv.id
-        return api.deposeFichierCV(f, d.cv.id)
+        return api.deposeFichierCV(f)
       }).catch(() => { /* le dépôt ne doit pas bloquer la relecture */ })
     } catch (e) {
       setEtat({ phase: 'erreur', message: e instanceof Error ? e.message : 'Lecture impossible.' })
