@@ -9,18 +9,35 @@ passer.
 ## Une interface, rien d'autre
 
 Depuis le 5 octobre 2026, Adopte un Job **ne garde rien** : ni base de données,
-ni API à lui, ni CV. Il affiche ce que l'**API commune de l'équipe HackAVP** lui
+ni API à lui, ni CV. Il affiche ce que **HACKAVPays**, l'API commune tenue par **Dan et Timothée**, lui
 donne, et lui transmet ce que la personne saisit.
 
 | Ce que fait la personne | Où ça vit |
 |---|---|
-| Crée son compte, se connecte, change son mot de passe | API de l'équipe (`/auth/*`) |
-| Remplit son profil (à la main, par neuf questions, ou depuis son CV) | API de l'équipe (`/profils/moi`), au format JSON Resume |
-| Dépose son CV (PDF, PNG, JPEG) | API de l'équipe (`/profils/moi/cv`), lu par le traitement n8n de l'équipe |
-| Fait défiler les offres, swipe, suit ses candidatures | API de l'équipe (`/avp`, `/swipes/candidats`, `/candidatures/moi`) |
+| Crée son compte, se connecte, change son mot de passe | **HACKAVPays** (`/auth/*`) |
+| Remplit son profil (à la main, par neuf questions, ou depuis son CV) | **HACKAVPays** (`/profils/moi`), au format JSON Resume |
+| Dépose son CV (PDF, PNG, JPEG) | **HACKAVPays** (`/profils/moi/cv`), lu par **CVForge**, le module d'extraction de **Florian** |
+| Fait défiler les offres, swipe, suit ses candidatures | **HACKAVPays** (`/avp`, `/swipes/candidats`, `/candidatures/moi`) |
 | Voit à qui s'adresser pour candidater | L'avis lui-même (`contactEmail`, `contactTelephone`), affiché dans le détail de l'offre |
-| Suit la réponse du recruteur | API de l'équipe (`statut`, `entretienAProg`), posée depuis AVPRO-NC |
+| Suit la réponse du recruteur | **HACKAVPays** (`statut`, `entretienAProg`), posée depuis **AVPRO-NC**, l'espace recruteur de **Damien et Lucas** |
 | Met une offre « à plus tard » | Son navigateur (leur API ne le connaît pas) |
+
+## L'équipe et les modules
+
+Adopte un Job est **MS3, le front candidat**. Il ne fonctionne pas seul : chaque module a son
+responsable, et ils se parlent par un seul format, le **JSON Resume**.
+
+| | Module | Qui | Ce qu'il fait |
+|---|---|---|---|
+| MS1 | **CVForge** | Florian | lit le CV déposé et en tire un JSON Resume |
+| MS2 | **HACKAVPays** | Dan et Timothée | l'API commune : comptes, offres, profils, CV, candidatures |
+| **MS3** | **Adopte un Job** | **Bastian — ce dépôt** | le front candidat |
+| MS4 | **CV Generator** | Anthony et Kim | CV et lettre de motivation |
+| MS5 | **CV-Matching** | Jo-Michel | le calcul de compatibilité |
+| — | **AVPRO-NC** | Damien et Lucas | l'espace recruteur |
+
+Le calcul de compatibilité, la lettre de motivation et la préparation d'entretien ne sont **pas**
+dans ce dépôt : ils appartiennent à MS5 et MS4.
 
 **La lecture du CV ne remplace jamais une saisie.** Leur traitement remplace le
 profil : l'interface ne le lance que si le parcours est encore vide.
