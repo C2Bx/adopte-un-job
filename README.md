@@ -18,6 +18,8 @@ donne, et lui transmet ce que la personne saisit.
 | Remplit son profil (à la main, par neuf questions, ou depuis son CV) | API de l'équipe (`/profils/moi`), au format JSON Resume |
 | Dépose son CV (PDF, PNG, JPEG) | API de l'équipe (`/profils/moi/cv`), lu par le traitement n8n de l'équipe |
 | Fait défiler les offres, swipe, suit ses candidatures | API de l'équipe (`/avp`, `/swipes/candidats`, `/candidatures/moi`) |
+| Voit à qui s'adresser pour candidater | L'avis lui-même (`contactEmail`, `contactTelephone`), affiché dans le détail de l'offre |
+| Suit la réponse du recruteur | API de l'équipe (`statut`, `entretienAProg`), posée depuis AVPRO-NC |
 | Met une offre « à plus tard » | Son navigateur (leur API ne le connaît pas) |
 
 **La lecture du CV ne remplace jamais une saisie.** Leur traitement remplace le
