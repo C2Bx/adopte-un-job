@@ -35,7 +35,8 @@ responsable, et ils se parlent par un seul format, le **JSON Resume**.
 | MS4 | **CV Generator** | Anthony et Kim | CV et lettre de motivation |
 | MS5 | **CV-Matching** | Jo-Michel | le calcul de compatibilité |
 | MS6 | **AVPRO-NC** | Damien et Lucas | l'espace recruteur |
-| — | **PBI** | Élodie | le tableau de bord Power BI du projet |
+| MS7 | **Inside Squad** | Élodie et Mathieu | les indicateurs, les rapports et le tableau de bord Power BI |
+| — | *(pilotage)* | Maud | pilotage, tests, qualification |
 
 Le calcul de compatibilité, la lettre de motivation et la préparation d'entretien ne sont **pas**
 dans ce dépôt : ils appartiennent à MS5 et MS4.
