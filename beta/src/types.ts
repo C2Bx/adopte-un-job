@@ -118,6 +118,15 @@ export interface Offre {
   permis: boolean
   debut: string | null
   description: string | null
+  /* Livres par l'API de l'equipe, et longtemps ignores ici. Le contact est la
+     sortie attendue de MS3 : « contact employeur ». Il est renseigne sur la
+     totalite des AVP, verifie le 12/10. */
+  contactEmail: string | null
+  contactTelephone: string | null
+  candidatureDirecte: boolean
+  presentationEmployeur: string | null
+  nbPostes: number | null
+  debutImmediat: boolean
   requis: string[]
   souhaite: string[]
   publiee: string | null
@@ -128,7 +137,7 @@ export interface Interet extends Offre {
   decision: 'oui' | 'non' | 'plus_tard'
   quand: string
   match: number | null
-  candidature: { id: number; statut: StatutCandidature; equipe?: StatutEquipe | null; equipeLe?: string | null } | null
+  candidature: { id: number; statut: StatutCandidature; equipe?: StatutEquipe | null; equipeLe?: string | null; entretien?: boolean } | null
 }
 
 /** La decision du recruteur, lue dans l'API de l'equipe (AVPRO-NC decide). */

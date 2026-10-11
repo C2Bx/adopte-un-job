@@ -863,6 +863,12 @@ export function BlocPoste({ offre: o, profil }: { offre: Offre; profil?: Profil 
           <ul className="do-liste">{o.responsabilites.map((m) => <li key={m}>{m}</li>)}</ul>
         </section>
       )}
+      {o.presentationEmployeur && (
+        <section>
+          <h3>L’employeur</h3>
+          <p className="do-desc">{o.presentationEmployeur}</p>
+        </section>
+      )}
       {o.competencesTexte.length > 0 && (
         <section>
           <h3>Ce que le poste demande{acquises > 0 && <span className="do-acquis">{acquises} chez toi</span>}</h3>
@@ -871,6 +877,33 @@ export function BlocPoste({ offre: o, profil }: { offre: Offre; profil?: Profil 
         </section>
       )}
     </div>
+  )
+}
+
+/* Le contact indique sur l'avis. C'est la sortie attendue de MS3 — « contact
+   employeur » — et l'OPT-NC le renseigne sur tous ses AVP. L'afficher, c'est
+   rendre la candidature possible meme quand on ne passe pas par l'application :
+   on ne retient personne. */
+export function BlocContact({ offre: o }: { offre: Offre }) {
+  if (!o.contactEmail && !o.contactTelephone) {
+    return null
+  }
+  return (
+    <section className="do-contact">
+      <h3>Pour candidater</h3>
+      <p>Cet avis indique à qui s’adresser à l’Office des postes et télécommunications.</p>
+      <div className="do-contact-l">
+        {o.contactEmail && (
+          <a href={`mailto:${o.contactEmail}?subject=${encodeURIComponent(`Candidature — ${o.titre}${o.reference ? ` (${o.reference})` : ''}`)}`}>
+            {o.contactEmail}
+          </a>
+        )}
+        {o.contactTelephone && (
+          <a href={`tel:${o.contactTelephone.replace(/[^+0-9]/g, '')}`}>{o.contactTelephone}</a>
+        )}
+      </div>
+      {o.candidatureDirecte && <p className="do-contact-n">L’avis précise que la candidature directe est acceptée.</p>}
+    </section>
   )
 }
 
@@ -883,7 +916,10 @@ export function EnBref({ offre: o }: { offre: Offre }) {
   ajoute('Métier OPT', o.metierOpt ? `${casse(o.metierOpt)}${o.codeMetier ? ` (${o.codeMetier})` : ''}` : null)
   ajoute('Famille', o.familles.join(', '))
   ajoute('Lieu', [casse(o.lieu), o.adresse].filter(Boolean).join(', '))
-  ajoute('Prise de poste', o.debut ? (/^\d{4}-\d{2}/.test(o.debut) ? date(`${o.debut}-01`)?.replace(/^1er? /, '') : o.debut) : null)
+  ajoute('Postes à pourvoir', o.nbPostes !== null && o.nbPostes > 1 ? String(o.nbPostes) : null)
+  ajoute('Prise de poste', o.debutImmediat
+    ? 'Dès que possible'
+    : o.debut ? (/^\d{4}-\d{2}/.test(o.debut) ? date(`${o.debut}-01`)?.replace(/^1er? /, '') : o.debut) : null)
   ajoute('Expérience', o.experienceTexte)
   ajoute('Horaires', o.conditions)
   ajoute('Habilitations', o.qualifications)
@@ -908,6 +944,7 @@ export function Detail({ offre: o, profil }: { offre: Offre; profil?: Profil }) 
       <div className="do-principal">
         <BlocEntete offre={o} profil={profil} />
         <BlocPoste offre={o} profil={profil} />
+        <BlocContact offre={o} />
       </div>
       <EnBref offre={o} />
     </div>

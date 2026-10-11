@@ -216,6 +216,7 @@ export function EcranMatchs() {
                   : x.decision === 'oui'
                     ? <span className="etat attente">Geste enregistré (offre close, entraînement)</span>
                     : null}
+                {x.candidature?.entretien && <span className="etat entretien">Entretien à programmer</span>}
                 <div className="actes" onClick={(e) => e.stopPropagation()}>
                   {/* Une candidature tranchée par un recruteur ne change plus (leur API répond 409). */}
                   {x.candidature && ['preselection', 'entretien', 'acceptee', 'refusee'].includes(x.candidature.statut)

@@ -441,3 +441,21 @@
 .do-bref dd { margin: 0; font-size: var(--t-sm); color: var(--ink); line-height: 1.45; }
 .do-lien { font-size: var(--t-sm); font-weight: 700; color: var(--brand); text-decoration: none; }
 .do-lien:hover { text-decoration: underline; }
+
+/* --------------------------------------- le contact indique sur l'avis ----
+   Sortie attendue de MS3 : « contact employeur ». L'OPT-NC le renseigne sur
+   tous ses AVP (verifie le 12/10 : 24 sur 24). */
+.do-contact { display: grid; gap: var(--s2); margin-top: var(--s5);
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--r-md); padding: var(--s4); }
+.do-contact h3 { margin: 0; }
+.do-contact p { margin: 0; font-size: var(--t-sm); color: var(--ink-2); }
+.do-contact-l { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin-top: 2px; }
+.do-contact-l a { display: inline-flex; align-items: center; min-height: var(--tap);
+  font-weight: 700; color: var(--brand); text-decoration: none; word-break: break-all; }
+.do-contact-l a:hover { text-decoration: underline; }
+.do-contact-n { font-size: var(--t-xs); color: var(--ink-3); }
+
+/* Entretien a programmer : pose par le recruteur depuis AVPRO-NC. */
+.etat.entretien { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--warn); }

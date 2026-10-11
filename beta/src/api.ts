@@ -170,6 +170,8 @@ interface AvpEquipe {
   typeContrat?: string | null; secteur?: string | null; niveauDiplome?: string | null
   experienceRequise?: string | null; qualifications?: string | null; exigencesPhysiques?: string | null
   horaires?: string | null; avantages?: string | null; dateDebut?: string | null; dateDebutTexte?: string | null
+  contactEmail?: string | null; contactTelephone?: string | null; candidatureDirecte?: boolean | null
+  presentationEmployeur?: string | null; nbPostes?: number | null; debutImmediat?: boolean | null
   datePublication?: string | null; dateLimite?: string | null; familles?: string[] | null
   connaissances?: string[] | null; savoirFaire?: string[] | null; responsabilites?: string[] | null
   informationsLibres?: { cle?: string; valeur?: string }[] | null
@@ -255,6 +257,12 @@ function offreDepuisAvp(a: AvpEquipe): Offre {
     permis: /permis/i.test(`${qualif} ${libres}`),
     debut: /^(\d{4}-\d{2})/.exec(a.dateDebut ?? '')?.[1] ?? texte(a.dateDebutTexte),
     description: texte(a.description),
+    contactEmail: texte(a.contactEmail),
+    contactTelephone: texte(a.contactTelephone),
+    candidatureDirecte: a.candidatureDirecte === true,
+    presentationEmployeur: texte(a.presentationEmployeur),
+    nbPostes: typeof a.nbPostes === 'number' ? a.nbPostes : null,
+    debutImmediat: a.debutImmediat === true,
     requis: [],
     souhaite: [],
     publiee: texte(a.datePublication),
@@ -293,7 +301,7 @@ function poseLocal(l: Local): void {
 /* ======================================================= swipes, candidatures */
 
 interface SwipeEquipe { id: number; avpId: number; avpReference?: string; avpTitre?: string; estLike: boolean; createdAt: string; updatedAt: string }
-interface CandidatureEquipe { id: number; avpId: number; avpReference?: string; avpTitre?: string; statut: StatutEquipe; createdAt: string; updatedAt: string }
+interface CandidatureEquipe { id: number; avpId: number; avpReference?: string; avpTitre?: string; statut: StatutEquipe; entretienAProg?: boolean; createdAt: string; updatedAt: string }
 
 const STATUT_LOCAL: Record<StatutEquipe, StatutCandidature> = {
   EN_ATTENTE: 'envoyee', VALIDEE: 'preselection', REJETEE: 'refusee', ANNULEE: 'retiree',
@@ -732,7 +740,10 @@ export const api = {
         decision: s.estLike ? 'oui' : 'non',
         quand: s.updatedAt ?? s.createdAt,
         match: null,
-        candidature: c ? { id: c.id, statut: STATUT_LOCAL[c.statut], equipe: c.statut, equipeLe: c.updatedAt } : null,
+        /* `entretienAProg` est pose par le recruteur depuis AVPRO-NC. Tant que
+           personne ne le pose, il reste faux et rien ne s'affiche : on ne
+           promet pas un signal qu'on n'a pas vu arriver. */
+        candidature: c ? { id: c.id, statut: STATUT_LOCAL[c.statut], equipe: c.statut, equipeLe: c.updatedAt, entretien: c.entretienAProg === true } : null,
       })
     }
     for (const x of l.plusTard) {
