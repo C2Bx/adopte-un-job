@@ -183,7 +183,7 @@ export function EcranMatchs() {
           <div className="vide">
             <b>Rien ici</b>
             {onglet === 'oui'
-              ? 'Tes candidatures apparaîtront ici, avec leur suite : ouverte, présélectionnée, entretien.'
+              ? 'Tes candidatures apparaîtront ici, avec la réponse du recruteur : retenue, non retenue, ou entretien à programmer.'
               : onglet === 'plus_tard'
                 ? 'Mettre de côté, c’est décider plus tard — pas décider non.'
                 : 'Les offres passées restent consultables : une décision se revoit.'}
