@@ -290,7 +290,7 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
           {offres !== null && !courante && (
             <div className="empty">
               <div>
-                <h2>{actifs ? 'Aucune offre avec ces filtres' : 'Tu as vu tout ce qui correspond'}</h2>
+                <h2>{actifs ? 'Aucune offre avec ces filtres' : 'Tu as vu tout ce qui te correspond'}</h2>
                 <p>
                   {erreur ?? (actifs
                     ? 'Tes filtres sont trop stricts pour ce qui reste : retire-en un, ou efface-les tous.'
