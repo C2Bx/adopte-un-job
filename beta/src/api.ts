@@ -542,13 +542,23 @@ const NON_DISPONIBLE = (quoi: string) =>
 
 export const api = {
   /* ------------------------------------------------------------- comptes */
-  async inscription(email: string, motdepasse: string, prenom: string, nom: string): Promise<Utilisateur> {
+  async inscription(email: string, motdepasse: string, prenom: string, nom: string, agentOpt: boolean): Promise<Utilisateur> {
     await appel('POST', '/auth/register', {
       anonyme: true,
       corps: { email, password: motdepasse, prenom, nom, role: 'CANDIDAT' },
       messages: { 409: 'Un compte existe déjà avec cette adresse.' },
     })
-    return api.connexion(email, motdepasse)
+    const u = await api.connexion(email, motdepasse)
+    // Leur /auth/register n'a pas de champ « agent OPT » (il ne prend que
+    // nom/prénom/email/mot de passe/rôle). On range donc la réponse dans le
+    // profil du candidat — dont il est seul rédacteur — en meta.agentOpt, qui
+    // survit aux éditions du profil (cf. documentDepuisProfil). On ne bloque
+    // jamais l'entrée là-dessus : au pire la question se repose plus tard.
+    try {
+      const doc = await lisProfilEquipe()
+      await envoieDocument({ ...doc, meta: { ...objet(doc.meta), agentOpt } })
+    } catch { /* profil indisponible à l'instant : on entre quand même */ }
+    return u
   },
   async connexion(email: string, motdepasse: string): Promise<Utilisateur> {
     const d = await appel<{ accessToken: string }>('POST', '/auth/login', {

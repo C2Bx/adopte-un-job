@@ -23,6 +23,8 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
   const [mdp, setMdp] = useState('')
   const [prenom, setPrenom] = useState('')
   const [nom, setNom] = useState('')
+  // à l'inscription : le candidat dit s'il est déjà agent de l'OPT-NC (rangé dans son profil)
+  const [agentOpt, setAgentOpt] = useState<boolean | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
 
@@ -34,6 +36,10 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
     setInfo(null)
     setEnvoi(true)
     try {
+      if (mode === 'inscription' && agentOpt === null) {
+        setErreur('Dis-nous si tu es déjà agent de l’OPT-NC.')
+        return
+      }
       if (mode === 'oubli') {
         if (codeRecu.trim()) {
           const r = await api.oubliConfirme(codeRecu.trim(), mdp)
@@ -48,7 +54,7 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
       }
       const u = mode === 'connexion'
         ? await api.connexion(email, mdp)
-        : await api.inscription(email, mdp, prenom.trim(), nom.trim())
+        : await api.inscription(email, mdp, prenom.trim(), nom.trim(), agentOpt!)
       await onEntre(u)
     } catch (e) {
       setErreur(e instanceof ErreurApi ? e.message : 'Quelque chose a échoué. Réessaie.')
@@ -97,6 +103,22 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
                 <input type="text" value={nom} required maxLength={60} autoComplete="family-name"
                   onChange={(e) => setNom(e.target.value)} />
               </label>
+            </div>
+          )}
+
+          {mode === 'inscription' && (
+            <div className="pf">
+              <span className="pl">Es-tu déjà agent de l’OPT-NC ?</span>
+              <div className="pf-jeu" role="radiogroup" aria-label="Agent de l’OPT-NC">
+                <button type="button" role="radio" aria-checked={agentOpt === true}
+                  className={agentOpt === true ? 'on' : ''} onClick={() => setAgentOpt(true)}>Oui</button>
+                <button type="button" role="radio" aria-checked={agentOpt === false}
+                  className={agentOpt === false ? 'on' : ''} onClick={() => setAgentOpt(false)}>Non</button>
+              </div>
+              <span className="pa">
+                Pour te montrer d’abord ce qui te concerne : mobilité interne si tu es déjà
+                à l’OPT, recrutement externe sinon.
+              </span>
             </div>
           )}
 
