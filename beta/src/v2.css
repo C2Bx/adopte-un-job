@@ -459,3 +459,31 @@
 
 /* Entretien a programmer : pose par le recruteur depuis AVPRO-NC. */
 .etat.entretien { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--warn); }
+
+/* === Téléphone : la carte et la barre de filtres (13/10) ====================
+   Jusqu'ici la carte n'avait que des règles « grand écran » (min-width). Sur un
+   téléphone étroit, trois choses cassaient, signalées par bastian :
+   ① le bouton « Filtres » sortait du bord (on ignorait qu'on pouvait filtrer) ;
+   ② le hero (titre long sur 4 lignes) débordait par-dessus les détails ;
+   ③ les boutons d'action mangeaient la hauteur du contenu. */
+@media (max-width: 560px) {
+  /* ① le champ cède la place ; le bouton « Filtres » reste toujours visible */
+  .filtres-avp .recherche { min-width: 8rem; flex: 1 1 8rem; max-width: none; }
+  .chip.ouvre-filtres { flex: none; }
+
+  /* ② le hero ne déborde plus : titre plus compact, marges resserrées, et borné
+        à 4 lignes au pire (le titre entier reste dans « Voir l'offre ») */
+  .card .role { font-size: var(--t-xl); line-height: 1.12; margin: var(--s2) 0 var(--s1);
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .cles { margin-top: var(--s2); }
+  .card .facts { padding-top: var(--s2); padding-bottom: var(--s1); }
+
+  /* ③ boutons d'action plus petits : ils rendent de la hauteur au contenu */
+  .coins { padding: var(--s1) var(--s3) var(--s2); gap: var(--s2); }
+  .coins button { width: 42px; height: 42px; }
+  .coins svg { width: 18px; height: 18px; }
+  .coins .non, .coins .oui { width: 48px; height: 48px; }
+  .coins .non svg, .coins .oui svg { width: 20px; height: 20px; }
+  .card .coins .coin { gap: 2px; }
+  .card .coins .coin span { font-size: 9.5px; }
+}
