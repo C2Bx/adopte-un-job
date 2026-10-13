@@ -471,19 +471,20 @@
   .filtres-avp .recherche { min-width: 8rem; flex: 1 1 8rem; max-width: none; }
   .chip.ouvre-filtres { flex: none; }
 
-  /* ② le hero ne déborde plus : titre plus compact, marges resserrées, et borné
-        à 4 lignes au pire (le titre entier reste dans « Voir l'offre ») */
-  .card .role { font-size: var(--t-xl); line-height: 1.12; margin: var(--s2) 0 var(--s1);
-    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  /* ② le hero ne déborde plus et prend moins de place : titre compact (t-lg),
+        borné à 3 lignes (le titre entier reste dans « Voir l'offre ») */
+  .card .role { font-size: 16px; line-height: 1.12; margin: var(--s1) 0 var(--s1);
+    letter-spacing: -.01em;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .card .cles { margin-top: var(--s2); }
   .card .facts { padding-top: var(--s2); padding-bottom: var(--s1); }
 
   /* ③ boutons d'action plus petits : ils rendent de la hauteur au contenu */
-  .coins { padding: var(--s1) var(--s3) var(--s2); gap: var(--s2); }
-  .coins button { width: 42px; height: 42px; }
-  .coins svg { width: 18px; height: 18px; }
-  .coins .non, .coins .oui { width: 48px; height: 48px; }
-  .coins .non svg, .coins .oui svg { width: 20px; height: 20px; }
-  .card .coins .coin { gap: 2px; }
-  .card .coins .coin span { font-size: 9.5px; }
+  .coins { padding: 2px var(--s3) var(--s1); gap: var(--s1); }
+  .coins button { width: 34px; height: 34px; border-width: 1.5px; }
+  .coins svg { width: 15px; height: 15px; }
+  .coins .non, .coins .oui { width: 40px; height: 40px; }
+  .coins .non svg, .coins .oui svg { width: 16px; height: 16px; }
+  .card .coins .coin { gap: 1px; }
+  .card .coins .coin span { font-size: 8.5px; }
 }
