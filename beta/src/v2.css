@@ -525,3 +525,17 @@
    (non défilant). pan-y rend l'horizontal au glissé de la carte (JS) tout en
    gardant le défilement vertical du texte quand il déborde. */
 .card .pagebox, .card .page-body { touch-action: pan-y; }
+
+/* « Effacer mon CV » (écran Profil) : efface le profil saisi côté API (garde le
+   fichier déposé + la lecture n8n). Zone à part, en bas, confirmation en 2 temps. */
+.peffacer { margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--line); }
+.btn-effacer { border: none; background: none; color: var(--ink-3); font: inherit; font-size: var(--t-sm);
+  cursor: pointer; padding: var(--s2) 0; text-decoration: underline; text-underline-offset: 3px; }
+.btn-effacer:hover { color: var(--no); }
+.peffacer-boite { display: grid; gap: var(--s2); padding: var(--s4);
+  border: 1px solid color-mix(in srgb, var(--no) 40%, var(--line)); border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--no) 5%, transparent); }
+.peffacer-boite .btns { display: flex; gap: var(--s2); margin-top: var(--s2); }
+.btn-effacer.fort { color: #fff; background: var(--no); border-radius: var(--r-full);
+  padding: 8px var(--s4); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn-effacer.fort:hover { color: #fff; filter: brightness(.95); }

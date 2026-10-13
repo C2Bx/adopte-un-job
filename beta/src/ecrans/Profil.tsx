@@ -42,6 +42,28 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
   const courant = useRef(profil)
   courant.current = profil
 
+  // « Effacer mon CV » : efface le profil saisi chez eux (garde le fichier
+  // déposé et la lecture n8n). Confirmation en deux temps, pas de popup.
+  const [effConfirm, setEffConfirm] = useState(false)
+  const [effEnCours, setEffEnCours] = useState(false)
+  const [effErr, setEffErr] = useState<string | null>(null)
+  const effaceMonCv = async () => {
+    setEffErr(null)
+    setEffEnCours(true)
+    try {
+      await api.supprimeMonCv()
+      depuisServeur.current = true
+      onProfil(await api.profil())
+      setMode('choix')
+      setEtape(0)
+      setEffConfirm(false)
+    } catch (e) {
+      setEffErr(e instanceof ErreurApi ? e.message : 'Ton CV n’a pas pu être effacé.')
+    } finally {
+      setEffEnCours(false)
+    }
+  }
+
   useEffect(() => {
     void api.referentiels().then(setRef).catch(() => setRef(null))
   }, [])
@@ -119,6 +141,32 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
             {mode === 'choix' && <ZoneCV cv={cv} />}
 
             <MonCompte />
+
+            {!vierge(profil) && (
+              <div className="peffacer">
+                {!effConfirm ? (
+                  <button type="button" className="btn-effacer"
+                    onClick={() => { setEffErr(null); setEffConfirm(true) }}>Effacer mon CV</button>
+                ) : (
+                  <div className="peffacer-boite">
+                    <b>Effacer ce que tu as saisi dans ton profil ?</b>
+                    <span>
+                      Le fichier que tu as déposé et sa lecture automatique sont gardés —
+                      tu pourras repartir d’eux.
+                    </span>
+                    {effErr && <div className="pal manque"><b>Problème</b>{effErr}</div>}
+                    <div className="btns">
+                      <button type="button" className="btn-mini" disabled={effEnCours}
+                        onClick={() => setEffConfirm(false)}>Annuler</button>
+                      <button type="button" className="btn-effacer fort" disabled={effEnCours}
+                        onClick={() => void effaceMonCv()}>
+                        {effEnCours ? <><Spinner />…</> : 'Oui, effacer'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {mode === 'questions' && (
               <Questions

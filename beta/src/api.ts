@@ -694,6 +694,15 @@ export const api = {
     const r = await brut('GET', `/profils/${moiSession().id}/cv`)
     return URL.createObjectURL(await r.blob())
   },
+  /** Efface le CV saisi (le profil JSON) chez eux. Pour soi seulement. Ne touche
+   *  NI le document déposé NI la lecture n8n de Florian (`cvJsonGenere`). Leur
+   *  route renvoie un corps vide : on relit le profil pour refléter l'état réel. */
+  async supprimeMonCv(): Promise<void> {
+    await brut('DELETE', `/profils/${moiSession().id}/cv-json`, {
+      messages: { 403: 'Tu ne peux effacer que ton propre CV.', 404: 'Aucun profil à effacer.' },
+    })
+    await lisProfilEquipe()
+  },
 
   /* ----------------------------------------------------------------- deck */
   /**

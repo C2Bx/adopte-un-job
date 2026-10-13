@@ -22,7 +22,7 @@ const TAILLE_MAX = 11 * 1024 * 1024;           // leur limite est 10 Mo par CV
 const ROUTES = [
     '#^/auth/(login|register|forgot-password|reset-password)$#',
     '#^/profils/moi(/cv(/traitement)?)?$#',
-    '#^/profils/\d+(/cv)?$#',
+    '#^/profils/\d+(/cv|/cv-json)?$#',
     '#^/avp(/\d+|/compteur)?$#',
     '#^/swipes/candidats(/\d+|/avp/\d+)?$#',
     '#^/candidatures/(moi|compteur|\d+)$#',
@@ -41,7 +41,11 @@ function refuse(int $code, string $message): never
 
 $chemin = (string) ($_GET['p'] ?? '');
 $methode = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-if (!in_array($methode, ['GET', 'POST', 'PUT'], true)) {
+if (!in_array($methode, ['GET', 'POST', 'PUT', 'DELETE'], true)) {
+    refuse(405, 'Méthode non relayée.');
+}
+/* DELETE n'est admis que pour effacer son propre CV JSON — rien d'autre. */
+if ($methode === 'DELETE' && !preg_match('#^/profils/\d+/cv-json$#', $chemin)) {
     refuse(405, 'Méthode non relayée.');
 }
 $admis = false;
