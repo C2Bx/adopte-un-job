@@ -703,6 +703,12 @@ export const api = {
     })
     await lisProfilEquipe()
   },
+  /** Le profil tel qu'il est enregistré chez eux : le document JSON Resume brut,
+   *  pour l'exporter. On relit pour avoir la dernière version (et tous les
+   *  champs, même ceux que l'écran n'affiche pas). */
+  async exporteProfil(): Promise<Json> {
+    return lisProfilEquipe()
+  },
 
   /* ----------------------------------------------------------------- deck */
   /**

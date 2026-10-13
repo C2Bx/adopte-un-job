@@ -47,6 +47,29 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
   const [effConfirm, setEffConfirm] = useState(false)
   const [effEnCours, setEffEnCours] = useState(false)
   const [effErr, setEffErr] = useState<string | null>(null)
+  const [expEnCours, setExpEnCours] = useState(false)
+
+  // Export du profil au format JSON Resume, réutilisable ailleurs.
+  const exporteProfil = async () => {
+    setEffErr(null)
+    setExpEnCours(true)
+    try {
+      const doc = await api.exporteProfil()
+      const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'mon-cv.jsonresume.json'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (e) {
+      setEffErr(e instanceof ErreurApi ? e.message : 'Le profil n’a pas pu être exporté.')
+    } finally {
+      setExpEnCours(false)
+    }
+  }
   const effaceMonCv = async () => {
     setEffErr(null)
     setEffEnCours(true)
@@ -141,6 +164,16 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
             {mode === 'choix' && <ZoneCV cv={cv} />}
 
             <MonCompte />
+
+            {!vierge(profil) && (
+              <div className="poutils">
+                <button type="button" className="btn-mini" disabled={expEnCours}
+                  onClick={() => void exporteProfil()}>
+                  {expEnCours ? <><Spinner />…</> : 'Télécharger mon profil (JSON Resume)'}
+                </button>
+                <span className="pa">Ton CV au format standard JSON Resume, réutilisable ailleurs.</span>
+              </div>
+            )}
 
             {!vierge(profil) && (
               <div className="peffacer">
