@@ -709,6 +709,28 @@ export const api = {
   async exporteProfil(): Promise<Json> {
     return lisProfilEquipe()
   },
+  /** Importe un profil au format JSON Resume. On le fusionne par-dessus le profil
+   *  courant : le CV importé prend la place, mais on GARDE les critères déjà
+   *  saisis et le repère « agent OPT » (ils ne sont pas dans un JSON Resume
+   *  standard). PUT /profils/moi n'exige qu'un objet JSON. Rend le profil relu. */
+  async importeProfil(doc: unknown): Promise<Profil> {
+    const d = objet(doc)
+    if (!Object.keys(d).length) throw new Error('Ce fichier ne ressemble pas à un JSON Resume.')
+    const base = await documentCourant()
+    const metaBase = objet(base.meta)
+    const metaImport = objet(d.meta)
+    await envoieDocument({
+      ...d,
+      meta: {
+        ...metaImport,
+        criteres: metaBase.criteres ?? metaImport.criteres,
+        agentOpt: metaBase.agentOpt ?? metaImport.agentOpt,
+        cvDepose: metaBase.cvDepose,
+        source: 'import',
+      },
+    })
+    return api.profil()
+  },
 
   /* ----------------------------------------------------------------- deck */
   /**

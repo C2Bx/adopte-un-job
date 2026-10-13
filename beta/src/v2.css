@@ -540,43 +540,23 @@
   padding: 8px var(--s4); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 .btn-effacer.fort:hover { color: #fff; filter: brightness(.95); }
 
-/* === Mode sombre : suit le réglage du système =============================
-   Reprend la palette de la direction artistique « Nuit & Lagon » (DA « b »
-   dans design.css). Ne s'applique que si l'utilisateur n'a pas forcé une
-   direction via data-da (il n'y en a pas aujourd'hui). Les polices de la DA
-   « b » ne sont pas chargées — on garde donc la police courante, seules les
-   couleurs changent. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-da]) {
-    color-scheme: dark;
+/* === Thème : jour par défaut, nuit sur choix de l'utilisateur ==============
+   Le mode nuit = la direction artistique « Nuit & Lagon » (DA « b » dans
+   design.css), appliquée via data-da="b" sur <html> par le réglage « Apparence »
+   (mémorisé dans le navigateur). On ne suit PAS le réglage système : jour par
+   défaut, l'utilisateur bascule s'il veut. Les polices de la DA « b » ne sont
+   pas chargées — seules les couleurs changent. */
+:root { color-scheme: light; }
+[data-da="b"] { color-scheme: dark; }
 
-    --bg: #0C1013;
-    --surface: #141A1F;
-    --surface-2: #1C242B;
-    --line: #242E36;
-    --ink: #EDF2F4;
-    --ink-2: #A9B6BE;
-    --ink-3: #74828C;
-
-    --brand: #2ED3B7;
-    --brand-ink: #06231F;
-    --brand-soft: #10312C;
-    --accent: #F2C14E;
-    --accent-soft: #2C2513;
-
-    --yes: #35D39A;
-    --no: #F0687E;
-    --warn: #F2C14E;
-
-    --stage: #141A1F;
-    --stage-2: #1C242B;
-    --stage-ink: #EDF2F4;
-    --stage-ink-2: #A9B6BE;
-    --stage-line: rgba(255,255,255,.12);
-
-    --shadow-card: 0 20px 44px -26px rgba(0,0,0,.9);
-    --shadow-ui: 0 1px 2px rgba(0,0,0,.4), 0 10px 24px -20px rgba(0,0,0,.9);
-  }
-}
+/* le logo passe en blanc en mode nuit (deux images, bascule par le thème) */
+.mark .logo-nuit { display: none; }
+[data-da="b"] .mark .logo-jour { display: none; }
+[data-da="b"] .mark .logo-nuit { display: block; }
 
 .poutils { margin-top: var(--s5); display: grid; gap: var(--s2); justify-items: start; }
+
+/* outils du profil : export / import JSON Resume, côte à côte */
+.poutils-btns { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.poutils-fichier { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.mc-theme { margin-top: var(--s4); }

@@ -7,6 +7,9 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="description" content="Adopte un Job — trouver un poste qui correspond vraiment.">
 <title>Adopte un Job</title>
+<!-- Thème : jour par défaut. Si l'utilisateur a choisi « nuit », on l'applique
+     AVANT le premier rendu pour éviter un éclair de thème clair. -->
+<script>try{if(localStorage.getItem('aj-theme')==='nuit')document.documentElement.setAttribute('data-da','b')}catch(e){}</script>
 <link rel="manifest" href="/avp/manifest.webmanifest">
 <!-- Trois tailles plutôt qu'une : à 16 px le symbole complet fait une tache,
      la version de l'onglet ne garde que la fiche de devant. -->

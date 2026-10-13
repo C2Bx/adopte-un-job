@@ -67,12 +67,10 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
     <div className="accueil">
       <div className="accueil-in">
         <span className="mark grand">
-          <picture>
-            <source media="(prefers-color-scheme: dark)"
-              srcSet={`${import.meta.env.BASE_URL}marque/logo-horizontal-blanc.png`} />
-            <img src={`${import.meta.env.BASE_URL}marque/logo-horizontal.png`}
-              alt="Adopte un Job" className="logo" width={224} height={48} />
-          </picture>
+          <img src={`${import.meta.env.BASE_URL}marque/logo-horizontal.png`}
+            alt="Adopte un Job" className="logo logo-jour" width={224} height={48} />
+          <img src={`${import.meta.env.BASE_URL}marque/logo-horizontal-blanc.png`}
+            alt="" aria-hidden="true" className="logo logo-nuit" width={224} height={48} />
         </span>
 
         <h1>Un poste qui te correspond, pas trente CV envoyés.</h1>

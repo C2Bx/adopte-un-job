@@ -162,12 +162,10 @@ export function App() {
         {/* Le logo porte déjà le nom : l'écrire une seconde fois à côté ferait
             doublon. L'alt le rend au lecteur d'écran. */}
         <span className="mark">
-          <picture>
-            <source media="(prefers-color-scheme: dark)"
-              srcSet={`${import.meta.env.BASE_URL}marque/logo-horizontal-blanc.png`} />
-            <img src={`${import.meta.env.BASE_URL}marque/logo-horizontal.png`}
-              alt="Adopte un Job" className="logo" width={168} height={36} />
-          </picture>
+          <img src={`${import.meta.env.BASE_URL}marque/logo-horizontal.png`}
+            alt="Adopte un Job" className="logo logo-jour" width={168} height={36} />
+          <img src={`${import.meta.env.BASE_URL}marque/logo-horizontal-blanc.png`}
+            alt="" aria-hidden="true" className="logo logo-nuit" width={168} height={36} />
         </span>
         <span className="spacer" />
         {/* Sur téléphone, la recherche et les filtres vivent ici (là où était la

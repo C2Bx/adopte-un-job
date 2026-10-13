@@ -19,8 +19,18 @@ export function MonCompte() {
   const [envoi, setEnvoi] = useState(false)
   const [info, setInfo] = useState<string | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
+  // Apparence : jour par défaut, nuit sur choix, mémorisé dans le navigateur.
+  const [nuit, setNuit] = useState(() => document.documentElement.getAttribute('data-da') === 'b')
 
   useEffect(() => { void api.moi().then((u) => setEmail(u?.email ?? '')) }, [])
+
+  const basculeTheme = (v: boolean) => {
+    setNuit(v)
+    try { localStorage.setItem('aj-theme', v ? 'nuit' : 'jour') } catch { /* navigation privée */ }
+    const racine = document.documentElement
+    if (v) racine.setAttribute('data-da', 'b')
+    else racine.removeAttribute('data-da')
+  }
 
   const ferme = () => { setOuvert(false); setCodeEnvoye(false); setCode(''); setNouveau(''); setErreur(null) }
 
@@ -54,6 +64,16 @@ export function MonCompte() {
         <dt>Adresse e-mail</dt>
         <dd>{email || <Spinner />}</dd>
       </dl>
+
+      <div className="pf mc-theme">
+        <span className="pl">Apparence</span>
+        <div className="pf-jeu" role="radiogroup" aria-label="Apparence">
+          <button type="button" role="radio" aria-checked={!nuit}
+            className={!nuit ? 'on' : ''} onClick={() => basculeTheme(false)}>Jour</button>
+          <button type="button" role="radio" aria-checked={nuit}
+            className={nuit ? 'on' : ''} onClick={() => basculeTheme(true)}>Nuit</button>
+        </div>
+      </div>
 
       {!ouvert && (
         <>

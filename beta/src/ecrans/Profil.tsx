@@ -48,10 +48,12 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
   const [effEnCours, setEffEnCours] = useState(false)
   const [effErr, setEffErr] = useState<string | null>(null)
   const [expEnCours, setExpEnCours] = useState(false)
+  const [impEnCours, setImpEnCours] = useState(false)
+  const [outilsMsg, setOutilsMsg] = useState<{ ok: boolean; texte: string } | null>(null)
 
   // Export du profil au format JSON Resume, réutilisable ailleurs.
   const exporteProfil = async () => {
-    setEffErr(null)
+    setOutilsMsg(null)
     setExpEnCours(true)
     try {
       const doc = await api.exporteProfil()
@@ -65,9 +67,30 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
       a.remove()
       window.setTimeout(() => URL.revokeObjectURL(url), 1000)
     } catch (e) {
-      setEffErr(e instanceof ErreurApi ? e.message : 'Le profil n’a pas pu être exporté.')
+      setOutilsMsg({ ok: false, texte: e instanceof ErreurApi ? e.message : 'Le profil n’a pas pu être exporté.' })
     } finally {
       setExpEnCours(false)
+    }
+  }
+
+  // Import d'un profil au format JSON Resume (remplace le CV, garde les critères).
+  const importe = async (f: File) => {
+    setOutilsMsg(null)
+    setImpEnCours(true)
+    try {
+      const texte = await f.text()
+      let doc: unknown
+      try { doc = JSON.parse(texte) } catch { throw new Error('Ce fichier n’est pas un JSON valide.') }
+      const p = await api.importeProfil(doc)
+      depuisServeur.current = true
+      onProfil(p)
+      setMode('form')
+      setEtape(0)
+      setOutilsMsg({ ok: true, texte: 'Ton JSON Resume a été importé.' })
+    } catch (e) {
+      setOutilsMsg({ ok: false, texte: e instanceof ErreurApi ? e.message : e instanceof Error ? e.message : 'Ce JSON Resume n’a pas pu être importé.' })
+    } finally {
+      setImpEnCours(false)
     }
   }
   const effaceMonCv = async () => {
@@ -165,15 +188,27 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
 
             <MonCompte />
 
-            {!vierge(profil) && (
-              <div className="poutils">
-                <button type="button" className="btn-mini" disabled={expEnCours}
-                  onClick={() => void exporteProfil()}>
-                  {expEnCours ? <><Spinner />…</> : 'Télécharger mon profil (JSON Resume)'}
-                </button>
-                <span className="pa">Ton CV au format standard JSON Resume, réutilisable ailleurs.</span>
+            <div className="poutils">
+              <div className="poutils-btns">
+                {!vierge(profil) && (
+                  <button type="button" className="btn-mini" disabled={expEnCours}
+                    onClick={() => void exporteProfil()}>
+                    {expEnCours ? <><Spinner />…</> : 'Télécharger mon profil (JSON Resume)'}
+                  </button>
+                )}
+                <label className="btn-mini poutils-fichier">
+                  {impEnCours ? <><Spinner />…</> : 'Importer un JSON Resume'}
+                  <input type="file" hidden accept=".json,application/json" disabled={impEnCours}
+                    onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void importe(f) }} />
+                </label>
               </div>
-            )}
+              <span className="pa">Ton CV au format standard JSON Resume : télécharge-le, ou importes-en un.</span>
+              {outilsMsg && (
+                <div className={`pal ${outilsMsg.ok ? 'ok' : 'manque'}`}>
+                  <b>{outilsMsg.ok ? 'C’est fait' : 'Problème'}</b>{outilsMsg.texte}
+                </div>
+              )}
+            </div>
 
             {!vierge(profil) && (
               <div className="peffacer">
