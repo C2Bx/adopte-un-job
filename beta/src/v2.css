@@ -517,3 +517,11 @@
   .nav .nav-sortie { display: flex; color: var(--ink-3); }
   .nav .nav-sortie:hover { color: var(--no); background: color-mix(in srgb, var(--no) 8%, transparent); }
 }
+
+/* Le glissé (swipe) doit marcher sur TOUTE la carte, pas seulement le haut.
+   La zone de texte (.pagebox, et .page-body quand il déborde) est un conteneur
+   à overflow : son touch-action par défaut (auto) laissait le navigateur happer
+   les gestes HORIZONTAUX, si bien qu'on ne pouvait glisser que sur le héros
+   (non défilant). pan-y rend l'horizontal au glissé de la carte (JS) tout en
+   gardant le défilement vertical du texte quand il déborde. */
+.card .pagebox, .card .page-body { touch-action: pan-y; }
