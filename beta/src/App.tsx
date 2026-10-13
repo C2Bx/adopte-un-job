@@ -166,9 +166,26 @@ export function App() {
             alt="Adopte un Job" className="logo" width={168} height={36} />
         </span>
         <span className="spacer" />
-        <button className="iconbtn sortie-haut" onClick={() => void sors()} title="Se déconnecter" aria-label="Se déconnecter">
-          <svg><use href="#i-sortie" /></svg>
-        </button>
+        {/* Sur téléphone, la recherche et les filtres vivent ici (là où était la
+            déconnexion, désormais seulement dans le menu du bas) : une loupe qui
+            ouvre la recherche, un entonnoir qui ouvre les filtres. Le deck écoute
+            ces deux événements. Masqué sur grand écran (barre dédiée dans le deck). */}
+        {onglet === 'swipe' && (
+          <div className="topbar-actions">
+            <button className="iconbtn" title="Rechercher" aria-label="Rechercher une offre"
+              onClick={() => document.dispatchEvent(new Event('aj:recherche'))}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4 4" />
+              </svg>
+            </button>
+            <button className="iconbtn" title="Filtres" aria-label="Filtrer les offres"
+              onClick={() => document.dispatchEvent(new Event('aj:filtres'))}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M4 6h16M7 12h10M10 18h4" />
+              </svg>
+            </button>
+          </div>
+        )}
       </header>
 
       {onglet === 'swipe' && (

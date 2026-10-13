@@ -124,6 +124,8 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   const [recherche, setRecherche] = useState('')
   // le panneau des filtres (une feuille, sur téléphone comme sur ordinateur)
   const [panneauFiltres, setPanneauFiltres] = useState(false)
+  // sur téléphone, la recherche s'ouvre en feuille depuis la loupe de la barre du haut
+  const [rechercheOuverte, setRechercheOuverte] = useState(false)
   const [dernier, setDernier] = useState<Offre | null>(null)
   const vu = useRef<Set<number>>(new Set())
   // raccourcis clavier : la fonction est remise à jour à chaque rendu (elle lit l'état courant)
@@ -132,6 +134,18 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
     const ecoute = (e: KeyboardEvent) => clavier.current?.(e)
     window.addEventListener('keydown', ecoute)
     return () => window.removeEventListener('keydown', ecoute)
+  }, [])
+
+  // la loupe et l'entonnoir de la barre du haut (sur téléphone) pilotent le deck
+  useEffect(() => {
+    const ouvreRecherche = () => setRechercheOuverte(true)
+    const ouvreFiltres = () => setPanneauFiltres(true)
+    document.addEventListener('aj:recherche', ouvreRecherche)
+    document.addEventListener('aj:filtres', ouvreFiltres)
+    return () => {
+      document.removeEventListener('aj:recherche', ouvreRecherche)
+      document.removeEventListener('aj:filtres', ouvreFiltres)
+    }
   }, [])
 
   const aCombler = manques(profil)
@@ -325,6 +339,25 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
         <Feuille onFermer={() => setPanneauFiltres(false)}>
           <PanneauFiltres f={filtres} comptes={comptes} total={offres?.length ?? 0} actifs={actifs}
             change={setFiltres} toutEffacer={toutEffacer} fermer={() => setPanneauFiltres(false)} />
+        </Feuille>
+      )}
+
+      {rechercheOuverte && (
+        <Feuille onFermer={() => setRechercheOuverte(false)}>
+          <div className="eyebrow">Recherche</div>
+          <h2>Un poste, un mot</h2>
+          <input
+            type="search" className="recherche recherche-popup" autoFocus value={recherche}
+            placeholder="Chercher un poste, un mot, un service…"
+            onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher dans les offres"
+            onKeyDown={(e) => { if (e.key === 'Enter') setRechercheOuverte(false) }}
+          />
+          <div className="btns" style={{ marginTop: 'var(--s5)' }}>
+            {recherche && <button className="btn" onClick={() => setRecherche('')}>Effacer</button>}
+            <button className="btn primaire" onClick={() => setRechercheOuverte(false)}>
+              Voir {offres?.length ?? 0} offre{(offres?.length ?? 0) > 1 ? 's' : ''}
+            </button>
+          </div>
         </Feuille>
       )}
 
