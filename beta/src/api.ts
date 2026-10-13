@@ -333,21 +333,29 @@ const tableau = (v: unknown): Json[] => (Array.isArray(v) ? v.map(objet) : [])
 
 /** Le dernier JSON lu chez eux : on écrit PAR-DESSUS lui, pour ne perdre aucun champ qu'on ne connaît pas. */
 let dernierDoc: Json = {}
+/* Depuis que l'équipe (MS2) range la lecture n8n À PART, dans `cvJsonGenere`,
+   le candidat reste SEUL rédacteur de son `cv`. On lit la lecture n8n ici et on
+   la fusionne dans le profil au moment du dépôt (cf. lisCV). */
+let dernierGenere: Json = {}
 let derniereLecture: { cvDocument: string | null; maj: string | null } = { cvDocument: null, maj: null }
+
+/** Leur champ JSON peut arriver en objet ou en chaîne JSON : on tolère les deux. */
+function parseJson(v: unknown): Json {
+  if (typeof v === 'string') { try { return objet(JSON.parse(v)) } catch { return {} } }
+  return objet(v)
+}
 
 async function lisProfilEquipe(): Promise<Json> {
   const s = moiSession()
   try {
-    const p = await appel<{ cv?: unknown; cvDocument?: string | null; updatedAt?: string | null }>('GET', `/profils/${s.id}`)
-    let cv = p.cv
-    if (typeof cv === 'string') {
-      try { cv = JSON.parse(cv) } catch { cv = {} }
-    }
-    dernierDoc = objet(cv)
+    const p = await appel<{ cv?: unknown; cvJsonGenere?: unknown; cvDocument?: string | null; updatedAt?: string | null }>('GET', `/profils/${s.id}`)
+    dernierDoc = parseJson(p.cv)
+    dernierGenere = parseJson(p.cvJsonGenere)
     derniereLecture = { cvDocument: p.cvDocument ?? null, maj: p.updatedAt ?? null }
   } catch (e) {
     if (!(e instanceof ErreurApi) || e.http !== 404) throw e
     dernierDoc = {}
+    dernierGenere = {}
     derniereLecture = { cvDocument: null, maj: null }
   }
   return dernierDoc
@@ -653,8 +661,11 @@ export const api = {
     await brut('POST', '/profils/moi/cv/traitement', {
       messages: { 404: 'Aucun CV déposé.', 502: 'La lecture du CV a échoué. Tu peux remplir ton profil à la main.' },
     })
-    // Le traitement a remplacé le JSON : on lui rend nos critères et nos repères.
-    const lu = await lisProfilEquipe()
+    // La lecture n8n n'écrase plus le `cv` : elle arrive à part, dans
+    // `cvJsonGenere`. On relit, on prend SA lecture, et c'est NOUS (le candidat,
+    // seul rédacteur du profil) qui l'écrivons dans le `cv` via PUT /profils/moi.
+    await lisProfilEquipe()
+    const lu = dernierGenere
     const metaAvant = objet(avant.meta)
     await envoieDocument({
       ...lu,
