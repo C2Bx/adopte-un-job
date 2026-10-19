@@ -571,6 +571,29 @@ export interface Adequation {
   savoirEtre: string[]
   fiable: boolean
   avertissement: string | null
+  /** rang de cette offre parmi toutes celles analysées (1 = la plus proche du profil) */
+  rang: number
+  /** nombre d'offres analysées */
+  nbOffres: number
+}
+
+/** Une compétence du poste, notée face au CV (détail d'une offre, via /v1/score). */
+export interface CompetenceNotee {
+  attendu: string
+  /** degré de couverture par le CV, 0..100 */
+  note: number
+  /** points gagnés (couverte) ou perdus (à travailler) sur 100 : son poids dans le score */
+  poids: number
+  couverte: boolean
+  /** la ligne du CV qui la prouve (seulement si elle est couverte) */
+  preuve: string | null
+}
+
+/** Le détail d'une offre face au profil : compétences notées, savoir-être, prérequis. */
+export interface DetailAdequation {
+  competences: CompetenceNotee[]
+  savoirEtre: { attendu: string; note: number }[]
+  prerequis: Prerequis[]
 }
 
 /** Un prérequis de l'offre (diplôme, permis…) : jamais noté, à vérifier. */
@@ -614,7 +637,23 @@ function adequationDepuis(r: ResultatMatching): Adequation {
     savoirEtre: (r.savoir_etre ?? []).map((s) => s.attendu),
     fiable: r.fiable !== false,
     avertissement: r.avertissement ?? null,
+    rang: 0,
+    nbOffres: 0,
   }
+}
+
+/** Range les offres de la plus proche à la plus lointaine ; deux offres au même pourcentage partagent leur rang. */
+function avecRangs(l: ResultatMatching[]): Map<string, Adequation> {
+  const triees = l.map((r) => ({ a: adequationDepuis(r), id: r.id_avp }))
+    .sort((x, y) => y.a.pourcentage - x.a.pourcentage)
+  let rang = 0
+  let precedent = -1
+  triees.forEach(({ a }, i) => {
+    if (a.pourcentage !== precedent) { rang = i + 1; precedent = a.pourcentage }
+    a.rang = rang
+    a.nbOffres = triees.length
+  })
+  return new Map(triees.map(({ id, a }) => [id, a] as const))
 }
 
 /* Un seul calcul par version du profil, partagé par tous les écrans (3 à 4 s
@@ -801,24 +840,41 @@ export const api = {
     }
     const p = appel<{ resultats: ResultatMatching[] }>('POST', '/matching/v1/match', {
       anonyme: true, corps: cv, query: { top: 100, inclure_fermes: 'true' },
-    }).then((d) => new Map((d?.resultats ?? []).map((r) => [r.id_avp, adequationDepuis(r)] as const)))
+    }).then((d) => avecRangs(d?.resultats ?? []))
     p.catch(() => { adequationsCache = null })
     adequationsCache = { cle, quand: Date.now(), p }
     return p.catch(() => new Map<string, Adequation>())
   },
-  /** Les prérequis d'une offre (diplôme, permis…) face au profil : jamais notés, à vérifier. */
-  async prerequis(reference: string): Promise<Prerequis[]> {
+  /**
+   * Le détail d'une offre face au profil (POST /v1/score, ~1 s) : chaque
+   * compétence notée, les savoir-être, les prérequis. null si le service ne
+   * répond pas ou si le profil est vide.
+   */
+  async detailAdequation(reference: string): Promise<DetailAdequation | null> {
     const cv = cvPourMatching(await documentCourant())
-    if (!cv) return []
+    if (!cv) return null
+    type Preuve = { attendu: string; phrase_cv?: string | null; note?: number; points?: number }
     try {
-      const d = await appel<{ prerequis?: Prerequis[] }>('POST', '/matching/v1/score', {
-        anonyme: true, corps: { reference, cv },
-      })
-      return (d?.prerequis ?? []).map((x) => ({
-        prerequis: x.prerequis, statut: x.statut, motif: x.motif ?? null, obligatoire: x.obligatoire !== false,
-      }))
+      const d = await appel<{ points_forts?: Preuve[]; a_verifier?: Preuve[]; savoir_etre?: Preuve[]; prerequis?: Prerequis[] }>(
+        'POST', '/matching/v1/score', { anonyme: true, corps: { reference, cv } })
+      const note = (x: Preuve) => Math.max(0, Math.min(100, Math.round(Number(x.note ?? 0))))
+      // couvertes d'abord (de la mieux couverte à la moins bien), puis celles à travailler,
+      // de celle qui coûte le plus de points à celle qui en coûte le moins
+      const couvertes = (d?.points_forts ?? []).map((x) => ({
+        attendu: x.attendu, note: note(x), poids: Number(x.points ?? 0), couverte: true, preuve: x.phrase_cv ?? null,
+      })).sort((a, b) => b.note - a.note)
+      const manquantes = (d?.a_verifier ?? []).map((x) => ({
+        attendu: x.attendu, note: note(x), poids: Number(x.points ?? 0), couverte: false, preuve: null,
+      })).sort((a, b) => b.poids - a.poids)
+      return {
+        competences: [...couvertes, ...manquantes],
+        savoirEtre: (d?.savoir_etre ?? []).map((x) => ({ attendu: x.attendu, note: note(x) })),
+        prerequis: (d?.prerequis ?? []).map((x) => ({
+          prerequis: x.prerequis, statut: x.statut, motif: x.motif ?? null, obligatoire: x.obligatoire !== false,
+        })),
+      }
     } catch {
-      return []
+      return null
     }
   },
   /** Combien d'offres sont ouvertes chez eux (route publique). null si elle ne répond pas. */

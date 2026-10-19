@@ -6,8 +6,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
-import type { Adequation, CompteurOffres, Prerequis } from '../api'
+import type { Adequation, CompteurOffres } from '../api'
 import { useAdequations } from '../adequation'
+import { BlocAdequation, PastilleAdequation } from './Adequation'
 import { manques } from '../regles'
 import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
@@ -959,88 +960,6 @@ export function BlocContact({ offre: o }: { offre: Offre }) {
         )}
       </div>
       {o.candidatureDirecte && <p className="do-contact-n">L’avis précise que la candidature directe est acceptée.</p>}
-    </section>
-  )
-}
-
-/* L'adéquation calculée par CV-Matching (MS5, Jo-Michel) : le pourcentage des
-   compétences du poste retrouvées dans le profil. Une indication pour le
-   candidat, jamais un verdict ni un filtre. */
-export function PastilleAdequation({ a, classe = 'cle' }: { a: Adequation; classe?: string }) {
-  return (
-    <span className={`${classe} adeq ${a.niveau}`} title={`${a.couverts} compétence${a.couverts > 1 ? 's' : ''} du poste sur ${a.total} retrouvée${a.couverts > 1 ? 's' : ''} dans ton profil (CV-Matching)`}>
-      {a.libelle} · {a.pourcentage} %
-    </span>
-  )
-}
-
-const STATUT_PREREQUIS: Record<string, string> = {
-  rempli: 'rempli', non_rempli: 'pas encore', mention_probable: 'semble mentionné', a_verifier: 'à vérifier',
-}
-
-export function BlocAdequation({ offre: o, adequation: a }: { offre: Offre; adequation?: Adequation }) {
-  // les prérequis (diplôme, permis…) viennent d'un second calcul, sur cette seule offre
-  const [prerequis, setPrerequis] = useState<Prerequis[] | null>(null)
-  useEffect(() => {
-    let vivant = true
-    setPrerequis(null)
-    if (a && o.reference) void api.prerequis(o.reference).then((l) => { if (vivant) setPrerequis(l) })
-    return () => { vivant = false }
-  }, [a, o.reference])
-  if (!a) return null
-  const plus = (n: number, max: number) => (n > max ? <span className="doux">+{n - max}</span> : null)
-  return (
-    <section className={`do-adeq ${a.niveau}`}>
-      <h3>Ton adéquation avec ce poste</h3>
-      <div className="do-adeq-tete">
-        <span className="do-adeq-pct">{a.pourcentage}<small>%</small></span>
-        <div>
-          <b>{a.libelle}</b>
-          <span>{a.couverts} compétence{a.couverts > 1 ? 's' : ''} du poste sur {a.total} retrouvée{a.couverts > 1 ? 's' : ''} dans ton profil</span>
-        </div>
-      </div>
-      {!a.fiable && a.avertissement && <p className="do-adeq-avert">{a.avertissement}</p>}
-      {a.forces.length > 0 && (
-        <>
-          <div className="do-sous">Ce que tu as déjà</div>
-          <ul className="do-adeq-liste">
-            {a.forces.slice(0, 6).map((f) => (
-              <li key={f.attendu}><b>{f.attendu}</b>{f.preuve && <span> — « {f.preuve} »</span>}</li>
-            ))}
-          </ul>
-        </>
-      )}
-      {a.ecarts.length > 0 && (
-        <>
-          <div className="do-sous">À mettre en avant, ou à acquérir</div>
-          <div className="tags">{a.ecarts.slice(0, 8).map((e) => <span key={e}>{e}</span>)}{plus(a.ecarts.length, 8)}</div>
-        </>
-      )}
-      {a.savoirEtre.length > 0 && (
-        <>
-          <div className="do-sous">Savoir-être, à montrer en entretien</div>
-          <div className="tags">{a.savoirEtre.slice(0, 8).map((e) => <span key={e} className="doux">{e}</span>)}{plus(a.savoirEtre.length, 8)}</div>
-        </>
-      )}
-      {prerequis && prerequis.length > 0 && (
-        <>
-          <div className="do-sous">Prérequis</div>
-          <ul className="do-adeq-liste">
-            {prerequis.map((x) => (
-              <li key={x.prerequis}>
-                <b>{x.prerequis}</b>{' '}
-                <span className={`do-prereq ${x.statut}`}>{STATUT_PREREQUIS[x.statut] ?? x.statut}</span>
-                {!x.obligatoire && <span className="doux"> (souhaité)</span>}
-                {x.motif && <span> — {x.motif}</span>}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-      <p className="do-adeq-source">
-        Calculé par CV-Matching à partir du contenu de ton profil, sans ton nom ni tes coordonnées.
-        C’est une indication, pas un verdict : rien ne t’empêche de candidater.
-      </p>
     </section>
   )
 }

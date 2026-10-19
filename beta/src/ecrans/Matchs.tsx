@@ -6,7 +6,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
-import { Detail, Feuille, PastilleAdequation } from './Deck'
+import { Detail, Feuille } from './Deck'
+import { PastilleAdequation } from './Adequation'
 import { useAdequations } from '../adequation'
 import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
