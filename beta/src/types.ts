@@ -127,6 +127,16 @@ export interface Offre {
   presentationEmployeur: string | null
   nbPostes: number | null
   debutImmediat: boolean
+  /* Livres aussi par leur API, branches le 19/10 (remplissage mesure sur les
+     24 AVP : corps, rattachement, organigramme, ROME 24/24 ; relations 14/24 ;
+     engagements 3/24 ; residence 1/24, affichee quand presente car elle exclut). */
+  corps: string | null
+  superieur: string | null
+  placeOrganigramme: string | null
+  libelleRome: string | null
+  relations: string[]
+  engagements: string | null
+  conditionResidence: string | null
   requis: string[]
   souhaite: string[]
   publiee: string | null

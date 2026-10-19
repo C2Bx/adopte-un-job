@@ -18,14 +18,22 @@ declare(strict_types=1);
 const CIBLE = 'https://hackavp-api.duckdns.org';
 const TAILLE_MAX = 11 * 1024 * 1024;           // leur limite est 10 Mo par CV
 
-/* Les routes que l'interface utilise, et elles seules. */
+/* Les routes que l'interface utilise, et elles seules, chacune avec SA méthode
+   (audit du Swagger du 19/10). Route inconnue : 404. Méthode que l'interface
+   n'emploie pas sur cette route : 405. */
 const ROUTES = [
-    '#^/auth/(login|register|forgot-password|reset-password)$#',
-    '#^/profils/moi(/cv(/traitement)?)?$#',
-    '#^/profils/\d+(/cv|/cv-json)?$#',
-    '#^/avp(/\d+|/compteur)?$#',
-    '#^/swipes/candidats(/\d+|/avp/\d+)?$#',
-    '#^/candidatures/(moi|compteur|\d+)$#',
+    '#^/auth/(login|register|forgot-password|reset-password)$#' => ['POST'],
+    '#^/avp$#'                                                  => ['GET'],
+    '#^/avp/compteur$#'                                         => ['GET'],
+    '#^/swipes/candidats$#'                                     => ['GET'],
+    '#^/swipes/candidats/avp/\d+$#'                             => ['PUT'],
+    '#^/candidatures/moi$#'                                     => ['GET'],
+    '#^/profils/moi$#'                                          => ['PUT'],
+    '#^/profils/moi/cv$#'                                       => ['PUT'],
+    '#^/profils/moi/cv/traitement$#'                            => ['POST'],
+    '#^/profils/\d+$#'                                          => ['GET'],
+    '#^/profils/\d+/cv$#'                                       => ['GET'],
+    '#^/profils/\d+/cv-json$#'                                  => ['DELETE'],
 ];
 
 header('Cache-Control: no-store');
@@ -41,22 +49,18 @@ function refuse(int $code, string $message): never
 
 $chemin = (string) ($_GET['p'] ?? '');
 $methode = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-if (!in_array($methode, ['GET', 'POST', 'PUT', 'DELETE'], true)) {
-    refuse(405, 'Méthode non relayée.');
-}
-/* DELETE n'est admis que pour effacer son propre CV JSON — rien d'autre. */
-if ($methode === 'DELETE' && !preg_match('#^/profils/\d+/cv-json$#', $chemin)) {
-    refuse(405, 'Méthode non relayée.');
-}
-$admis = false;
-foreach (ROUTES as $r) {
-    if (preg_match($r, $chemin)) {
-        $admis = true;
+$permises = null;
+foreach (ROUTES as $motif => $methodes) {
+    if (preg_match($motif, $chemin)) {
+        $permises = $methodes;
         break;
     }
 }
-if (!$admis) {
+if ($permises === null) {
     refuse(404, 'Route non relayée.');
+}
+if (!in_array($methode, $permises, true)) {
+    refuse(405, 'Méthode non relayée.');
 }
 
 $query = $_GET;

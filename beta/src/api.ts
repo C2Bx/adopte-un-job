@@ -161,6 +161,9 @@ const plat = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
 
 const GRAND_NOUMEA = ['Nouméa', 'Dumbéa', 'Mont-Dore', 'Païta']
 
+/** GET /avp/compteur : total = actifs + expirés (un AVP reste actif le jour de sa date limite). */
+export interface CompteurOffres { total: number; actifs: number; expires: number }
+
 interface AvpEquipe {
   id: number; reference?: string | null; titre?: string | null; intituleAlternatif?: string | null
   description?: string | null; descriptionComplement?: string | null; direction?: string | null
@@ -175,6 +178,9 @@ interface AvpEquipe {
   datePublication?: string | null; dateLimite?: string | null; familles?: string[] | null
   connaissances?: string[] | null; savoirFaire?: string[] | null; responsabilites?: string[] | null
   informationsLibres?: { cle?: string; valeur?: string }[] | null
+  corpsDomaine?: string | null; superieurHierarchique?: string | null; placeOrganigramme?: string | null
+  libelleRome?: string | null; relationsFonctionnelles?: string[] | null
+  engagementsParticuliers?: string | null; conditionResidence?: string | null
 }
 
 const texte = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v : null)
@@ -263,6 +269,13 @@ function offreDepuisAvp(a: AvpEquipe): Offre {
     presentationEmployeur: texte(a.presentationEmployeur),
     nbPostes: typeof a.nbPostes === 'number' ? a.nbPostes : null,
     debutImmediat: a.debutImmediat === true,
+    corps: texte(a.corpsDomaine),
+    superieur: texte(a.superieurHierarchique),
+    placeOrganigramme: texte(a.placeOrganigramme),
+    libelleRome: texte(a.libelleRome),
+    relations: liste(a.relationsFonctionnelles),
+    engagements: texte(a.engagementsParticuliers),
+    conditionResidence: texte(a.conditionResidence),
     requis: [],
     souhaite: [],
     publiee: texte(a.datePublication),
@@ -642,7 +655,8 @@ export const api = {
     const depose = String(objet(meta.cvDepose).le ?? derniereLecture.maj ?? new Date().toISOString())
     const lu = String(objet(meta.lectureCv).le ?? '')
     const cv: CvInfo = {
-      id: 1, nom, mime: nom.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg', octets: 0, actif: true,
+      id: 1, nom, mime: nom.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+      octets: Number(objet(meta.cvDepose).taille ?? 0) || 0, actif: true,
       depose, fichier: true,
       lecture: lu && lu >= depose ? { moteur: 'n8n', version: '', lu: {}, retenu: null, quand: lu } : null,
     }
@@ -652,12 +666,15 @@ export const api = {
   async deposeFichierCV(fichier: File) {
     const f = new FormData()
     f.append('fichier', fichier, fichier.name)
-    await brut('PUT', '/profils/moi/cv', {
+    const r = await brut('PUT', '/profils/moi/cv', {
       form: f,
       messages: { 400: 'Ce fichier n’est pas accepté : PDF, PNG ou JPEG seulement (un PDF protégé par mot de passe est refusé).' },
     })
+    // Leur réponse donne la taille réelle du fichier gardé (après compression).
+    let taille = 0
+    try { taille = Number((await r.json() as { taille?: number }).taille ?? 0) || 0 } catch { taille = 0 }
     const doc = await documentCourant()
-    await envoieDocument({ ...doc, meta: { ...objet(doc.meta), cvDepose: { le: new Date().toISOString(), nom: fichier.name } } })
+    await envoieDocument({ ...doc, meta: { ...objet(doc.meta), cvDepose: { le: new Date().toISOString(), nom: fichier.name, taille } } })
     return (await api.cvs()).actif
   },
   /**
@@ -669,9 +686,16 @@ export const api = {
   async lisCV(): Promise<boolean> {
     const avant = await lisProfilEquipe()
     if (!parcoursVide(avant)) return false
-    await brut('POST', '/profils/moi/cv/traitement', {
-      messages: { 404: 'Aucun CV déposé.', 502: 'La lecture du CV a échoué. Tu peux remplir ton profil à la main.' },
-    })
+    try {
+      await brut('POST', '/profils/moi/cv/traitement', { messages: { 404: 'Aucun CV déposé.' } })
+    } catch (e) {
+      // En cas d'échec, leur API explique ce qui s'est passé (champ `message`) :
+      // on le garde au lieu d'un texte générique.
+      if (e instanceof ErreurApi && e.http === 502) {
+        throw new ErreurApi('http_502', `La lecture du CV a échoué : ${e.message.replace(/\.?$/, '.')} Tu peux remplir ton profil à la main.`, 502)
+      }
+      throw e
+    }
     // La lecture n8n n'écrase plus le `cv` : elle arrive à part, dans
     // `cvJsonGenere`. On relit, on prend SA lecture, et c'est NOUS (le candidat,
     // seul rédacteur du profil) qui l'écrivons dans le `cv` via PUT /profils/moi.
@@ -689,6 +713,10 @@ export const api = {
       },
     })
     return true
+  },
+  /** Combien d'offres sont ouvertes chez eux (route publique). null si elle ne répond pas. */
+  async compteurOffres(): Promise<CompteurOffres | null> {
+    try { return await appel<CompteurOffres>('GET', '/avp/compteur', { anonyme: true }) } catch { return null }
   },
   /** Leur route de lecture exige le jeton : on récupère le fichier, puis une adresse locale. */
   async urlFichierCV(): Promise<string> {

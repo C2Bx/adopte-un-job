@@ -10,6 +10,7 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import type { CompteurOffres } from '../api'
 import { Spinner } from '../Attente'
 import { ErreurApi } from '../types'
 import type { Utilisateur } from '../types'
@@ -29,6 +30,9 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
   const [envoi, setEnvoi] = useState(false)
 
   useEffect(() => { void api.capacites().then(setOubliPossible).catch(() => setOubliPossible(false)) }, [])
+  // le nombre de postes ouverts, seulement quand il y en a (route publique)
+  const [compteur, setCompteur] = useState<CompteurOffres | null>(null)
+  useEffect(() => { void api.compteurOffres().then(setCompteur) }, [])
 
   const soumets = async (ev: React.FormEvent) => {
     ev.preventDefault()
@@ -78,6 +82,11 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
           Tu décris ce que tu cherches, ou tu déposes ton CV. Tu fais défiler les vrais postes ouverts
           à l’OPT-NC : <b>à droite pour candidater</b>, à gauche pour passer.
         </p>
+        {compteur !== null && compteur.actifs > 0 && (
+          <p className="accueil-compteur">
+            <b>{compteur.actifs}</b> poste{compteur.actifs > 1 ? 's' : ''} ouvert{compteur.actifs > 1 ? 's' : ''} en ce moment à l’OPT-NC.
+          </p>
+        )}
 
         <div className="prole" role="tablist" aria-label="Type de compte">
           <button

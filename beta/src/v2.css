@@ -560,3 +560,7 @@
 .poutils-btns { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
 .poutils-fichier { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .mc-theme { margin-top: var(--s4); }
+
+/* accueil : le nombre de postes ouverts, quand il y en a */
+.accueil-compteur { margin: calc(var(--s4) * -1) 0 var(--s5); font-size: var(--t-sm); color: var(--ink-2); }
+.accueil-compteur b { color: var(--brand); font-family: var(--font-num); }

@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
+import type { CompteurOffres } from '../api'
 import { manques } from '../regles'
 import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
@@ -116,6 +117,10 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   const barreFiltres = useGlisseHorizontal<HTMLDivElement>()
   // toutes les offres du jeu courant (ouvertes ou closes) ; les filtres s'y appliquent sans réseau
   const [toutes, setToutes] = useState<Offre[] | null>(null)
+  // ce que l'OPT-NC a d'ouvert en ce moment (route publique) : un écran vide qui dit vrai
+  const [compteur, setCompteur] = useState<CompteurOffres | null>(null)
+  useEffect(() => { void api.compteurOffres().then(setCompteur) }, [])
+  const aucuneOuverte = compteur !== null && compteur.actifs === 0
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
   const [envoyee, setEnvoyee] = useState<{ offre: Offre; entrainement: boolean } | null>(null)
@@ -290,11 +295,15 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
           {offres !== null && !courante && (
             <div className="empty">
               <div>
-                <h2>{actifs ? 'Aucune offre avec ces filtres' : 'Tu as vu tout ce qui te correspond'}</h2>
+                <h2>{actifs ? 'Aucune offre avec ces filtres'
+                  : aucuneOuverte && !filtres.clos ? 'Aucune offre ouverte en ce moment'
+                  : 'Tu as vu tout ce qui te correspond'}</h2>
                 <p>
                   {erreur ?? (actifs
                     ? 'Tes filtres sont trop stricts pour ce qui reste : retire-en un, ou efface-les tous.'
-                    : 'Aucune autre offre ouverte aujourd’hui. Les AVP de l’OPT-NC arrivent au fil de l’eau — reviens demain, ou entraîne-toi sur les offres closes.')}
+                    : aucuneOuverte && !filtres.clos
+                      ? `L’OPT-NC n’a aucun avis ouvert aujourd’hui (${compteur?.expires ?? 0} clos). Les AVP arrivent au fil de l’eau — reviens demain, ou entraîne-toi sur les offres closes.`
+                      : 'Aucune autre offre ouverte aujourd’hui. Les AVP de l’OPT-NC arrivent au fil de l’eau — reviens demain, ou entraîne-toi sur les offres closes.')}
                 </p>
                 <div className="btns vide-actions">
                   {actifs > 0 && <button className="btn primaire" onClick={toutEffacer}>Effacer les filtres</button>}
@@ -896,6 +905,12 @@ export function BlocPoste({ offre: o, profil }: { offre: Offre; profil?: Profil 
           <ul className="do-liste">{o.responsabilites.map((m) => <li key={m}>{m}</li>)}</ul>
         </section>
       )}
+      {o.relations.length > 0 && (
+        <section>
+          <h3>Relations de travail <span className="do-n">{o.relations.length}</span></h3>
+          <div className="tags">{o.relations.map((r) => <span key={r}>{r}</span>)}</div>
+        </section>
+      )}
       {o.presentationEmployeur && (
         <section>
           <h3>L’employeur</h3>
@@ -946,7 +961,11 @@ export function EnBref({ offre: o }: { offre: Offre }) {
   const ajoute = (k: string, v: React.ReactNode) => { if (v) lignes.push([k, v]) }
   ajoute('Direction', o.direction ? libDirection(o.direction) : null)
   ajoute('Unité', casse(o.unite))
+  ajoute('Rattaché à', o.superieur)
+  ajoute('Organigramme', o.placeOrganigramme)
   ajoute('Métier OPT', o.metierOpt ? `${casse(o.metierOpt)}${o.codeMetier ? ` (${o.codeMetier})` : ''}` : null)
+  ajoute('Corps', o.corps)
+  ajoute('Métier ROME', o.libelleRome ? `${o.libelleRome}${o.codeRome ? ` (${o.codeRome})` : ''}` : null)
   ajoute('Famille', o.familles.join(', '))
   ajoute('Lieu', [casse(o.lieu), o.adresse].filter(Boolean).join(', '))
   ajoute('Postes à pourvoir', o.nbPostes !== null && o.nbPostes > 1 ? String(o.nbPostes) : null)
@@ -957,6 +976,9 @@ export function EnBref({ offre: o }: { offre: Offre }) {
   ajoute('Horaires', o.conditions)
   ajoute('Habilitations', o.qualifications)
   ajoute('Conditions physiques', o.exigencesPhysiques)
+  ajoute('Engagements', o.engagements)
+  // rare (1 avis sur 24) mais elle écarte des candidats : on la montre quand elle existe
+  ajoute('Résidence exigée', o.conditionResidence)
   ajoute('Indemnités', o.avantages)
   ajoute('Publiée le', date(o.datePublication ?? o.publiee))
   ajoute('Clôture le', date(o.expire))
