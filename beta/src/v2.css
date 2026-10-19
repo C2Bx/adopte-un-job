@@ -570,7 +570,7 @@
 .adeq.excellente, .adeq.tres_bonne { --niv: var(--yes); }
 .adeq.partielle { --niv: var(--warn); }
 .adeq.faible { --niv: var(--ink-3); }
-.card .cle.adeq, .panneau .cle.adeq, .etat.adeq {
+.card .cle.adeq, .panneau .cle.adeq, .do-entete .cle.adeq, .etat.adeq {
   background: color-mix(in srgb, var(--niv) 12%, var(--surface)); color: var(--niv);
   border: 1px solid color-mix(in srgb, var(--niv) 40%, transparent); }
 .etat.adeq { display: inline-block; margin-top: var(--s1); }

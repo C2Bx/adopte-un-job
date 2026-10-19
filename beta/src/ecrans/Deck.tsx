@@ -862,12 +862,13 @@ const date = (d: string | null) => {
 
 /* L'en-tête : l'employeur et la direction, le poste, puis les mêmes pastilles
    que sur la carte (lieu, contrat, clôture, repères du profil). */
-export function BlocEntete({ offre: o, profil }: { offre: Offre; profil?: Profil }) {
+export function BlocEntete({ offre: o, profil, adequation }: { offre: Offre; profil?: Profil; adequation?: Adequation }) {
   return (
     <header className="do-entete">
       <div className="do-org">{employeur(o)}{o.direction ? ` · ${libDirection(o.direction)}` : ''}</div>
       <h2 className="do-titre">{o.titre}</h2>
       <div className="cles">
+        {adequation && <PastilleAdequation a={adequation} />}
         {(o.ville ?? o.zone) && <span className="cle">{o.ville ?? o.zone}</span>}
         <span className="cle">{o.contrat}</span>
         {o.teletravail !== 'non' && <span className="cle">Télétravail {o.teletravail}</span>}
@@ -1086,7 +1087,7 @@ export function Detail({ offre: o, profil, adequation }: { offre: Offre; profil?
   return (
     <div className="detail-offre">
       <div className="do-principal">
-        <BlocEntete offre={o} profil={profil} />
+        <BlocEntete offre={o} profil={profil} adequation={adequation} />
         <BlocAdequation offre={o} adequation={adequation} />
         <BlocPoste offre={o} profil={profil} />
         <BlocContact offre={o} />
