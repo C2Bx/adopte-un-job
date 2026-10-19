@@ -16,6 +16,9 @@
 declare(strict_types=1);
 
 const CIBLE = 'https://hackavp-api.duckdns.org';
+/* CV-Matching (MS5, Jo-Michel). Sa clé ne quitte jamais le serveur : elle est lue
+   dans _secrets.php, posé par l'outil de dépôt et absent du dépôt git. */
+const CIBLE_MATCHING = 'https://myz0-cv-matching.hf.space';
 const TAILLE_MAX = 11 * 1024 * 1024;           // leur limite est 10 Mo par CV
 
 /* Les routes que l'interface utilise, et elles seules, chacune avec SA méthode
@@ -34,6 +37,9 @@ const ROUTES = [
     '#^/profils/\d+$#'                                          => ['GET'],
     '#^/profils/\d+/cv$#'                                       => ['GET'],
     '#^/profils/\d+/cv-json$#'                                  => ['DELETE'],
+    // CV-Matching : le CV face à toutes les offres, ou face à une seule
+    '#^/matching/v1/match$#'                                    => ['POST'],
+    '#^/matching/v1/score$#'                                    => ['POST'],
 ];
 
 header('Cache-Control: no-store');
@@ -65,13 +71,26 @@ if (!in_array($methode, $permises, true)) {
 
 $query = $_GET;
 unset($query['p']);
-$url = CIBLE . $chemin . ($query ? '?' . http_build_query($query) : '');
-
+$versMatching = str_starts_with($chemin, '/matching/');
+$qs = $query ? '?' . http_build_query($query) : '';
 $entetes = ['Accept: ' . ($_SERVER['HTTP_ACCEPT'] ?? 'application/json')];
+if ($versMatching) {
+    $secrets = is_file(__DIR__ . '/_secrets.php') ? require __DIR__ . '/_secrets.php' : [];
+    $cle = is_array($secrets) ? (string) ($secrets['cle_matching'] ?? '') : '';
+    if ($cle === '') {
+        refuse(503, 'Le calcul d’adéquation n’est pas disponible pour le moment.');
+    }
+    $url = CIBLE_MATCHING . substr($chemin, strlen('/matching')) . $qs;
+    $entetes[] = 'X-API-Key: ' . $cle;
+} else {
+    $url = CIBLE . $chemin . $qs;
+}
 // Apache ne passe l'en-tete a PHP que par le .htaccess (SetEnvIf), parfois
 // sous le nom REDIRECT_ apres une reecriture.
-$auth = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-if ($auth !== '') {
+$auth = $versMatching ? '' : ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+if ($versMatching) {
+    // rien : le service de matching n'a pas à voir le jeton du hub
+} elseif ($auth !== '') {
     $entetes[] = 'Authorization: ' . $auth;
 } elseif (function_exists('getallheaders')) {
     foreach (getallheaders() as $k => $v) {
@@ -109,7 +128,9 @@ if ($corps !== null) {
 }
 $reponse = curl_exec($ch);
 if ($reponse === false) {
-    refuse(502, 'L’API de l’équipe ne répond pas. Réessaie dans un instant.');
+    refuse(502, $versMatching
+        ? 'Le calcul d’adéquation ne répond pas. Réessaie dans un instant.'
+        : 'L’API de l’équipe ne répond pas. Réessaie dans un instant.');
 }
 $statut = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 $tailleEntetes = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);

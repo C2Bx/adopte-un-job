@@ -6,7 +6,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
-import { Detail, Feuille } from './Deck'
+import { Detail, Feuille, PastilleAdequation } from './Deck'
+import { useAdequations } from '../adequation'
 import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
 import type { Interet, StatutCandidature, StatutEquipe } from '../types'
@@ -80,6 +81,9 @@ export function EcranMatchs() {
   const [interets, setInterets] = useState<Interet[] | null>(null)
   const [onglet, setOnglet] = useState<Onglet>('oui')
   const [detail, setDetail] = useState<Interet | null>(null)
+  // l'adéquation de son profil avec chaque offre (CV-Matching), par référence d'AVP
+  const adequations = useAdequations(null)
+  const adequationDe = (x: Interet | null) => (x?.reference ? adequations.get(x.reference) : undefined)
   const [erreur, setErreur] = useState<string | null>(null)
   const [synchro, setSynchro] = useState(true)
   const [mdp, setMdp] = useState('')
@@ -206,6 +210,7 @@ export function EcranMatchs() {
               <div>
                 <h3>{x.titre}</h3>
                 <div className="meta">{x.entreprise} · {x.zone} · {x.contrat}</div>
+                {adequationDe(x) && <PastilleAdequation a={adequationDe(x)!} classe="etat" />}
                 <div className="quand">
                   Décidé {depuis(x.quand)}
                 </div>
@@ -245,7 +250,7 @@ export function EcranMatchs() {
           {choisi
             ? (
               <>
-                <Detail offre={choisi} />
+                <Detail offre={choisi} adequation={adequationDe(choisi)} />
               </>
             )
             : <p className="vide-p">Choisis une offre à gauche pour voir son détail.</p>}
@@ -254,7 +259,7 @@ export function EcranMatchs() {
 
       {detail && !large && (
         <Feuille onFermer={() => setDetail(null)}>
-          <Detail offre={detail} />
+          <Detail offre={detail} adequation={adequationDe(detail)} />
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
             <button className="btn" onClick={() => setDetail(null)}>Fermer</button>
           </div>

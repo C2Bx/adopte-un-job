@@ -548,6 +548,79 @@ function parcoursVide(doc: Json): boolean {
     && !tableau(doc.languages).length && !String(b.phone ?? '').trim()
 }
 
+/* ============================================================== matching */
+/* CV-Matching (MS5, Jo-Michel) : le profil du candidat face aux offres. Le
+   relais ajoute la clé du service côté serveur ; on n'envoie QUE le contenu du
+   CV, jamais l'identité (nom, e-mail, téléphone, adresse) ni nos réglages
+   (meta). La clé commune avec le hub est la référence de l'AVP. */
+
+/** L'adéquation d'un profil avec une offre, telle que la calcule CV-Matching. */
+export interface Adequation {
+  /** part des compétences du poste couvertes, pondérées (0..100) : le chiffre à afficher */
+  pourcentage: number
+  libelle: string
+  /** excellente | tres_bonne | bonne | partielle | faible */
+  niveau: string
+  couverts: number
+  total: number
+  /** compétences du poste retrouvées dans le CV, avec la ligne qui le prouve */
+  forces: { attendu: string; preuve: string }[]
+  /** compétences du poste non retrouvées */
+  ecarts: string[]
+  /** savoir-être : comptent dans le score, à montrer en entretien */
+  savoirEtre: string[]
+  fiable: boolean
+  avertissement: string | null
+}
+
+/** Un prérequis de l'offre (diplôme, permis…) : jamais noté, à vérifier. */
+export interface Prerequis {
+  prerequis: string
+  /** rempli | non_rempli | mention_probable | a_verifier */
+  statut: string
+  motif: string | null
+  obligatoire: boolean
+}
+
+interface ResultatMatching {
+  id_avp: string; libelle: string; niveau: string; pourcentage_competences: number
+  nb_savoir_faire: number; nb_savoir_faire_couverts: number; fiable?: boolean; avertissement?: string | null
+  competences_couvertes?: { attendu: string; trouve_dans_cv: string }[]
+  ecarts?: { attendu: string }[]
+  savoir_etre?: { attendu: string }[]
+}
+
+/** Le CV tel qu'on l'envoie au matching : le contenu, sans l'identité. null s'il est vide. */
+function cvPourMatching(doc: Json): Json | null {
+  if (parcoursVide(doc)) return null
+  const b = objet(doc.basics)
+  const cv: Json = { basics: { label: b.label, summary: b.summary } }
+  for (const k of ['work', 'volunteer', 'education', 'skills', 'projects', 'certificates', 'languages']) {
+    const l = tableau(doc[k])
+    if (l.length) cv[k] = l
+  }
+  return cv
+}
+
+function adequationDepuis(r: ResultatMatching): Adequation {
+  return {
+    pourcentage: Math.round(r.pourcentage_competences),
+    libelle: r.libelle,
+    niveau: r.niveau,
+    couverts: r.nb_savoir_faire_couverts,
+    total: r.nb_savoir_faire,
+    forces: (r.competences_couvertes ?? []).map((c) => ({ attendu: c.attendu, preuve: c.trouve_dans_cv })),
+    ecarts: (r.ecarts ?? []).map((e) => e.attendu),
+    savoirEtre: (r.savoir_etre ?? []).map((s) => s.attendu),
+    fiable: r.fiable !== false,
+    avertissement: r.avertissement ?? null,
+  }
+}
+
+/* Un seul calcul par version du profil, partagé par tous les écrans (3 à 4 s
+   pour toutes les offres). Un échec n'est pas gardé : on réessaiera. */
+let adequationsCache: { cle: string; quand: number; p: Promise<Map<string, Adequation>> } | null = null
+
 /* ==================================================================== api */
 
 const NON_DISPONIBLE = (quoi: string) =>
@@ -713,6 +786,40 @@ export const api = {
       },
     })
     return true
+  },
+  /**
+   * L'adéquation du profil avec chaque offre, par référence d'AVP. Carte vide
+   * si le profil est vide ou si le service ne répond pas : l'appli fonctionne
+   * sans, elle ne bloque jamais là-dessus.
+   */
+  async adequations(): Promise<Map<string, Adequation>> {
+    const cv = cvPourMatching(await documentCourant())
+    if (!cv) return new Map()
+    const cle = JSON.stringify(cv)
+    if (adequationsCache && adequationsCache.cle === cle && Date.now() - adequationsCache.quand < 10 * 60_000) {
+      return adequationsCache.p
+    }
+    const p = appel<{ resultats: ResultatMatching[] }>('POST', '/matching/v1/match', {
+      anonyme: true, corps: cv, query: { top: 100, inclure_fermes: 'true' },
+    }).then((d) => new Map((d?.resultats ?? []).map((r) => [r.id_avp, adequationDepuis(r)] as const)))
+    p.catch(() => { adequationsCache = null })
+    adequationsCache = { cle, quand: Date.now(), p }
+    return p.catch(() => new Map<string, Adequation>())
+  },
+  /** Les prérequis d'une offre (diplôme, permis…) face au profil : jamais notés, à vérifier. */
+  async prerequis(reference: string): Promise<Prerequis[]> {
+    const cv = cvPourMatching(await documentCourant())
+    if (!cv) return []
+    try {
+      const d = await appel<{ prerequis?: Prerequis[] }>('POST', '/matching/v1/score', {
+        anonyme: true, corps: { reference, cv },
+      })
+      return (d?.prerequis ?? []).map((x) => ({
+        prerequis: x.prerequis, statut: x.statut, motif: x.motif ?? null, obligatoire: x.obligatoire !== false,
+      }))
+    } catch {
+      return []
+    }
   },
   /** Combien d'offres sont ouvertes chez eux (route publique). null si elle ne répond pas. */
   async compteurOffres(): Promise<CompteurOffres | null> {

@@ -564,3 +564,32 @@
 /* accueil : le nombre de postes ouverts, quand il y en a */
 .accueil-compteur { margin: calc(var(--s4) * -1) 0 var(--s5); font-size: var(--t-sm); color: var(--ink-2); }
 .accueil-compteur b { color: var(--brand); font-family: var(--font-num); }
+
+/* === Adéquation (CV-Matching, MS5) : une couleur par niveau ================ */
+.adeq { --niv: var(--brand); }
+.adeq.excellente, .adeq.tres_bonne { --niv: var(--yes); }
+.adeq.partielle { --niv: var(--warn); }
+.adeq.faible { --niv: var(--ink-3); }
+.card .cle.adeq, .panneau .cle.adeq, .etat.adeq {
+  background: color-mix(in srgb, var(--niv) 12%, var(--surface)); color: var(--niv);
+  border: 1px solid color-mix(in srgb, var(--niv) 40%, transparent); }
+.etat.adeq { display: inline-block; margin-top: var(--s1); }
+/* le bloc du détail */
+.do-adeq { display: grid; gap: var(--s2); margin-top: var(--s4); padding: var(--s4); border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--niv) 30%, var(--line));
+  background: color-mix(in srgb, var(--niv) 5%, var(--surface)); }
+.do-adeq h3 { margin: 0; }
+.do-adeq-tete { display: flex; align-items: center; gap: var(--s3); }
+.do-adeq-pct { font-family: var(--font-num); font-size: var(--t-2xl); font-weight: 700; color: var(--niv); line-height: 1; }
+.do-adeq-pct small { font-size: var(--t-sm); margin-left: 2px; }
+.do-adeq-tete > div { display: grid; gap: 2px; }
+.do-adeq-tete b { color: var(--niv); }
+.do-adeq-tete span { font-size: var(--t-sm); color: var(--ink-2); }
+.do-adeq-liste { margin: 0; padding-left: var(--s5); display: grid; gap: var(--s1); font-size: var(--t-sm); color: var(--ink-2); }
+.do-adeq-liste b { color: var(--ink); font-weight: 600; }
+.do-adeq-avert { margin: 0; font-size: var(--t-sm); color: var(--warn); }
+.do-adeq-source { margin: var(--s1) 0 0; font-size: var(--t-xs); color: var(--ink-3); }
+.do-prereq { font-size: var(--t-xs); font-weight: 600; padding: 1px 8px; border-radius: var(--r-full);
+  border: 1px solid var(--line); color: var(--ink-2); }
+.do-prereq.rempli { color: var(--yes); border-color: color-mix(in srgb, var(--yes) 40%, transparent); }
+.do-prereq.non_rempli { color: var(--no); border-color: color-mix(in srgb, var(--no) 40%, transparent); }
