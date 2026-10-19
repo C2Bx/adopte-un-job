@@ -545,15 +545,16 @@ export const api = {
   async inscription(email: string, motdepasse: string, prenom: string, nom: string, agentOpt: boolean): Promise<Utilisateur> {
     await appel('POST', '/auth/register', {
       anonyme: true,
-      corps: { email, password: motdepasse, prenom, nom, role: 'CANDIDAT' },
+      corps: { email, password: motdepasse, prenom, nom, role: 'CANDIDAT', agentOpt },
       messages: { 409: 'Un compte existe déjà avec cette adresse.' },
     })
     const u = await api.connexion(email, motdepasse)
-    // Leur /auth/register n'a pas de champ « agent OPT » (il ne prend que
-    // nom/prénom/email/mot de passe/rôle). On range donc la réponse dans le
-    // profil du candidat — dont il est seul rédacteur — en meta.agentOpt, qui
-    // survit aux éditions du profil (cf. documentDepuisProfil). On ne bloque
-    // jamais l'entrée là-dessus : au pire la question se repose plus tard.
+    // Leur /auth/register prend agentOpt : c'est ce champ que l'API compte
+    // (GET /candidatures/compteur/agents-opt). Il ne se modifie plus ensuite,
+    // et les comptes créés avant n'en ont pas : on garde donc aussi la réponse
+    // dans le profil du candidat — dont il est seul rédacteur — en
+    // meta.agentOpt, qui survit aux éditions du profil (cf. documentDepuisProfil).
+    // On ne bloque jamais l'entrée là-dessus.
     try {
       const doc = await lisProfilEquipe()
       await envoieDocument({ ...doc, meta: { ...objet(doc.meta), agentOpt } })

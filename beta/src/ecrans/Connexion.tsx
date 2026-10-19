@@ -23,7 +23,7 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
   const [mdp, setMdp] = useState('')
   const [prenom, setPrenom] = useState('')
   const [nom, setNom] = useState('')
-  // à l'inscription : le candidat dit s'il est déjà agent de l'OPT-NC (rangé dans son profil)
+  // à l'inscription : le candidat dit s'il est déjà agent de l'OPT-NC (envoyé à l'API à la création du compte, et gardé dans son profil)
   const [agentOpt, setAgentOpt] = useState<boolean | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
