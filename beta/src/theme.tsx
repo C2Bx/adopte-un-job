@@ -27,12 +27,13 @@ export function useNuit(): [boolean, (nuit: boolean) => void] {
   return [nuit, poseNuit]
 }
 
-/** Le bouton lune / soleil : un clic bascule entre jour et nuit. */
-export function BoutonTheme() {
+/** Le bouton lune / soleil : un clic bascule entre jour et nuit. `dansMenu` : un
+    élément du menu de navigation (icône + « Nuit » / « Jour »), sinon un bouton rond. */
+export function BoutonTheme({ dansMenu = false }: { dansMenu?: boolean }) {
   const [nuit, pose] = useNuit()
   const titre = nuit ? 'Passer en mode jour' : 'Passer en mode nuit'
   return (
-    <button type="button" className="iconbtn bouton-theme" onClick={() => pose(!nuit)}
+    <button type="button" className={dansMenu ? 'nav-theme' : 'iconbtn bouton-theme'} onClick={() => pose(!nuit)}
       aria-pressed={nuit} title={titre} aria-label={titre}>
       {nuit ? (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
@@ -44,6 +45,7 @@ export function BoutonTheme() {
           <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
         </svg>
       )}
+      {dansMenu && (nuit ? 'Jour' : 'Nuit')}
     </button>
   )
 }

@@ -189,8 +189,6 @@ export function App() {
             </button>
           </div>
         )}
-        {/* jour / nuit, sur tous les écrans */}
-        <BoutonTheme />
       </header>
 
       {onglet === 'swipe' && (
@@ -214,6 +212,8 @@ export function App() {
           </button>
         ))}
         {/* sur grand écran, la déconnexion vit en bas du rail ; sur téléphone, dans la barre du haut */}
+        {/* jour / nuit : dans le menu, sur tous les écrans */}
+        <BoutonTheme dansMenu />
         <button className="nav-sortie" onClick={() => void sors()} title="Se déconnecter">
           <svg><use href="#i-sortie" /></svg>
           Déconnexion

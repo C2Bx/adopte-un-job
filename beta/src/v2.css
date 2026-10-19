@@ -514,7 +514,7 @@
      la déconnexion : 3 onglets + Déconnexion = 4 colonnes (sélecteur .nav.n3
      pour battre la règle à trois colonnes). */
   #ec-swipe .filters.filtres-avp { display: none; }
-  .nav.n3 { grid-template-columns: repeat(4, 1fr); }
+  .nav.n3 { grid-template-columns: repeat(5, 1fr); }
   .nav .nav-sortie { display: flex; color: var(--ink-3); }
   .nav .nav-sortie:hover { color: var(--no); background: color-mix(in srgb, var(--no) 8%, transparent); }
 }
@@ -661,3 +661,12 @@
 .bouton-theme svg { width: 20px; height: 20px; }
 .accueil { position: relative; }
 .accueil-theme { position: absolute; top: calc(var(--safe-top) + var(--s4)); right: var(--s4); z-index: 2; }
+
+/* jour / nuit dans le menu (avant « Déconnexion ») : 3 onglets + Thème + Déconnexion */
+.nav .nav-theme { color: var(--ink-3); }
+.nav .nav-theme:hover { color: var(--brand); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+@media (min-width: 720px) {
+  /* en bas du rail, avec la déconnexion juste dessous */
+  .nav .nav-theme { margin-top: auto; }
+  .nav .nav-theme + .nav-sortie { margin-top: 0; }
+}

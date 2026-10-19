@@ -93,7 +93,7 @@ npm run build      # dist/ : à déposer tel quel sous /avp/
 - **Filtres** : une barre (recherche, bouton Filtres, filtres actifs retirables, nombre d'offres) et un panneau par sections, avec cases à cocher et bascule offres ouvertes / closes.
 - **Candidatures** : la décision du recruteur lue dans leur API, les jours restants avant clôture, l'adéquation.
 - **Profil** : à la main, par neuf questions ou depuis le CV. À l'enregistrement, les champs que l'écran n'affiche pas (résumé, réalisations, établissement, mots-clés) sont conservés. Export et import au format JSON Resume, effacement du CV saisi.
-- **Thème** : jour par défaut, nuit au choix : bouton lune / soleil dans la barre du haut et sur l'accueil (ou *Mon compte* → Apparence), mémorisé dans le navigateur.
+- **Thème** : jour par défaut, nuit au choix : « Nuit » / « Jour » dans le menu de navigation (et un bouton lune / soleil sur l'accueil) (ou *Mon compte* → Apparence), mémorisé dans le navigateur.
 - L'onglet courant vit dans l'adresse (`#swipe`, `#candidatures`, `#profil`) : un F5 reste sur place.
 
 ## Ce qu'il faut savoir
