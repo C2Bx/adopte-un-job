@@ -20,7 +20,7 @@ donne, et lui transmet ce que la personne saisit.
 | Fait défiler les offres, swipe, suit ses candidatures | **HACKAVPI** (`/avp`, `/swipes/candidats`, `/candidatures/moi`) |
 | Voit à qui s'adresser pour candidater | L'avis lui-même (`contactEmail`, `contactTelephone`), affiché dans le détail de l'offre |
 | Suit la réponse du recruteur | **HACKAVPI** (`statut`, `entretienAProg`), posée depuis **AVPRO-NC**, l'espace recruteur de **Damien et Lucas** |
-| Voit son adéquation à chaque offre | **CV-Matching**, le module de **Jo-Michel** (`POST /v1/match`, `POST /v1/score`), via le relais : le CV y part sans identité |
+| Voit son adéquation à chaque offre | **CV-Matching**, le module de **Jo-Michel** (`POST /v1/match`, `POST /v1/score`), via le relais : sans les champs d'identité du profil |
 | Met une offre « à plus tard » | Son navigateur (leur API ne le connaît pas) |
 
 ## L'équipe et les modules
@@ -103,7 +103,8 @@ npm run build      # dist/ : à déposer tel quel sous /avp/
   renouvellement. Elle vit dans `sessionStorage` : elle survit à un rechargement,
   pas à la fermeture de l'onglet.
 - **L'adéquation** vient de CV-Matching (MS5). Le relais y envoie le contenu du
-  CV **sans identité** (ni nom, ni e-mail, ni téléphone, ni adresse). **Sa clé ne vit
+  CV **sans les champs d'identité** du profil (nom, e-mail, téléphone, adresse) ;
+  les textes libres (résumé, expériences…) partent tels quels. **Sa clé ne vit
   jamais dans ce dépôt ni dans le code envoyé au navigateur** : `relais.php` la lit
   dans `_secrets.php`, posé à côté de lui au déploiement. Sans ce fichier, le relais
   répond 503 et l'application n'affiche simplement pas l'adéquation.
