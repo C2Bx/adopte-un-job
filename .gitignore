@@ -2,6 +2,7 @@
 *.env
 .env.*
 dbpwd*.txt
+_secrets.php
 
 # dependances et sorties de build
 node_modules/

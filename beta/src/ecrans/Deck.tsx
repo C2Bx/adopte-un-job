@@ -307,7 +307,7 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
                   {erreur ?? (actifs
                     ? 'Tes filtres sont trop stricts pour ce qui reste : retire-en un, ou efface-les tous.'
                     : aucuneOuverte && !filtres.clos
-                      ? `L’OPT-NC n’a aucun avis ouvert aujourd’hui (${compteur?.expires ?? 0} clos). Les AVP arrivent au fil de l’eau — reviens demain, ou entraîne-toi sur les offres closes.`
+                      ? `Aucun avis n’est ouvert sur la plateforme en ce moment (${compteur?.expires ?? 0} clos). Les AVP arrivent au fil de l’eau — reviens demain, ou entraîne-toi sur les offres closes.`
                       : 'Aucune autre offre ouverte aujourd’hui. Les AVP de l’OPT-NC arrivent au fil de l’eau — reviens demain, ou entraîne-toi sur les offres closes.')}
                 </p>
                 <div className="btns vide-actions">
@@ -343,7 +343,7 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
 
       {detail && (
         <Feuille onFermer={() => setDetail(null)}>
-          <Detail offre={detail} profil={profil} />
+          <Detail offre={detail} profil={profil} adequation={adequationDe(detail)} />
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
             <button className="btn primaire" onClick={() => setDetail(null)}>Fermer</button>
           </div>
