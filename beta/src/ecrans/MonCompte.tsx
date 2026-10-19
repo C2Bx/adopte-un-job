@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { Spinner } from '../Attente'
 import { ErreurApi } from '../types'
+import { useNuit } from '../theme'
 
 export function MonCompte() {
   const [email, setEmail] = useState('')
@@ -20,17 +21,11 @@ export function MonCompte() {
   const [info, setInfo] = useState<string | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   // Apparence : jour par défaut, nuit sur choix, mémorisé dans le navigateur.
-  const [nuit, setNuit] = useState(() => document.documentElement.getAttribute('data-da') === 'b')
+  const [nuit, basculeTheme] = useNuit()
 
   useEffect(() => { void api.moi().then((u) => setEmail(u?.email ?? '')) }, [])
 
-  const basculeTheme = (v: boolean) => {
-    setNuit(v)
-    try { localStorage.setItem('aj-theme', v ? 'nuit' : 'jour') } catch { /* navigation privée */ }
-    const racine = document.documentElement
-    if (v) racine.setAttribute('data-da', 'b')
-    else racine.removeAttribute('data-da')
-  }
+
 
   const ferme = () => { setOuvert(false); setCodeEnvoye(false); setCode(''); setNouveau(''); setErreur(null) }
 

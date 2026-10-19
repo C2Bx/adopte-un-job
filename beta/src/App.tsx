@@ -11,6 +11,7 @@ import { Connexion } from './ecrans/Connexion'
 import { EcranProfil } from './ecrans/Profil'
 import { EcranDeck } from './ecrans/Deck'
 import { EcranMatchs } from './ecrans/Matchs'
+import { BoutonTheme } from './theme'
 
 export type Onglet = 'swipe' | 'interets' | 'profil'
 
@@ -188,6 +189,8 @@ export function App() {
             </button>
           </div>
         )}
+        {/* jour / nuit, sur tous les écrans */}
+        <BoutonTheme />
       </header>
 
       {onglet === 'swipe' && (

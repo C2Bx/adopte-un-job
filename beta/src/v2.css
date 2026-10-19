@@ -654,3 +654,10 @@
   border: 1px solid var(--line); color: var(--ink-2); }
 .do-prereq.rempli { color: var(--yes); border-color: color-mix(in srgb, var(--yes) 40%, transparent); }
 .do-prereq.non_rempli { color: var(--no); border-color: color-mix(in srgb, var(--no) 40%, transparent); }
+
+/* bouton jour / nuit : barre du haut et écran de connexion */
+.bouton-theme { color: var(--ink-2); }
+.bouton-theme:hover { color: var(--brand); }
+.bouton-theme svg { width: 20px; height: 20px; }
+.accueil { position: relative; }
+.accueil-theme { position: absolute; top: calc(var(--safe-top) + var(--s4)); right: var(--s4); z-index: 2; }

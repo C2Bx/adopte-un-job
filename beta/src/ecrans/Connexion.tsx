@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type { CompteurOffres } from '../api'
 import { Spinner } from '../Attente'
+import { BoutonTheme } from '../theme'
 import { ErreurApi } from '../types'
 import type { Utilisateur } from '../types'
 
@@ -69,6 +70,7 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
 
   return (
     <div className="accueil">
+      <div className="accueil-theme"><BoutonTheme /></div>
       <div className="accueil-in">
         <span className="mark grand">
           <img src={`${import.meta.env.BASE_URL}marque/logo-horizontal.png`}
