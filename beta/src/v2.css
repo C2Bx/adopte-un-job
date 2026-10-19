@@ -37,7 +37,8 @@
 
 /* Deux champs sur une ligne (prénom / nom à l'inscription), une colonne dès
    que la place manque : deux champs de 3 cm ne se remplissent pas. */
-.pdeux { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+/* deux champs côte à côte : chacun garde sa hauteur, l'aide sous l'un ne décale pas l'autre */
+.pdeux { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); align-items: start; }
 @media (max-width: 420px) { .pdeux { grid-template-columns: 1fr; } }
 
 /* --- mon compte (dans le profil) ----------------------------------------
@@ -228,7 +229,7 @@
 .lien-efface:hover { color: var(--no); }
 .filtres-total { margin-left: auto; }
 
-.pf { display: grid; gap: var(--s4); text-align: left; }
+.pf { display: grid; gap: var(--s4); text-align: left; align-content: start; }
 .pf-tete h2 { text-align: left; margin: 0; }
 .pf-tete p { margin: 2px 0 0; color: var(--ink-2); font-size: var(--t-sm); }
 .pf-jeu { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: var(--r-full);
