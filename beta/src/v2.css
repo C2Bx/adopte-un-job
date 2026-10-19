@@ -1,0 +1,562 @@
+/* Styles ajoutés le 21/09 : filtres et recherche du deck, mes CV. Tout passe
+   par les jetons du thème. */
+
+/* --- filtres et recherche du deck ---------------------------------------- */
+.filtres-avp { align-items: center; }
+.filtres-avp .recherche { flex: none; min-width: 210px; max-width: 320px; min-height: 38px; border: 1px solid var(--line);
+  border-radius: var(--r-full); padding: 0 var(--s4); font: inherit; font-size: var(--t-sm); background: var(--surface);
+  color: var(--ink); scroll-snap-align: start; }
+.filtres-avp .recherche:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+.card.close .hero { background: var(--surface-2); }
+.badge-pass.close { background: var(--surface-2); color: var(--ink-2); border-color: var(--line); }
+.missions { margin: 0; padding-left: var(--s5); font-size: var(--t-sm); color: var(--ink-2); }
+.missions li { margin-bottom: var(--s2); }
+.missions.ecarts li { color: var(--no); }
+
+/* --- actions de liste : liens comme des boutons --------------------------- */
+.item .actes a { min-height: 36px; padding: 0 var(--s3); border-radius: var(--r-sm); border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink-2); font-size: var(--t-xs); font-weight: 600; display: inline-flex;
+  align-items: center; text-decoration: none; }
+.item .actes a.fort { border-color: var(--brand); color: var(--brand); }
+.etat.refus { background: color-mix(in srgb, var(--no) 14%, transparent); color: var(--no); }
+
+/* --- mes CV --------------------------------------------------------------- */
+.mescv { margin-top: var(--s3); }
+.mescv-actions { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-top: var(--s2); }
+.mescv-actions a.btn-mini { text-decoration: none; display: inline-flex; align-items: center; }
+.mescv-liste { list-style: none; margin: var(--s3) 0 0; padding: 0; display: grid; gap: var(--s2); }
+.mescv-liste li { display: flex; justify-content: space-between; gap: var(--s3); align-items: center;
+  border: 1px solid var(--line); border-radius: var(--r-sm); padding: var(--s2) var(--s3); font-size: var(--t-sm); }
+.mescv-liste li.on { border-color: var(--brand); }
+.mescv-liste li b { display: block; font-weight: 600; }
+.mescv-liste li em { font-style: normal; color: var(--ink-3); font-size: var(--t-xs); }
+.mescv-btns { display: flex; gap: var(--s1); flex-wrap: wrap; justify-content: flex-end; }
+.mescv-btns a { text-decoration: none; }
+.mescv-json { font-size: 11px; background: var(--surface-2); border-radius: var(--r-sm); padding: var(--s3);
+  max-height: 280px; overflow: auto; margin: var(--s3) 0 0; white-space: pre-wrap; word-break: break-word; }
+
+/* Deux champs sur une ligne (prénom / nom à l'inscription), une colonne dès
+   que la place manque : deux champs de 3 cm ne se remplissent pas. */
+.pdeux { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+@media (max-width: 420px) { .pdeux { grid-template-columns: 1fr; } }
+
+/* --- mon compte (dans le profil) ----------------------------------------
+   L'adresse et le mot de passe vivent chez l'equipe : ce bloc dit ou ils sont
+   et, quand leur service le permet, ouvre le formulaire qui va bien. */
+/* La barre des etapes suit juste en dessous : sans marge basse, la carte la
+   touchait, et deux blocs colles se lisent comme un seul. */
+.mcompte { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: var(--s4); margin: var(--s4) 0 var(--s6); }
+.mcompte h3 { font-size: var(--t-md); margin: 0 0 var(--s3); }
+.mc-ligne { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; margin: 0 0 var(--s3); }
+.mc-ligne dt { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 600; }
+.mc-ligne dd { margin: 0; font-size: var(--t-sm); word-break: break-all; }
+.mc-actions { display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center; margin-top: var(--s3); }
+.mc-form { margin-top: var(--s4); gap: var(--s4); max-width: 420px; }
+
+/* --- navigation à trois onglets ------------------------------------------ */
+.nav.n3 { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 720px) {
+  .nav.n3 { grid-template-columns: 1fr; }
+}
+
+/* Deux pastilles d’état côte à côte (statut + écarts) respirent. */
+.etat + .etat { margin-left: 6px; }
+
+/* Le qualificatif d'une puce : « Direction » devant un libelle qui existe
+   aussi comme famille de metiers. Discret, mais il leve l'ambiguite entre
+   deux boutons au meme nom et aux comptes differents. */
+.chip .pre { font-style: normal; font-weight: 600; font-size: var(--t-xs);
+  color: var(--ink-3); margin-right: 6px; }
+.chip[aria-pressed="true"] .pre { color: inherit; opacity: .75; }
+
+/* --- les trois façons de remplir son profil, côte à côte ------------------
+   Mon CV, Je pars de zéro, Affiner par questions. Trois colonnes dès que la
+   colonne du profil a la place (requête de conteneur : à côté du guide, la
+   colonne est bien plus étroite que l'écran), une seule en dessous. */
+.pcol-a { container-type: inline-size; }
+.qzdepart.trois { grid-template-columns: 1fr; }
+@container (min-width: 640px) {
+  .qzdepart.trois { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.mescv-carte { margin: 0; }
+.mescv-carte .mescv-liste { width: 100%; }
+.mescv-carte .mescv-liste li { flex-wrap: wrap; }
+.mescv-carte .mescv-liste li b { overflow-wrap: anywhere; }
+.mescv-carte .pal { width: 100%; }
+
+/* --- le CV déposé : une zone à lui ---------------------------------------- */
+.mescv-zone { margin: 0 0 var(--s6); background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: var(--s4) var(--s5); display: grid; gap: var(--s3); }
+.pvoie .mescv-zone { margin: var(--s2) 0 0; padding: 0; border: 0; width: 100%; }
+.mescv-zone-tete { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s2); }
+.mescv-zone-tete h3 { font-size: var(--t-md); font-weight: 800; }
+.mescv-fichier { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3);
+  border: 1px solid var(--brand); border-radius: var(--r-md); padding: var(--s3) var(--s4); }
+.mescv-nom { flex: 1 1 220px; min-width: 0; display: grid; gap: 2px; font-size: var(--t-sm); }
+.mescv-nom b { font-weight: 600; overflow-wrap: anywhere; }
+.mescv-nom em { font-style: normal; color: var(--ink-3); font-size: var(--t-xs); }
+.mescv-etat { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-xs); font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+.mescv-etat.lu { background: color-mix(in srgb, var(--yes) 14%, transparent); color: var(--yes); }
+.mescv-etat.attente { background: var(--surface-2); color: var(--ink-3); }
+.btn-mini.danger { color: var(--no); }
+
+/* --ok-soft et --no-soft etaient utilises (.pal.ok, .pal.manque, etapes faites)
+   sans jamais etre definis : ces encadres n'avaient pas de fond. */
+:root { --ok-soft: color-mix(in srgb, var(--yes) 14%, transparent);
+        --no-soft: color-mix(in srgb, var(--no) 12%, transparent); }
+.mescv-etat.pas-lu { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+/* « Ouvrir » est un lien : sans ça, son libellé reste en haut du bouton */
+.mescv-btns .btn-mini { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+/* Métiers visés : les pastilles, la liste et la famille se touchaient. */
+.pmetiers { display: grid; gap: var(--s3); }
+.pmetiers > select { width: 100%; }
+
+/* Sur la carte (fond sombre), les listes prenaient les couleurs des pages
+   claires (--ink-2, --line) : texte sombre sur fond sombre. */
+.card .missions { color: var(--stage-ink-2); }
+.card .missions li::marker { color: var(--stage-ink-2); }
+.card .missions.ecarts li { color: #FFB3A8; }
+.card .criteres li { border-bottom-color: var(--stage-line); }
+.card .criteres span { color: var(--stage-ink-2); }
+.card .criteres b { color: var(--stage-ink); }
+
+/* La recherche reste à gauche quand on fait défiler les filtres : collée au
+   bord de la barre (sticky dans le conteneur qui défile), sur un fond opaque
+   qui masque les chips qui passent dessous. Le fondu de gauche de la barre est
+   retiré, sinon il estomperait la recherche elle-même. */
+.filtres-avp {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent 100%);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent 100%);
+}
+.filtres-avp .recherche {
+  position: sticky; left: 0; z-index: 2;
+  box-shadow: calc(var(--s4) * -1) 0 0 var(--bg), 12px 0 14px -6px var(--bg);
+}
+
+/* Le détail d'une offre (panneau à côté du deck, feuille sur téléphone,
+   candidatures) est sur fond clair : ses étiquettes ne prennent pas les
+   couleurs de la carte sombre (texte presque blanc, illisible). */
+.panneau .tags span { color: var(--ink); border-color: var(--line); background: var(--surface-2); }
+.panneau .tags span.doux { color: var(--ink-2); opacity: 1; background: transparent; }
+
+/* Grand écran : la carte prend toute la hauteur à gauche ; la recherche et les
+   filtres ne coiffent que la colonne de droite, au-dessus du détail de l'offre.
+   La carte y gagne la hauteur de la barre de filtres pour ses informations. */
+@media (min-width: 1100px) {
+  #ec-swipe > .stack { grid-template-areas: "deck filtres" "deck panneau"; }
+  #ec-swipe .filters { padding-left: 0; padding-right: 0; }
+}
+
+/* Une pastille qui porte une croix « Retirer » : le style n'existait que pour
+   les compétences rattachées automatiquement (.pchip.lib). Une compétence
+   choisie à la main gardait un bouton blanc, celui du navigateur. */
+.pchip:has(> button) { display: inline-flex; align-items: center; gap: 6px; padding-right: 6px; }
+.pchip > button { border: none; background: rgba(255,255,255,.25); color: inherit; cursor: pointer;
+  width: 22px; height: 22px; border-radius: var(--r-full); font-size: 11px; display: grid; place-items: center; }
+.pchip > button:hover { background: rgba(255,255,255,.4); }
+/* les pastilles et le champ de recherche qui suit se touchaient */
+.pchips + .psaisie { margin-top: var(--s3); }
+
+/* --- filtres du deck (filtres.ts) --------------------------------------- */
+.filtres-avp { align-items: center; gap: var(--s2); }
+.filtres-total { flex: none; font-size: var(--t-sm); color: var(--ink-2); white-space: nowrap; padding: 0 var(--s1); }
+.filtres-total b { font-family: var(--font-num); color: var(--ink); }
+/* le titre d'une catégorie, posé devant ses puces */
+.filtres-groupe { flex: none; font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-3); padding: 0 var(--s1) 0 var(--s3); border-left: 1px solid var(--line); white-space: nowrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.chip:hover { border-color: var(--brand); color: var(--ink); }
+.chip.on, .chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.chip .croix { font-size: 11px; width: 18px; height: 18px; border-radius: var(--r-full); display: grid; place-items: center;
+  background: rgba(255,255,255,.22); }
+.chip.efface { border-color: var(--no); color: var(--no); background: color-mix(in srgb, var(--no) 8%, var(--surface)); }
+.chip.efface .cpt { color: inherit; }
+/* écran vide : les deux boutons se touchaient */
+.vide-actions { display: flex; flex-wrap: wrap; gap: var(--s3); justify-content: center; margin-top: var(--s5); }
+
+/* le bouton « revenir » de la carte : plus visible, même sans action possible */
+.coins .retour { color: #FFC861; background: rgba(255, 200, 97, .10); }
+.coins .retour:disabled { opacity: .55; }
+
+/* --- la carte du deck en clair (05/10) ------------------------------------
+   Fond clair et texte foncé, comme le reste de l'application : la carte prend
+   les couleurs de surface et d'encre du thème au lieu de sa scène sombre. */
+.card {
+  --stage: var(--surface);
+  --stage-ink: var(--ink);
+  --stage-ink-2: var(--ink-2);
+  --stage-line: var(--line);
+}
+.card .stage {
+  background:
+    radial-gradient(115% 70% at 100% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 62%),
+    radial-gradient(100% 70% at 0% 100%, color-mix(in srgb, var(--brand) 7%, transparent), transparent 68%);
+}
+.card .segs i { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.card .score { background: var(--surface-2); color: var(--ink); }
+.card .tags span { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+.card .tags span.doux { color: var(--ink-2); opacity: 1; background: transparent; }
+.card .missions.ecarts li { color: var(--no); }
+/* les boutons ronds, en teintes plus soutenues pour rester lisibles sur le blanc */
+.card .coins button:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.card .coins .retour { color: #B7791F; background: rgba(183, 121, 31, .08); }
+.card .coins .fav    { color: #2F6FD1; }
+.card .coins .non    { color: #D64545; }
+.card .coins .oui    { color: #12946A; }
+
+
+/* carte : pas de dégradé, fond un peu plus soutenu que la page ; les étiquettes
+   et le bouton « Voir l'offre » restent blancs pour se détacher du fond */
+.card { --stage: color-mix(in srgb, var(--surface) 94%, var(--ink)); }
+.card .stage { background: none; }
+.card .tags span, .card .score { background: var(--surface); }
+
+/* --- barre et panneau des filtres ----------------------------------------- */
+.filtres-avp { flex-wrap: nowrap; }
+.chip.ouvre-filtres { font-weight: 700; color: var(--ink); }
+.chip.ouvre-filtres svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.chip.ouvre-filtres .pastille { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--r-full);
+  background: var(--brand-ink); color: var(--brand); font-size: var(--t-xs); display: grid; place-items: center; }
+.chip.actif { background: color-mix(in srgb, var(--brand) 10%, var(--surface)); border-color: var(--brand); color: var(--brand); }
+.chip.actif .croix { background: color-mix(in srgb, var(--brand) 16%, transparent); }
+.chip.actif:hover { background: color-mix(in srgb, var(--brand) 18%, var(--surface)); }
+.lien-efface { flex: none; border: none; background: none; color: var(--ink-2); font: inherit; font-size: var(--t-sm);
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 0 var(--s2); white-space: nowrap; }
+.lien-efface:hover { color: var(--no); }
+.filtres-total { margin-left: auto; }
+
+.pf { display: grid; gap: var(--s4); text-align: left; }
+.pf-tete h2 { text-align: left; margin: 0; }
+.pf-tete p { margin: 2px 0 0; color: var(--ink-2); font-size: var(--t-sm); }
+.pf-jeu { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: var(--r-full);
+  background: var(--surface-2); }
+.pf-jeu button { border: none; background: transparent; border-radius: var(--r-full); padding: 8px var(--s3);
+  font: inherit; font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.pf-jeu button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(15, 26, 43, .12); }
+.pf-section h3 { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2);
+  font-size: var(--t-xs); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 var(--s2); }
+.pf-choix { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--brand); }
+.pf-lignes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px var(--s4); }
+.pf-ligne { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--s2);
+  padding: 8px var(--s2); border-radius: var(--r-sm); cursor: pointer; font-size: var(--t-sm); color: var(--ink); }
+.pf-ligne:hover { background: var(--surface-2); }
+.pf-ligne input { width: 18px; height: 18px; accent-color: var(--brand); margin: 0; cursor: pointer; }
+.pf-ligne .pf-n { font-family: var(--font-num); font-size: var(--t-xs); color: var(--ink-3); }
+.pf-ligne.vide { color: var(--ink-3); cursor: default; }
+.pf-ligne.vide input { cursor: default; }
+.pf-pied { position: sticky; bottom: calc(var(--s4) * -1); display: grid; grid-template-columns: auto 1fr; gap: var(--s3);
+  padding: var(--s3) 0 var(--s4); background: var(--surface); border-top: 1px solid var(--line); margin-top: var(--s2); }
+
+/* carte : du relief en bleu sombre (la couleur de la marque), pour qu'elle
+   se détache et paraisse moins blanche */
+.card {
+  --stage: color-mix(in srgb, var(--surface) 94%, var(--brand));
+  border: 2px solid var(--brand);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--brand) 18%, transparent),
+              0 22px 44px -22px color-mix(in srgb, var(--brand) 55%, transparent);
+}
+.card .role { color: var(--brand); }
+.card .segs i { background: color-mix(in srgb, var(--brand) 18%, transparent); }
+.card .segs i.on { background: var(--brand); }
+.card .page-lead { color: var(--brand); }
+.card .page-lead::after { background: color-mix(in srgb, var(--brand) 30%, transparent); }
+.card .tags span { border-color: color-mix(in srgb, var(--brand) 28%, transparent); }
+.card .facts { border-top-color: color-mix(in srgb, var(--brand) 22%, transparent); }
+.card .facts em { color: var(--brand); }
+.card .score { border-color: var(--brand); color: var(--brand); font-weight: 700; }
+.card .score:hover { background: var(--brand); color: var(--brand-ink); }
+
+/* carte : fond bleu très léger (un bleu franc très dilué, plus net que le
+   bleu marine mêlé au blanc, qui tirait vers le gris) */
+.card { --stage: color-mix(in srgb, var(--surface) 91%, #2F6FD1); }
+
+/* Grand écran, deck ouvert : la carte prend toute la hauteur. L'en-tête (logo et
+   déconnexion) ne réserve plus une rangée sur toute la largeur : il flotte
+   au-dessus de la seule colonne de droite, et les filtres descendent d'autant.
+   Le logo reste visible. Calé à droite de la colonne de la carte (460 px au
+   plus) : il ne peut pas la recouvrir, même quand elle est plus étroite. */
+@media (min-width: 1100px) {
+  .app:has(#ec-swipe:not(.verrouille)) { grid-template-areas: "rail corps" "rail corps"; }
+  .app:has(#ec-swipe:not(.verrouille)) .topbar {
+    grid-area: auto; position: absolute; z-index: 5; top: 0; right: 0;
+    left: calc(92px + var(--s4) + 460px + var(--s7));
+    padding: var(--s4) var(--s7) 0 0; background: transparent;
+  }
+  .app:has(#ec-swipe:not(.verrouille)) #ec-swipe > .stack { padding-top: var(--s4); }
+  .app:has(#ec-swipe:not(.verrouille)) #ec-swipe .filters { margin-top: 56px; }
+}
+
+/* Grand écran : la carte à DROITE, les filtres et le détail de l'offre à gauche.
+   L'en-tête (logo, déconnexion) flotte au-dessus de la colonne de gauche ; il
+   s'arrête avant la colonne de la carte (460 px au plus), sans jamais la couvrir. */
+@media (min-width: 1100px) {
+  #ec-swipe > .stack {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 460px);
+    grid-template-areas: "filtres deck" "panneau deck";
+    padding-left: var(--s7); padding-right: var(--s4);
+  }
+  .app:has(#ec-swipe:not(.verrouille)) .topbar {
+    left: 92px; right: calc(var(--s4) + 460px + var(--s7));
+    padding: var(--s4) 0 0 var(--s7);
+  }
+}
+
+/* --- déconnexion : en bas du rail sur grand écran, en haut sur téléphone --- */
+.nav-sortie { display: none; }
+@media (min-width: 720px) {
+  .nav.n3 { display: flex; flex-direction: column; }
+  .nav .nav-sortie { display: flex; margin-top: auto; color: var(--ink-3); }
+  .nav .nav-sortie:hover { color: var(--no); background: color-mix(in srgb, var(--no) 8%, transparent); }
+  .topbar .sortie-haut { display: none; }
+}
+
+/* La barre de filtres ne contient plus que quelques éléments : son fondu de bord
+   (fait pour signaler une barre qui défile) coupait « 21 offres », posé au bout. */
+.filtres-avp { -webkit-mask-image: none; mask-image: none; padding-right: var(--s2); }
+
+/* Grand écran : 65 % à gauche (filtres, détail), 35 % à droite (la carte).
+   L'en-tête flotte sur la colonne de gauche et s'arrête avant la carte : sa
+   limite droite reprend la même répartition (35 % de la largeur utile). */
+@media (min-width: 1100px) {
+  #ec-swipe > .stack { grid-template-columns: minmax(0, 65fr) minmax(340px, 35fr); }
+  .app:has(#ec-swipe:not(.verrouille)) .topbar {
+    right: calc(var(--s4) + var(--s7) + max(340px, (100% - 92px - 2 * var(--s7) - var(--s4)) * .35));
+  }
+}
+
+/* --- les touches orange de la direction artistique retenue (maquette « a ») ---
+   Le bleu sombre porte la structure, l'orange signale : là où l'on est, ce qui
+   est actif, ce qui compte. Par petites touches, jamais en aplat. */
+
+/* titres d'écran : un trait orange dessous */
+#ec-profil h2:first-of-type::after, #ec-interets h2:first-of-type::after {
+  content: ""; display: block; width: 48px; height: 4px; border-radius: var(--r-full);
+  background: var(--accent); margin-top: var(--s2);
+}
+/* navigation : l'onglet actif est marqué d'un trait orange */
+.nav button[aria-current="page"]::before {
+  content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 28px; height: 3px; border-radius: 0 0 var(--r-full) var(--r-full); background: var(--accent);
+}
+@media (min-width: 720px) {
+  .nav button[aria-current="page"]::before {
+    top: 50%; left: 0; transform: translateY(-50%); width: 3px; height: 28px;
+    border-radius: 0 var(--r-full) var(--r-full) 0;
+  }
+}
+/* carte : la page affichée et le titre de page */
+.card .segs i.on { background: var(--accent); }
+.card .page-lead::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); flex: none; }
+/* filtres : le compte des filtres actifs, le nombre d'offres, les sections du panneau */
+.chip.ouvre-filtres .pastille { background: var(--accent); color: #1A1206; }
+.filtres-total b { color: var(--accent); }
+.pf-section h3::before { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); margin-right: 6px; display: inline-block; }
+.pf-section h3 { justify-content: flex-start; }
+.pf-choix { margin-left: auto; color: var(--accent); }
+/* détail de l'offre : les intertitres */
+.panneau h3::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 2px;
+  background: var(--accent); margin-right: 8px; vertical-align: middle; }
+/* candidatures : la ligne dont on lit le détail */
+.item.on { box-shadow: inset 3px 0 0 var(--accent), var(--shadow-ui); }
+
+/* --- la carte, retravaillée (05/10) ----------------------------------------- */
+/* les infos clés, sous le titre */
+.card .cles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--s3); }
+.card .cle { font-size: var(--t-xs); font-weight: 600; padding: 4px 10px; border-radius: var(--r-full);
+  background: var(--surface); color: var(--brand); border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent); }
+.card .cle.urgent { background: var(--accent-soft); color: #9A5B10; border-color: var(--accent); }
+.card .cle.moi { background: color-mix(in srgb, var(--yes) 12%, var(--surface)); color: var(--yes);
+  border-color: color-mix(in srgb, var(--yes) 40%, transparent); }
+/* la première page : une phrase sur le poste, puis les premières missions */
+.card .accroche { color: var(--ink); font-size: var(--t-md); line-height: 1.5; margin: 0 0 var(--s3); }
+/* compétences que la personne a déjà */
+.card .tags span.has { background: color-mix(in srgb, var(--yes) 12%, var(--surface)); color: var(--yes);
+  border-color: color-mix(in srgb, var(--yes) 45%, transparent); font-weight: 600; }
+/* repère de page, au bout du titre de page */
+.card .page-n { order: 3; font-family: var(--font-num); font-size: 10px; font-weight: 600; color: var(--ink-3);
+  letter-spacing: 0; text-transform: none; }
+.card .page-lead::after { order: 2; }
+/* pied : une seule ligne de détails secondaires */
+.card .facts .line { flex-wrap: wrap; gap: 4px 0; color: var(--ink-2); }
+.card .facts .line > * + *::before { content: "·"; margin: 0 7px; color: var(--ink-3); }
+/* boutons ronds avec leur libellé */
+.card .coins .coin { display: grid; justify-items: center; gap: 4px; }
+.card .coins .coin span { font-size: 10.5px; font-weight: 600; color: var(--ink-2); }
+/* teinte pendant le glissé : vert vers la droite, rouge vers la gauche */
+.card .teinte { position: absolute; inset: 0; pointer-events: none; z-index: 1; border-radius: inherit; transition: opacity .1s; }
+.card .teinte.oui { background: color-mix(in srgb, var(--yes) 14%, transparent); }
+.card .teinte.non { background: color-mix(in srgb, var(--no) 14%, transparent); }
+
+/* « Voir l'offre » ouvre le détail sur téléphone ; sur grand écran, le détail est
+   déjà affiché à côté de la carte : le bouton n'y sert à rien. */
+@media (min-width: 1100px) {
+  .card .score-btn { display: none; }
+  .card .hero-top:not(:has(> :not(.score-btn))) { display: none; }
+}
+
+/* la recherche : assez large pour lire son texte d'invite en entier */
+.filtres-avp .recherche { min-width: 21.5rem; max-width: 26rem; flex: 0 1 21.5rem; }
+@media (max-width: 480px) { .filtres-avp .recherche { min-width: 17.5rem; } }
+
+/* --- le détail de l'offre --------------------------------------------------- */
+.side { container-type: inline-size; }
+.detail-offre { display: grid; gap: var(--s5); align-content: start; width: 100%; }
+@container (min-width: 760px) {
+  .detail-offre { grid-template-columns: minmax(0, 1fr) 290px; align-items: start; gap: var(--s6); }
+  .do-bref { position: sticky; top: 0; }
+}
+.do-entete { display: grid; gap: var(--s2); }
+.do-org { font-size: var(--t-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.do-titre { margin: 0; font-family: var(--font-display); font-weight: var(--display-weight); font-size: var(--t-2xl);
+  letter-spacing: var(--display-tracking); color: var(--brand); text-wrap: balance; }
+.do-entete .cles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.panneau .cle { font-size: var(--t-xs); font-weight: 600; padding: 4px 10px; border-radius: var(--r-full);
+  background: var(--surface); color: var(--brand); border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent); }
+.panneau .cle.urgent { background: var(--accent-soft); color: #9A5B10; border-color: var(--accent); }
+.panneau .cle.moi { background: color-mix(in srgb, var(--yes) 12%, var(--surface)); color: var(--yes);
+  border-color: color-mix(in srgb, var(--yes) 40%, transparent); }
+.do-poste { display: grid; gap: var(--s5); margin-top: var(--s4); }
+.do-poste section { display: grid; gap: var(--s2); }
+.do-poste h3 { display: flex; align-items: center; gap: var(--s2); margin: 0; }
+.do-n { font-family: var(--font-num); font-size: 10px; color: var(--ink-3); letter-spacing: 0; }
+.do-acquis { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--yes);
+  background: color-mix(in srgb, var(--yes) 12%, transparent); padding: 2px 8px; border-radius: var(--r-full); }
+.do-desc { margin: 0; font-size: var(--t-md); line-height: 1.55; color: var(--ink); }
+.do-liste { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s2); font-size: var(--t-sm); color: var(--ink-2); line-height: 1.5; }
+.do-liste li { position: relative; padding-left: 20px; }
+.do-liste li::before { content: ""; position: absolute; left: 3px; top: .55em; width: 7px; height: 7px; border-radius: 2px;
+  background: color-mix(in srgb, var(--brand) 70%, transparent); }
+.do-sous { font-size: var(--t-xs); font-weight: 600; color: var(--ink-2); margin-top: var(--s1); }
+.panneau .tags span.has { background: color-mix(in srgb, var(--yes) 12%, var(--surface)); color: var(--yes);
+  border-color: color-mix(in srgb, var(--yes) 45%, transparent); font-weight: 600; }
+.do-bref { background: color-mix(in srgb, var(--surface) 92%, #2F6FD1); border: 1px solid color-mix(in srgb, var(--brand) 18%, transparent);
+  border-radius: var(--r-lg); padding: var(--s4) var(--s4) var(--s3); display: grid; gap: var(--s3); }
+.do-bref h3 { margin: 0; }
+.do-bref dl { margin: 0; display: grid; gap: var(--s3); }
+.do-bref dl > div { display: grid; gap: 2px; }
+.do-bref dt { font-size: var(--t-xs); color: var(--ink-3); font-weight: 600; }
+.do-bref dd { margin: 0; font-size: var(--t-sm); color: var(--ink); line-height: 1.45; }
+.do-lien { font-size: var(--t-sm); font-weight: 700; color: var(--brand); text-decoration: none; }
+.do-lien:hover { text-decoration: underline; }
+
+/* --------------------------------------- le contact indique sur l'avis ----
+   Sortie attendue de MS3 : « contact employeur ». L'OPT-NC le renseigne sur
+   tous ses AVP (verifie le 12/10 : 24 sur 24). */
+.do-contact { display: grid; gap: var(--s2); margin-top: var(--s5);
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--r-md); padding: var(--s4); }
+.do-contact h3 { margin: 0; }
+.do-contact p { margin: 0; font-size: var(--t-sm); color: var(--ink-2); }
+.do-contact-l { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin-top: 2px; }
+.do-contact-l a { display: inline-flex; align-items: center; min-height: var(--tap);
+  font-weight: 700; color: var(--brand); text-decoration: none; word-break: break-all; }
+.do-contact-l a:hover { text-decoration: underline; }
+.do-contact-n { font-size: var(--t-xs); color: var(--ink-3); }
+
+/* Entretien a programmer : pose par le recruteur depuis AVPRO-NC. */
+.etat.entretien { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--warn); }
+
+/* === Téléphone : la carte et la barre de filtres (13/10) ====================
+   Jusqu'ici la carte n'avait que des règles « grand écran » (min-width). Sur un
+   téléphone étroit, trois choses cassaient, signalées par bastian :
+   ① le bouton « Filtres » sortait du bord (on ignorait qu'on pouvait filtrer) ;
+   ② le hero (titre long sur 4 lignes) débordait par-dessus les détails ;
+   ③ les boutons d'action mangeaient la hauteur du contenu. */
+@media (max-width: 560px) {
+  /* ① le champ cède la place ; le bouton « Filtres » reste toujours visible */
+  .filtres-avp .recherche { min-width: 8rem; flex: 1 1 8rem; max-width: none; }
+  .chip.ouvre-filtres { flex: none; }
+
+  /* ② le hero ne déborde plus et prend moins de place : titre compact (t-lg),
+        borné à 3 lignes (le titre entier reste dans « Voir l'offre ») */
+  .card .role { font-size: 16px; line-height: 1.12; margin: var(--s1) 0 var(--s1);
+    letter-spacing: -.01em;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .cles { margin-top: var(--s2); }
+  .card .facts { padding-top: var(--s2); padding-bottom: var(--s1); }
+
+  /* ③ boutons d'action plus petits : ils rendent de la hauteur au contenu */
+  .coins { padding: 2px var(--s3) var(--s1); gap: var(--s1); }
+  .coins button { width: 34px; height: 34px; border-width: 1.5px; }
+  .coins svg { width: 15px; height: 15px; }
+  .coins .non, .coins .oui { width: 40px; height: 40px; }
+  .coins .non svg, .coins .oui svg { width: 16px; height: 16px; }
+  .card .coins .coin { gap: 1px; }
+  .card .coins .coin span { font-size: 8.5px; }
+}
+
+/* === Téléphone : recherche + filtres dans la barre du haut (13/10) ==========
+   La déconnexion du haut est retirée — elle ne vit plus que dans le menu du bas.
+   À sa place : une loupe (ouvre la recherche en feuille) et un entonnoir (ouvre
+   les filtres). Le logo reste à gauche. Sur grand écran, ces deux boutons ne
+   servent pas (le deck a sa propre barre recherche + filtres). */
+.topbar-actions { display: flex; align-items: center; gap: var(--s2); }
+.topbar-actions .iconbtn { color: var(--ink-2); }
+.topbar-actions .iconbtn:hover { color: var(--brand); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+.topbar-actions .iconbtn svg { width: 22px; height: 22px; }
+
+/* la recherche en feuille */
+.recherche-popup { width: 100%; min-height: 48px; border: 1px solid var(--line);
+  border-radius: var(--r-full); padding: 0 var(--s4); font: inherit; font-size: var(--t-md);
+  background: var(--surface); color: var(--ink); margin-top: var(--s3); }
+.recherche-popup:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+@media (min-width: 720px) { .topbar-actions { display: none; } }
+
+@media (max-width: 719.98px) {
+  /* Téléphone : la barre recherche + filtres du deck disparaît, remplacée par
+     la loupe et l’entonnoir de la barre du haut. Le menu du bas accueille alors
+     la déconnexion : 3 onglets + Déconnexion = 4 colonnes (sélecteur .nav.n3
+     pour battre la règle à trois colonnes). */
+  #ec-swipe .filters.filtres-avp { display: none; }
+  .nav.n3 { grid-template-columns: repeat(4, 1fr); }
+  .nav .nav-sortie { display: flex; color: var(--ink-3); }
+  .nav .nav-sortie:hover { color: var(--no); background: color-mix(in srgb, var(--no) 8%, transparent); }
+}
+
+/* Le glissé (swipe) doit marcher sur TOUTE la carte, pas seulement le haut.
+   La zone de texte (.pagebox, et .page-body quand il déborde) est un conteneur
+   à overflow : son touch-action par défaut (auto) laissait le navigateur happer
+   les gestes HORIZONTAUX, si bien qu'on ne pouvait glisser que sur le héros
+   (non défilant). pan-y rend l'horizontal au glissé de la carte (JS) tout en
+   gardant le défilement vertical du texte quand il déborde. */
+.card .pagebox, .card .page-body { touch-action: pan-y; }
+
+/* « Effacer mon CV » (écran Profil) : efface le profil saisi côté API (garde le
+   fichier déposé + la lecture n8n). Zone à part, en bas, confirmation en 2 temps. */
+.peffacer { margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--line); }
+.btn-effacer { border: none; background: none; color: var(--ink-3); font: inherit; font-size: var(--t-sm);
+  cursor: pointer; padding: var(--s2) 0; text-decoration: underline; text-underline-offset: 3px; }
+.btn-effacer:hover { color: var(--no); }
+.peffacer-boite { display: grid; gap: var(--s2); padding: var(--s4);
+  border: 1px solid color-mix(in srgb, var(--no) 40%, var(--line)); border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--no) 5%, transparent); }
+.peffacer-boite .btns { display: flex; gap: var(--s2); margin-top: var(--s2); }
+.btn-effacer.fort { color: #fff; background: var(--no); border-radius: var(--r-full);
+  padding: 8px var(--s4); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn-effacer.fort:hover { color: #fff; filter: brightness(.95); }
+
+/* === Thème : jour par défaut, nuit sur choix de l'utilisateur ==============
+   Le mode nuit = la direction artistique « Nuit & Lagon » (DA « b » dans
+   design.css), appliquée via data-da="b" sur <html> par le réglage « Apparence »
+   (mémorisé dans le navigateur). On ne suit PAS le réglage système : jour par
+   défaut, l'utilisateur bascule s'il veut. Les polices de la DA « b » ne sont
+   pas chargées — seules les couleurs changent. */
+:root { color-scheme: light; }
+[data-da="b"] { color-scheme: dark; }
+
+/* le logo passe en blanc en mode nuit (deux images, bascule par le thème) */
+.mark .logo-nuit { display: none; }
+[data-da="b"] .mark .logo-jour { display: none; }
+[data-da="b"] .mark .logo-nuit { display: block; }
+
+.poutils { margin-top: var(--s5); display: grid; gap: var(--s2); justify-items: start; }
+
+/* outils du profil : export / import JSON Resume, côte à côte */
+.poutils-btns { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.poutils-fichier { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.mc-theme { margin-top: var(--s4); }

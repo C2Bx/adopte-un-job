@@ -1,0 +1,23 @@
+# secrets : jamais versionnes
+*.env
+.env.*
+dbpwd*.txt
+
+# dependances et sorties de build
+node_modules/
+beta/dist/
+beta/tsconfig.tsbuildinfo
+*.log
+
+# donnees personnelles : les CV d'essai restent hors du depot
+cv/
+*.pdf
+scripts/zz_*
+__pycache__/
+
+# Google Drive en depose un dans chaque dossier
+desktop.ini
+Thumbs.db
+
+# referentiel OPT telecharge par scripts/referentiel_statique.py
+scripts/ref-metiers-opt-nc.sqlite
