@@ -66,9 +66,9 @@ function Jauge({ a }: { a: Adequation }) {
   )
 }
 
-function Tuile({ titre, valeur, detail, part }: { titre: string; valeur: string; detail?: string; part?: number }) {
+function Tuile({ titre, valeur, detail, part, ton }: { titre: string; valeur: string; detail?: string; part?: number; ton: string }) {
   return (
-    <div className="adq-tuile">
+    <div className={`adq-tuile ${ton}`}>
       <span className="adq-t-titre">{titre}</span>
       <span className="adq-t-val">{valeur}{detail && <small> {detail}</small>}</span>
       {part !== undefined && (
@@ -166,12 +166,12 @@ export function BlocAdequation({ offre: o, adequation: a }: { offre: Offre; adeq
         <Jauge a={a} />
         <div className="adq-tuiles">
           <Tuile titre="Compétences couvertes" valeur={`${a.couverts}`} detail={`/ ${a.total}`}
-            part={a.total ? a.couverts / a.total : 0} />
+            part={a.total ? a.couverts / a.total : 0} ton="t-couvert" />
           <Tuile titre="Rang parmi les offres" valeur={a.rang ? `${a.rang}${a.rang === 1 ? 're' : 'e'}` : '—'}
-            detail={a.nbOffres ? `sur ${a.nbOffres}` : undefined} />
-          <Tuile titre="Savoir-être à montrer" valeur={String(savoirEtre.length)} />
+            detail={a.nbOffres ? `sur ${a.nbOffres}` : undefined} ton="t-rang" />
+          <Tuile titre="Savoir-être à montrer" valeur={String(savoirEtre.length)} ton="t-savoir" />
           <Tuile titre="Prérequis à vérifier" valeur={detail === undefined ? '…' : String(aVerifier)}
-            detail={detail && prerequis.length ? `sur ${prerequis.length}` : undefined} />
+            detail={detail && prerequis.length ? `sur ${prerequis.length}` : undefined} ton="t-prereq" />
         </div>
       </div>
 
