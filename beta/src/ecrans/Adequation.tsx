@@ -206,7 +206,7 @@ export function BlocAdequation({ offre: o, adequation: a }: { offre: Offre; adeq
       )}
 
       <p className="adq-source">
-        Calculé par CV-Matching à partir du contenu de ton profil, sans ton nom ni tes coordonnées.
+        Calculé par CV-Matching à partir de ton profil, sans les champs nom, e-mail, téléphone et adresse.
         C’est une indication, pas un verdict : rien ne t’empêche de candidater.
       </p>
     </section>
