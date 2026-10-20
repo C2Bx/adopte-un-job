@@ -4,7 +4,10 @@ Un poste qui te correspond, pas trente CV envoyés. L'interface candidat du
 **#HackAVP** (OPT-NC · Station N · OPEN NC), premier hackathon dédié à l'emploi
 dans la fonction publique en Nouvelle-Calédonie : on fait défiler les **vrais
 avis de vacance de poste de l'OPT-NC**, à droite pour candidater, à gauche pour
-passer.
+passer. Un module du projet commun de la promotion du **Master MIAGE** de
+l'Université de la Nouvelle-Calédonie.
+
+📰 **L'article de présentation** (dev.to, track *SaaS no limit*) : https://dev.to/c2b/adopte-un-job-on-swipe-les-vrais-postes-de-lopt-nc-et-on-voit-pourquoi-ils-nous-correspondent-48pc
 
 ## Une interface, rien d'autre
 
@@ -26,14 +29,15 @@ donne, et lui transmet ce que la personne saisit.
 ## L'équipe et les modules
 
 Adopte un Job est **MS3, le front candidat**. Il ne fonctionne pas seul : chaque module a son
-responsable, et ils se parlent par un seul format, le **JSON Resume**.
+responsable. Le profil du candidat circule entre eux au format **JSON Resume** ; les offres
+gardent le format des AVP.
 
 | | Module | Qui | Ce qu'il fait |
 |---|---|---|---|
 | MS1 | **CVForge** | Florian | lit le CV déposé et en tire un JSON Resume |
-| MS2 | **HACKAVPI** | Dan et Timothée | l'API commune : comptes, offres, profils, CV, candidatures |
+| MS2 | [**HACKAVPI**](https://dev.to/pastek/hackavpi-dp8) | Dan et Timothée | l'API commune : comptes, offres, profils, CV, candidatures |
 | **MS3** | **Adopte un Job** | **Bastian — ce dépôt** | le front candidat |
-| MS4 | **CV Generator** | Anthony et Kim | CV et lettre de motivation |
+| MS4 | [**CV Generator**](https://dev.to/spewq/hackavp-cv-generator-la-solution-de-preparation-de-candidature-1p30) | Anthony et Kim | CV, lettre de motivation, guide d'entretien |
 | MS5 | **CV-Matching** | Jo-Michel | le calcul de compatibilité |
 | MS6 | **AVPRO-NC** | Damien et Lucas | l'espace recruteur |
 | MS7 | **Insight Squad** | Élodie et Mathieu | les indicateurs, les rapports et le tableau de bord Power BI |
@@ -50,14 +54,14 @@ sa lecture à part (`cvJsonGenere`) ; l'interface ne la recopie dans le profil
 
 | Fichier | Rôle |
 |---|---|
-| `beta/` | L'application : React 19 + TypeScript strict, Vite. Sortie 100 % statique. Trois écrans : le deck, les candidatures, le profil. |
+| `beta/` | L'application : React 19 + TypeScript strict, Vite. Sortie statique, plus le relais PHP (un hébergement PHP suffit). Trois écrans : le deck, les candidatures, le profil. |
 | `beta/src/api.ts` | Le seul endroit qui parle à leur API, et qui traduit leurs réponses dans les formes que les écrans connaissent. |
 | `beta/src/filtres.ts` | Les filtres du deck, calculés dans le navigateur : plusieurs choix par catégorie (OU), catégories combinées (ET), compteurs dynamiques. |
 | `beta/public/relais.php` | Un relais **sans état** vers leur API, tant qu'elle n'envoie pas d'en-têtes CORS, et vers CV-Matching. Il ne relaie que les routes listées, chacune avec sa seule méthode. Pour CV-Matching, il ajoute la clé du service côté serveur et ne transmet jamais le jeton de l'utilisateur. |
 | `beta/src/ecrans/Adequation.tsx` | L'adéquation au poste : pastille, et tableau de bord dans le détail de l'offre (jauge, indicateurs, une barre par compétence). |
 | `beta/public/referentiel.json` | Les 84 métiers et 409 compétences du référentiel OPT-NC, servis comme un fichier. |
 | `scripts/referentiel_statique.py` | Régénère ce fichier depuis la [publication officielle de l'OPT](https://github.com/opt-nc/odata-referentiel-metiers). |
-| `demo/` | La démo de départ, en HTML/CSS/JS sans dépendance ni étape de build, sur des offres fictives. Elle s'ouvre sans compte ni API. Son pourcentage de compatibilité maison a ensuite été retiré de l'application : ce calcul revient à CV-Matching (MS5), que l'application affiche désormais. |
+| `demo/` | La démo de départ, en HTML/CSS/JS sans framework ni étape de build, sur des offres fictives. Elle s'ouvre sans compte ni API. Son pourcentage de compatibilité maison a ensuite été retiré de l'application : ce calcul revient à CV-Matching (MS5), que l'application affiche désormais. |
 
 ## Démarrer
 
@@ -89,7 +93,8 @@ npm run build      # dist/ : à déposer tel quel sous /avp/
 
 - **Accueil** : inscription (avec « Es-tu déjà agent de l'OPT-NC ? », transmis à leur API), connexion, mot de passe oublié, nombre de postes ouverts en ce moment.
 - **Swipe** : sur grand écran, filtres et détail de l'offre à gauche (65 %), carte à droite (35 %) sur toute la hauteur ; on glisse depuis n'importe quel point de la carte. Sur téléphone, recherche et filtres dans la barre du haut. Carte claire, bordure et détails bleu sombre, touches orange (direction artistique « a » de la maquette).
-- **Adéquation** : pastille « Bonne adéquation · 42 % » sur la carte, et dans le détail un tableau de bord : jauge, compétences couvertes, rang de l'offre parmi toutes, savoir-être, prérequis, et la note de chaque compétence avec la preuve tirée du profil.
+- **Adéquation** : pastille « Bonne adéquation · 42 % » sur la carte, et dans le détail (aussi sur téléphone) un tableau de bord : jauge, compétences couvertes, rang de l'offre parmi toutes, savoir-être, prérequis, et la note de chaque compétence ; une info-bulle claire donne la preuve tirée du profil ou ce que la compétence pèse dans le score.
+- **Couleurs de l'adéquation** : le niveau donné par CV-Matching colore la pastille, la jauge et le liseré — vert pour *excellente* (≥ 75 %) et *très bonne* (≥ 50 %), bleu pour *bonne* (≥ 33 %), ambre pour *partielle* (≥ 20 %), rouge pour *faible*. Indicateurs teintés (couvertes vert, rang bleu, savoir-être orange, prérequis ambre), barres vertes (couverte) ou orange (à travailler), savoir-être en pastilles orangées, statut des prérequis en couleur. Tout passe par les jetons du thème : la nuit suit.
 - **Filtres** : une barre (recherche, bouton Filtres, filtres actifs retirables, nombre d'offres) et un panneau par sections, avec cases à cocher et bascule offres ouvertes / closes.
 - **Candidatures** : la décision du recruteur lue dans leur API, les jours restants avant clôture, l'adéquation.
 - **Profil** : à la main, par neuf questions ou depuis le CV. À l'enregistrement, les champs que l'écran n'affiche pas (résumé, réalisations, établissement, mots-clés) sont conservés. Export et import au format JSON Resume, effacement du CV saisi.
@@ -110,3 +115,12 @@ npm run build      # dist/ : à déposer tel quel sous /avp/
   répond 503 et l'application n'affiche simplement pas l'adéquation.
 - **Formats de CV** : PDF, PNG, JPEG, 10 Mo. C'est la limite de leur API, qui
   doit s'ouvrir à d'autres formats.
+
+## L'article et ses visuels
+
+`docs/article/` contient les images de l'article dev.to : couverture, vignette de la
+vidéo (image tirée de la démo), schéma du projet commun, schéma « sous le capot »,
+captures du deck et du tableau d'adéquation (profil de test fictif), logo. L'article
+les cite par une adresse figée sur un commit (`raw.githubusercontent.com/…/<sha>/…`) :
+le cache de GitHub ignore les paramètres d'URL, une adresse figée garantit que dev.to
+affiche la bonne version.
