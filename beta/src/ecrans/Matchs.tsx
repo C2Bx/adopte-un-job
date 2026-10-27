@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
+import { dateApi } from '../dates'
 import { Detail, Feuille } from './Deck'
 import { PastilleAdequation } from './Adequation'
 import { useAdequations } from '../adequation'
@@ -44,7 +45,7 @@ const ONGLETS: { cle: Onglet; nom: string }[] = [
 /* « Décidé il y a 20 min » se lit ; « 2026-09-08 21:14:02 » se déchiffre. Les
    dates de l'API sont en UTC, il faut le dire au navigateur. */
 function depuis(quand: string): string {
-  const t = Date.parse(`${quand.replace(' ', 'T')}Z`)
+  const t = dateApi(quand)
   if (Number.isNaN(t)) return 'date inconnue'
   const s = Math.round((Date.now() - t) / 1000)
   if (s < 60) return 'à l’instant'
@@ -78,7 +79,7 @@ function useLarge(): boolean {
   return large
 }
 
-export function EcranMatchs() {
+export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<void> }) {
   const [interets, setInterets] = useState<Interet[] | null>(null)
   const [onglet, setOnglet] = useState<Onglet>('oui')
   const [detail, setDetail] = useState<Interet | null>(null)
@@ -117,6 +118,7 @@ export function EcranMatchs() {
 
   const redecide = async (x: Interet, d: Onglet) => {
     try {
+      await avantDecision()
       const r = await api.swipe(x.id, d)
       setInterets((l) => (l ?? []).map((y) => (y.id === x.id ? { ...y, decision: d, candidature: r.candidature ?? y.candidature } : y)))
     } catch (e) {
@@ -220,7 +222,7 @@ export function EcranMatchs() {
                   : x.candidature
                   ? <span className={`etat ${STATUTS[x.candidature.statut].classe}`}>{STATUTS[x.candidature.statut].nom}</span>
                   : x.decision === 'oui'
-                    ? <span className="etat attente">Geste enregistré (offre close, entraînement)</span>
+                    ? <span className="etat attente">Intérêt enregistré — aucune candidature confirmée</span>
                     : null}
                 {x.candidature?.entretien && <span className="etat entretien">Entretien à programmer</span>}
                 <div className="actes" onClick={(e) => e.stopPropagation()}>
@@ -229,9 +231,9 @@ export function EcranMatchs() {
                     ? null
                     : <>
                           <button className="fort" onClick={() => void reviens(x)}>{x.decision === 'oui' ? 'Annuler et remettre dans le deck' : 'Remettre dans le deck'}</button>
-                          {ONGLETS.filter((o) => o.cle !== x.decision).map((o) => (
+                          {ONGLETS.filter((o) => o.cle !== x.decision && x.statut !== 'close').map((o) => (
                             <button key={o.cle} onClick={() => void redecide(x, o.cle)}>
-                              {o.cle === 'oui' ? (x.statut === 'publiee' ? 'Candidater' : 'M’entraîner') : o.cle === 'non' ? 'Écarter' : 'Plus tard'}
+                              {o.cle === 'oui' ? 'Candidater' : o.cle === 'non' ? 'Écarter' : 'Plus tard'}
                             </button>
                           ))}
                         </>}

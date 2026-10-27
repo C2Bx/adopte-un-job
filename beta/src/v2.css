@@ -689,3 +689,5 @@
   .nav .nav-theme { margin-top: auto; }
   .nav .nav-theme + .nav-sortie { margin-top: 0; }
 }
+
+.profil-champs { border: 0; padding: 0; margin: 0; min-width: 0; }

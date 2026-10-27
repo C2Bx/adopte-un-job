@@ -13,9 +13,10 @@
    - le référentiel des métiers OPT, servi comme un fichier de l'interface.
 
    Leur serveur n'envoie pas encore d'en-têtes CORS : on passe par un relais
-   sans état (`relais.php`). Le jour où il le fera, DIRECT = true. */
+   protégé (`relais.php`). Le jour où il le fera, DIRECT = true. */
 
 import { ErreurApi } from './types'
+import { valideJsonResume, completeDepuisExtraction } from './jsonResume'
 import type {
   CompetenceOpt, CvInfo, Interet, MetierOpt, Offre, Profil, ProfilEnvoi,
   Referentiels, StatutCandidature, StatutEquipe, Utilisateur,
@@ -92,7 +93,8 @@ interface Options {
 
 async function brut(methode: string, chemin: string, o: Options = {}): Promise<Response> {
   const entetes: Record<string, string> = { Accept: 'application/json' }
-  if (!o.anonyme) entetes['Authorization'] = `Bearer ${moiSession().jeton}`
+  const sessionAppel = o.anonyme ? null : moiSession()
+  if (sessionAppel) entetes['Authorization'] = `Bearer ${sessionAppel.jeton}`
   if (o.corps !== undefined) entetes['Content-Type'] = 'application/json'
   let r: Response
   try {
@@ -104,6 +106,7 @@ async function brut(methode: string, chemin: string, o: Options = {}): Promise<R
   } catch {
     throw new ErreurApi('reseau', 'Pas de connexion au serveur. Réessaie dans un instant.', 0)
   }
+  if (sessionAppel && lisSession()?.jeton !== sessionAppel.jeton) throw new Error('Session changée : réponse ignorée.')
   if (r.status === 401 && !o.anonyme) throw expiree()
   if (!r.ok) {
     let d: { message?: string } | null = null
@@ -118,7 +121,8 @@ const MESSAGES: Record<number, string> = {
   400: 'La demande a été refusée : vérifie ce que tu as saisi.',
   403: 'Cette action n’est pas autorisée pour ton compte.',
   404: 'Introuvable.',
-  413: 'Fichier de plus de 10 Mo.',
+  413: 'Le fichier dépasse la taille autorisée.',
+  429: 'Trop de demandes : attends une minute avant de réessayer.',
   502: 'L’API de l’équipe ne répond pas. Réessaie dans un instant.',
 }
 
@@ -254,11 +258,11 @@ function offreDepuisAvp(a: AvpEquipe): Offre {
     expire: texte(a.dateLimite),
     joursRestants: jours,
     statut: jours !== null && jours < 0 ? 'close' : 'publiee',
-    contrat: a.typeContrat === 'TEMPORARY' || a.typeContrat === 'CONTRACTOR' ? 'CDD' : a.typeContrat === 'INTERN' ? 'Stage' : 'CDI',
+    contrat: a.typeContrat === 'TEMPORARY' || a.typeContrat === 'CONTRACTOR' ? 'CDD' : a.typeContrat === 'INTERN' ? 'Stage' : a.typeContrat === 'PERMANENT' ? 'CDI' : a.typeContrat === 'FULL_TIME' ? 'Temps plein' : a.typeContrat === 'PART_TIME' ? 'Temps partiel' : 'Non renseigné',
     zone: zone(ville, province),
-    teletravail: /t[ée]l[ée]travail/i.test(`${libres} ${a.horaires ?? ''}`) ? 'hybride' : 'non',
+    teletravail: /(?:pas de|sans|aucun)\s+t[ée]l[ée]travail/i.test(`${libres} ${a.horaires ?? ''}`) ? 'non' : /t[ée]l[ée]travail/i.test(`${libres} ${a.horaires ?? ''}`) ? 'hybride' : 'inconnu',
     salaire: null,
-    experienceMin: Math.min(15, Number(/(\d+)\s*an/.exec(a.experienceRequise ?? '')?.[1] ?? 0)),
+    experienceMin: /(?:d[ée]butant.{0,15}accept|sans exp[ée]rience|aucune exp[ée]rience)/i.test(a.experienceRequise ?? '') ? 0 : /(\d+)\s*an/.test(a.experienceRequise ?? '') ? Math.min(15, Number(/(\d+)\s*an/.exec(a.experienceRequise ?? '')![1])) : null,
     formationMin: formationDepuisTexte(`${qualif} ${a.niveauDiplome ?? ''}`),
     permis: /permis/i.test(`${qualif} ${libres}`),
     debut: /^(\d{4}-\d{2})/.exec(a.dateDebut ?? '')?.[1] ?? texte(a.dateDebutTexte),
@@ -324,18 +328,11 @@ const STATUT_LOCAL: Record<StatutEquipe, StatutCandidature> = {
 const offreDeCandidature = new Map<number, number>()
 
 async function envoieSwipe(avpId: number, estLike: boolean): Promise<void> {
-  const messages = {
+  await brut('PUT', `/swipes/candidats/avp/${avpId}`, { corps: { estLike }, messages: {
     409: 'Un recruteur a déjà répondu à cette candidature : elle ne peut plus changer.',
     400: 'La date limite de cette offre est passée.',
-  }
-  try {
-    await brut('PUT', `/swipes/candidats/avp/${avpId}`, { corps: { estLike }, messages })
-  } catch (e) {
-    // 403 : pas encore de profil chez eux. On l'envoie, puis on réessaie.
-    if (!(e instanceof ErreurApi) || e.http !== 403) throw e
-    await envoieDocument(await documentCourant())
-    await brut('PUT', `/swipes/candidats/avp/${avpId}`, { corps: { estLike }, messages })
-  }
+    403: 'La décision est refusée pour ce compte. Vérifie ton profil ou réessaie plus tard.',
+  } })
 }
 
 /* ================================================================= profil */
@@ -346,6 +343,17 @@ const tableau = (v: unknown): Json[] => (Array.isArray(v) ? v.map(objet) : [])
 
 /** Le dernier JSON lu chez eux : on écrit PAR-DESSUS lui, pour ne perdre aucun champ qu'on ne connaît pas. */
 let dernierDoc: Json = {}
+let ecrituresProfil: Promise<unknown> = Promise.resolve()
+
+function ecritureProfil<T>(action: () => Promise<T>): Promise<T> {
+  const compte = moiSession().id
+  const p = ecrituresProfil.catch(() => undefined).then(() => {
+    if (moiSession().id !== compte) throw new Error('Session changée : écriture annulée.')
+    return action()
+  })
+  ecrituresProfil = p
+  return p
+}
 /* Depuis que l'équipe (MS2) range la lecture n8n À PART, dans `cvJsonGenere`,
    le candidat reste SEUL rédacteur de son `cv`. On lit la lecture n8n ici et on
    la fusionne dans le profil au moment du dépôt (cf. lisCV). */
@@ -362,6 +370,7 @@ async function lisProfilEquipe(): Promise<Json> {
   const s = moiSession()
   try {
     const p = await appel<{ cv?: unknown; cvJsonGenere?: unknown; cvDocument?: string | null; updatedAt?: string | null }>('GET', `/profils/${s.id}`)
+    if (lisSession()?.id !== s.id) throw new Error('Session changée : réponse ignorée.')
     dernierDoc = parseJson(p.cv)
     dernierGenere = parseJson(p.cvJsonGenere)
     derniereLecture = { cvDocument: p.cvDocument ?? null, maj: p.updatedAt ?? null }
@@ -379,8 +388,9 @@ async function documentCourant(): Promise<Json> {
 }
 
 async function envoieDocument(doc: Json): Promise<void> {
+  const compte = moiSession().id
   await brut('PUT', '/profils/moi', { corps: doc })
-  dernierDoc = doc
+  if (lisSession()?.id === compte) dernierDoc = doc
 }
 
 function niveauDepuisStudyType(t: string): number {
@@ -400,8 +410,11 @@ function profilDepuisDocument(doc: Json, ref: RefStatique): Profil {
   const b = objet(doc.basics)
   const c = objet(objet(doc.meta).criteres)
   const morceaux = String(b.name ?? '').trim().split(/\s+/).filter(Boolean)
-  const prenom = morceaux[0] ?? ''
-  const nom = morceaux.slice(1).join(' ')
+  const identite = objet(objet(doc.meta).identite)
+  const coherent = typeof identite.prenom === 'string' && typeof identite.nom === 'string'
+    && `${identite.prenom} ${identite.nom}`.trim() === String(b.name ?? '').trim()
+  const prenom = coherent ? String(identite.prenom) : morceaux[0] ?? ''
+  const nom = coherent ? String(identite.nom) : morceaux.slice(1).join(' ')
   const metiersParCode = new Map(ref.metiersOpt.map((m) => [m.code, m]))
   const competencesParCode = new Map(ref.competencesOpt.map((x) => [x.code, x]))
 
@@ -426,7 +439,7 @@ function profilDepuisDocument(doc: Json, ref: RefStatique): Profil {
   const teletravail = String(c.teletravail ?? 'peu importe')
   return {
     prenom,
-    initiale: (nom || prenom).slice(0, 1),
+    initiale: coherent && typeof identite.initiale === 'string' ? identite.initiale : (nom || prenom).slice(0, 1),
     nom,
     telephone: String(b.phone ?? ''),
     dispo: texte(c.disponibilite),
@@ -475,7 +488,7 @@ function fusionne(anciens: Json[], nouveaux: Json[], cle: (x: Json) => string): 
     }
     const out: Json = { ...(x?.a ?? {}) }
     for (const [k, v] of Object.entries(n)) {
-      if (v === undefined) continue
+      if (v === undefined) { delete out[k]; continue }
       if (k === 'keywords' && Array.isArray(out.keywords)) {
         out.keywords = [...new Set([...liste(out.keywords), ...liste(v)])]
       } else {
@@ -519,6 +532,7 @@ function documentDepuisProfil(p: ProfilEnvoi, competencesOpt: CompetenceOpt[], e
     languages,
     meta: {
       ...meta,
+      identite: { prenom: p.prenom, nom: p.nom, initiale: p.initiale },
       generator: 'Adopte un Job',
       version: 'v1.0.0',
       lastModified: new Date().toISOString(),
@@ -695,11 +709,16 @@ export const api = {
     const j = litJeton(d.accessToken)
     poseSession({ jeton: d.accessToken, exp: j.exp - 30, id: j.sub, email: email.trim().toLowerCase() })
     dernierDoc = {}
+    dernierGenere = {}
+    adequationsCache = null
     return { id: j.sub, email: email.trim().toLowerCase(), comptesModifiables: false }
   },
   async deconnexion() {
     poseSession(null)
     dernierDoc = {}
+    dernierGenere = {}
+    adequationsCache = null
+    offreDeCandidature.clear()
   },
   async moi(): Promise<Utilisateur | null> {
     const s = lisSession()
@@ -710,7 +729,7 @@ export const api = {
   async oubli(email: string) {
     await brut('POST', '/auth/forgot-password', { anonyme: true, corps: { email } }).catch((e) => {
       // un 404 dirait « adresse inconnue » : on ne le répète pas, sinon l'écran publie la liste des comptes
-      if (!(e instanceof ErreurApi) || e.http >= 500 || e.http === 0) throw e
+      if (!(e instanceof ErreurApi) || ![400, 404].includes(e.http)) throw e
     })
     return { ok: true, message: 'Si cette adresse a un compte, un code lui est envoyé.' }
   },
@@ -747,14 +766,18 @@ export const api = {
     return profilDepuisDocument(doc, ref)
   },
   async enregistreProfil(p: ProfilEnvoi): Promise<Profil> {
-    const s = moiSession()
-    const ref = await referentiel()
-    const parCode = new Map(ref.competencesOpt.map((c) => [c.code, c]))
-    const competencesOpt = (p.competencesOptSaisies ?? [])
-      .map((code) => ({ code, nom: parCode.get(code)?.nom ?? code, source: 'saisie' as const }))
-    const doc = documentDepuisProfil(p, competencesOpt, s.email, await documentCourant())
-    await envoieDocument(doc)
-    return profilDepuisDocument(doc, ref)
+    return ecritureProfil(async () => {
+      const s = moiSession()
+      const ref = await referentiel()
+      const parCode = new Map(ref.competencesOpt.map((c) => [c.code, c]))
+      const competencesOpt = (p.competencesOptSaisies ?? [])
+        .map((code) => ({ code, nom: parCode.get(code)?.nom ?? code, source: 'saisie' as const }))
+      const base = await lisProfilEquipe()
+      if (moiSession().id !== s.id) throw new Error('Session changée')
+      const doc = documentDepuisProfil(p, competencesOpt, s.email, base)
+      await envoieDocument(doc)
+      return profilDepuisDocument(doc, ref)
+    })
   },
 
   /* -------------------------------------------------------------------- CV */
@@ -785,13 +808,15 @@ export const api = {
     // Leur réponse donne la taille réelle du fichier gardé (après compression).
     let taille = 0
     try { taille = Number((await r.json() as { taille?: number }).taille ?? 0) || 0 } catch { taille = 0 }
-    const doc = await documentCourant()
-    await envoieDocument({ ...doc, meta: { ...objet(doc.meta), cvDepose: { le: new Date().toISOString(), nom: fichier.name, taille } } })
+    await ecritureProfil(async () => {
+      const doc = await lisProfilEquipe()
+      await envoieDocument({ ...doc, meta: { ...objet(doc.meta), cvDepose: { le: new Date().toISOString(), nom: fichier.name, taille } } })
+    })
     return (await api.cvs()).actif
   },
   /**
    * Fait lire le CV par le traitement de Florian, SEULEMENT si le parcours est
-   * vide : leur traitement remplace le profil, et la règle est de ne jamais
+   * vide : leur traitement remplit cvJsonGenere à part ; la règle est de ne jamais
    * écraser ce que la personne a saisi. Rend false s'il n'a pas été lancé.
    * Leur route attend la fin du traitement : jusqu'à 3 minutes.
    */
@@ -808,21 +833,17 @@ export const api = {
       }
       throw e
     }
-    // La lecture n8n n'écrase plus le `cv` : elle arrive à part, dans
-    // `cvJsonGenere`. On relit, on prend SA lecture, et c'est NOUS (le candidat,
-    // seul rédacteur du profil) qui l'écrivons dans le `cv` via PUT /profils/moi.
-    await lisProfilEquipe()
-    const lu = dernierGenere
-    const metaAvant = objet(avant.meta)
-    await envoieDocument({
-      ...lu,
-      meta: {
-        ...objet(lu.meta),
-        criteres: metaAvant.criteres ?? objet(lu.meta).criteres,
-        cvDepose: metaAvant.cvDepose,
+    // Relire au dernier moment : une saisie faite pendant le traitement reste prioritaire.
+    await ecritureProfil(async () => {
+      const courant = await lisProfilEquipe()
+      const lu = dernierGenere
+      valideJsonResume(lu)
+      const fusion = completeDepuisExtraction(courant, lu)
+      await envoieDocument({ ...fusion, meta: {
+        ...objet(fusion.meta),
         lectureCv: { le: new Date().toISOString() },
-        source: 'extraction',
-      },
+        source: parcoursVide(courant) ? 'extraction' : objet(courant.meta).source ?? 'saisie',
+      } })
     })
     return true
   },
@@ -839,7 +860,7 @@ export const api = {
       return adequationsCache.p
     }
     const p = appel<{ resultats: ResultatMatching[] }>('POST', '/matching/v1/match', {
-      anonyme: true, corps: cv, query: { top: 100, inclure_fermes: 'true' },
+      corps: cv, query: { top: 100, inclure_fermes: 'true' },
     }).then((d) => avecRangs(d?.resultats ?? []))
     p.catch(() => { adequationsCache = null })
     adequationsCache = { cle, quand: Date.now(), p }
@@ -856,7 +877,7 @@ export const api = {
     type Preuve = { attendu: string; phrase_cv?: string | null; note?: number; points?: number }
     try {
       const d = await appel<{ points_forts?: Preuve[]; a_verifier?: Preuve[]; savoir_etre?: Preuve[]; prerequis?: Prerequis[] }>(
-        'POST', '/matching/v1/score', { anonyme: true, corps: { reference, cv } })
+        'POST', '/matching/v1/score', { corps: { reference, cv } })
       const note = (x: Preuve) => Math.max(0, Math.min(100, Math.round(Number(x.note ?? 0))))
       // couvertes d'abord (de la mieux couverte à la moins bien), puis celles à travailler,
       // de celle qui coûte le plus de points à celle qui en coûte le moins
@@ -890,10 +911,12 @@ export const api = {
    *  NI le document déposé NI la lecture n8n de Florian (`cvJsonGenere`). Leur
    *  route renvoie un corps vide : on relit le profil pour refléter l'état réel. */
   async supprimeMonCv(): Promise<void> {
-    await brut('DELETE', `/profils/${moiSession().id}/cv-json`, {
-      messages: { 403: 'Tu ne peux effacer que ton propre CV.', 404: 'Aucun profil à effacer.' },
+    await ecritureProfil(async () => {
+      await brut('DELETE', `/profils/${moiSession().id}/cv-json`, {
+        messages: { 403: 'Tu ne peux effacer que ton propre CV.', 404: 'Aucun profil à effacer.' },
+      })
+      await lisProfilEquipe()
     })
-    await lisProfilEquipe()
   },
   /** Le profil tel qu'il est enregistré chez eux : le document JSON Resume brut,
    *  pour l'exporter. On relit pour avoir la dernière version (et tous les
@@ -906,27 +929,46 @@ export const api = {
    *  saisis et le repère « agent OPT » (ils ne sont pas dans un JSON Resume
    *  standard). PUT /profils/moi n'exige qu'un objet JSON. Rend le profil relu. */
   async importeProfil(doc: unknown): Promise<Profil> {
-    const d = objet(doc)
-    if (!Object.keys(d).length) throw new Error('Ce fichier ne ressemble pas à un JSON Resume.')
-    const base = await documentCourant()
-    const metaBase = objet(base.meta)
-    const metaImport = objet(d.meta)
-    await envoieDocument({
-      ...d,
-      meta: {
-        ...metaImport,
-        criteres: metaBase.criteres ?? metaImport.criteres,
-        agentOpt: metaBase.agentOpt ?? metaImport.agentOpt,
-        cvDepose: metaBase.cvDepose,
-        source: 'import',
-      },
+    const d = valideJsonResume(doc)
+    return ecritureProfil(async () => {
+      const base = await lisProfilEquipe()
+      try {
+        sessionStorage.setItem(`aj.avant-import.${moiSession().id}`, JSON.stringify(base))
+      } catch { throw new Error('Impossible de garder une copie de secours dans cet onglet. Télécharge ton profil avant d’importer.') }
+      const metaBase = objet(base.meta)
+      const metaImport = objet(d.meta)
+      await envoieDocument({
+        ...d,
+        meta: { ...metaBase, ...metaImport,
+          criteres: metaBase.criteres ?? metaImport.criteres,
+          agentOpt: metaBase.agentOpt ?? metaImport.agentOpt,
+          cvDepose: metaBase.cvDepose,
+          source: 'import',
+        },
+      })
+      return api.profil()
     })
-    return api.profil()
+  },
+
+  copieAvantImportDisponible(): boolean {
+    try { return Boolean(sessionStorage.getItem(`aj.avant-import.${moiSession().id}`)) } catch { return false }
+  },
+  async restaureAvantImport(): Promise<Profil> {
+    return ecritureProfil(async () => {
+      const cle = `aj.avant-import.${moiSession().id}`
+      const copie = sessionStorage.getItem(cle)
+      if (copie === null) throw new Error('Aucune copie avant import dans cet onglet.')
+      const doc = JSON.parse(copie) as unknown
+      if (!doc || typeof doc !== 'object' || Array.isArray(doc)) throw new Error('La copie est invalide.')
+      await envoieDocument(doc as Json)
+      sessionStorage.removeItem(cle)
+      return api.profil()
+    })
   },
 
   /* ----------------------------------------------------------------- deck */
   /**
-   * Les offres du deck : ouvertes (ou closes, pour s'entraîner), sans celles
+   * Les offres du deck : ouvertes (ou closes, en lecture seule), sans celles
    * déjà décidées ni mises de côté, les plus urgentes d'abord. Les filtres
    * s'appliquent ensuite dans le navigateur (filtres.ts), sans rappel réseau.
    */
@@ -941,6 +983,8 @@ export const api = {
   },
   async vue(_id: number, _source: string) { return { ok: true } },
   async swipe(offre: number, decision: 'oui' | 'non' | 'plus_tard', _message?: string) {
+    const o = (await offres()).find((x) => x.id === offre)
+    if (o?.statut === 'close') throw new ErreurApi('offre_close', 'Cette offre est close : elle est consultable, sans nouvelle décision.', 400)
     const l = local()
     l.plusTard = l.plusTard.filter((x) => x.id !== offre)
     l.rendus = l.rendus.filter((x) => x !== offre)

@@ -113,7 +113,7 @@ export interface Offre {
   zone: string
   teletravail: string
   salaire: [number | null, number | null] | null
-  experienceMin: number
+  experienceMin: number | null
   formationMin: number | null
   permis: boolean
   debut: string | null

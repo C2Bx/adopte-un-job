@@ -69,15 +69,15 @@ const QUESTIONS: Question[] = [
   {
     cle: 'ouverture',
     titre: 'Qu’est-ce que tu cherches ?',
-    aide: 'Ça décide de ce qui entre dans ton deck. Tu pourras le changer à tout moment.',
+    aide: 'Ces préférences accompagnent ton profil ; les filtres du deck déterminent les offres affichées.',
     repondu: () => true,
     champ: (p, maj) => (
       <Choix
         valeur={p.ouverture}
         onChange={(ouverture) => maj({ ouverture })}
         options={[
-          { v: 'strict' as const, label: 'Un poste dans mon métier', aide: 'Uniquement les AVP du ou des métiers que je vise.' },
-          { v: 'ouvert' as const, label: 'Mon métier, ou juste à côté', aide: 'Les métiers proches entrent aussi, avec une étiquette et une pénalité.' },
+          { v: 'strict' as const, label: 'Un poste dans mon métier', aide: 'Je privilégie les postes de mes métiers visés.' },
+          { v: 'ouvert' as const, label: 'Mon métier, ou juste à côté', aide: 'Je suis aussi prêt à envisager un métier proche.' },
         ]}
       />
     ),
@@ -85,7 +85,7 @@ const QUESTIONS: Question[] = [
   {
     cle: 'metiers',
     titre: 'Quels métiers vises-tu ?',
-    aide: 'Trois au maximum, dans les mots de l’OPT-NC. C’est ton projet qui compte, pas ton passé : le score compare l’AVP à ce que tu vises.',
+    aide: 'Trois au maximum, dans les mots de l’OPT-NC. Ils décrivent ton projet ; l’adéquation porte sur les compétences du CV.',
     repondu: (p) => p.metiersOpt.length > 0,
     champ: (p, maj, ref_) => (
       <MetiersOptChoix
@@ -109,7 +109,7 @@ const QUESTIONS: Question[] = [
   {
     cle: 'contrats',
     titre: 'Quels types de contrat ?',
-    aide: 'Rien de coché veut dire « tous » : aucun AVP ne sera écarté pour son contrat.',
+    aide: 'Indique tes préférences au recruteur. Le filtre Contrat du deck te permet de sélectionner les offres affichées.',
     repondu: (p) => p.contrats.length > 0,
     champ: (p, maj, ref_) => (
       <Puces id="qz-contrats" liste={(ref_?.contrats ?? []).map((v) => ({ label: v }))} valeurs={p.contrats} onChange={(contrats) => maj({ contrats })} />
@@ -128,7 +128,7 @@ const QUESTIONS: Question[] = [
           { v: moisDans(1), label: 'Dans un mois', aide: 'Préavis court.' },
           { v: moisDans(3), label: 'Dans trois mois', aide: 'Préavis classique.' },
           { v: moisDans(6), label: 'Dans six mois ou plus' },
-          { v: null, label: 'Je ne sais pas encore', aide: 'Le critère est ignoré.' },
+          { v: null, label: 'Je ne sais pas encore', aide: 'Tu pourras préciser ta disponibilité plus tard.' },
         ]}
       />
     ),
@@ -136,14 +136,14 @@ const QUESTIONS: Question[] = [
   {
     cle: 'salaireMin',
     titre: 'En dessous de quel salaire mensuel n’irais-tu pas ?',
-    aide: 'Ne pas répondre n’enlève aucun point : le critère est simplement ignoré.',
+    aide: 'Cette attente accompagne ton profil, sans filtrer les offres ni modifier l’adéquation.',
     repondu: (p) => p.salaireMin !== null,
     champ: (p, maj) => (
       <Choix
         valeur={p.salaireMin}
         onChange={(salaireMin) => maj({ salaireMin })}
         options={[
-          { v: null, label: 'Je préfère ne pas le dire', aide: 'Le critère salaire sera neutralisé.' },
+          { v: null, label: 'Je préfère ne pas le dire', aide: 'Aucune attente salariale ne sera indiquée.' },
           { v: 250000, label: '250 000 XPF' },
           { v: 300000, label: '300 000 XPF' },
           { v: 350000, label: '350 000 XPF' },
@@ -173,7 +173,7 @@ const QUESTIONS: Question[] = [
   {
     cle: 'refus',
     titre: 'Y a-t-il des choses que tu refuses ?',
-    aide: 'Rien de coché est une réponse valable. Un AVP qui les mentionne restera dans ton deck, avec un avertissement : cette application n’escamote pas d’offre, elle dit ce qui ne colle pas.',
+    aide: 'Ces limites accompagnent ton profil. Relis les conditions de chaque avis avant de candidater.',
     repondu: () => true,
     champ: (p, maj) => (
       <Puces id="qz-refus" liste={REFUS} valeurs={p.refus} onChange={(refus) => maj({ refus })} />
@@ -182,7 +182,7 @@ const QUESTIONS: Question[] = [
   {
     cle: 'permis',
     titre: 'As-tu le permis B ?',
-    aide: 'Non renseigné n’élimine jamais un AVP : ça devient un point à vérifier.',
+    aide: 'Cette indication accompagne ton profil. Vérifie les prérequis de chaque avis.',
     repondu: (p) => p.permis !== null,
     champ: (p, maj) => (
       <Choix
@@ -244,8 +244,8 @@ export function Questions({ profil, maj, ref_, onFin, onQuitter }: {
       </div>
 
       <p className="qz-note">
-        Chaque réponse est enregistrée tout de suite. Tu peux fermer et reprendre plus tard :
-        rien n’est perdu, et tout reste modifiable dans le formulaire.
+        Tes réponses sont enregistrées au fil de la saisie. Vérifie l’indication
+        « enregistré » avant de fermer cet onglet.
       </p>
     </section>
   )

@@ -13,6 +13,7 @@
 // origine. Rien n'est charge d'un CDN.
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
+import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const dist = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
@@ -49,3 +50,13 @@ header('Content-Type: text/html; charset=utf-8');
 writeFileSync(resolve(dist, 'index.php'), entete + readFileSync(html, 'utf8'))
 unlinkSync(html)
 console.log('dist/index.php ecrit (en-tetes de securite), dist/index.html retire')
+
+// La trace permet de refuser un dist ancien ou issu de modifications non committées.
+let commit = null
+let modifie = true
+try {
+  const repo = resolve(dist, '..', '..')
+  commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  modifie = Boolean(execFileSync('git', ['status', '--porcelain'], { cwd: repo, encoding: 'utf8' }).trim())
+} catch { /* archive sans historique : construite, mais pas publiable par depose.py */ }
+writeFileSync(resolve(dist, 'version.json'), JSON.stringify({ commit, modifie }))

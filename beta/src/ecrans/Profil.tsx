@@ -2,14 +2,15 @@
    formulaire de cinq écrans qui perd tout sur un rafraîchissement ne se remplit
    jamais deux fois. */
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { valideJsonResume } from '../jsonResume'
 import {
   ETAPES, NIVEAUX, anneesExperience, completude, conseils, force, manques,
 } from '../regles'
 import { CarteCV, MesCV, ZoneCV, useMesCV } from './MesCV'
 import { MonCompte } from './MonCompte'
-import { profilEnvoi } from '../regles'
+import type { EtatSauvegarde } from '../sauvegarde'
 import { Spinner } from '../Attente'
 import { Puces, MetiersOptChoix } from './champs'
 import { Questions } from './Questions'
@@ -17,7 +18,6 @@ import type { CompetenceOpt } from '../types'
 import { ErreurApi } from '../types'
 import type { Experience, Formation, Profil, Referentiels } from '../types'
 
-type Etat = 'repos' | 'envoi' | 'ok' | 'erreur'
 
 /** Un profil qu'on n'a pas encore commence : on propose le chemin avant le
     formulaire, au lieu d'ouvrir cinq ecrans vides. */
@@ -26,22 +26,15 @@ function vierge(p: Profil): boolean {
     && p.experiences.length === 0 && p.competences.length === 0
 }
 
-export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p: Profil) => void }) {
+export function EcranProfil({ profil, onProfil, onModification, etat, avantOperation }: {
+  profil: Profil; onProfil: (p: Profil) => void; onModification: (p: Profil) => void
+  etat: EtatSauvegarde; avantOperation: () => Promise<void>
+}) {
   const [etape, setEtape] = useState(0)
   // quand la lecture du CV a rempli le profil chez l'équipe, on le relit
-  const cv = useMesCV(() => { void api.profil().then(onProfil).catch(() => undefined) })
+  const cv = useMesCV(() => { void api.profil().then(onProfil).catch(() => undefined) }, avantOperation)
   const [mode, setMode] = useState<'choix' | 'form' | 'questions'>(() => (vierge(profil) ? 'choix' : 'form'))
   const [ref, setRef] = useState<Referentiels | null>(null)
-  const [etat, setEtat] = useState<Etat>('repos')
-  const premier = useRef(true)
-  // Le serveur rattache les compétences au référentiel et le renvoie : on
-  // reprend sa version sans redéclencher un enregistrement.
-  const depuisServeur = useRef(false)
-  // Le profil tel qu'il est au dernier rendu : une réponse du serveur qui
-  // arrive après une nouvelle saisie ne doit pas l'écraser.
-  const courant = useRef(profil)
-  courant.current = profil
-
   // « Effacer mon CV » : efface le profil saisi chez eux (garde le fichier
   // déposé et la lecture n8n). Confirmation en deux temps, pas de popup.
   const [effConfirm, setEffConfirm] = useState(false)
@@ -49,6 +42,8 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
   const [effErr, setEffErr] = useState<string | null>(null)
   const [expEnCours, setExpEnCours] = useState(false)
   const [impEnCours, setImpEnCours] = useState(false)
+  const [importPret, setImportPret] = useState<{ doc: unknown; nom: string } | null>(null)
+  const [restauration, setRestauration] = useState(api.copieAvantImportDisponible())
   const [outilsMsg, setOutilsMsg] = useState<{ ok: boolean; texte: string } | null>(null)
 
   // Export du profil au format JSON Resume, réutilisable ailleurs.
@@ -56,6 +51,7 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
     setOutilsMsg(null)
     setExpEnCours(true)
     try {
+      await avantOperation()
       const doc = await api.exporteProfil()
       const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -78,27 +74,41 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
     setOutilsMsg(null)
     setImpEnCours(true)
     try {
+      if (f.size > 1024 * 1024) throw new Error('Le JSON Resume doit faire moins de 1 Mo.')
+      await avantOperation()
       const texte = await f.text()
       let doc: unknown
       try { doc = JSON.parse(texte) } catch { throw new Error('Ce fichier n’est pas un JSON valide.') }
-      const p = await api.importeProfil(doc)
-      depuisServeur.current = true
-      onProfil(p)
-      setMode('form')
-      setEtape(0)
-      setOutilsMsg({ ok: true, texte: 'Ton JSON Resume a été importé.' })
+      valideJsonResume(doc)
+      setImportPret({ doc, nom: f.name })
     } catch (e) {
       setOutilsMsg({ ok: false, texte: e instanceof ErreurApi ? e.message : e instanceof Error ? e.message : 'Ce JSON Resume n’a pas pu être importé.' })
     } finally {
       setImpEnCours(false)
     }
   }
+  const appliqueImport = async (restaurer = false) => {
+    if (!restaurer && !importPret) return
+    setImpEnCours(true)
+    setOutilsMsg(null)
+    try {
+      await avantOperation()
+      const p = restaurer ? await api.restaureAvantImport() : await api.importeProfil(importPret!.doc)
+      onProfil(p)
+      setImportPret(null)
+      setRestauration(api.copieAvantImportDisponible())
+      setMode('form'); setEtape(0)
+      setOutilsMsg({ ok: true, texte: restaurer ? 'Le profil avant import a été rétabli.' : 'Ton JSON Resume a été importé.' })
+    } catch (e) {
+      setOutilsMsg({ ok: false, texte: e instanceof Error ? e.message : 'L’opération a échoué.' })
+    } finally { setImpEnCours(false) }
+  }
   const effaceMonCv = async () => {
     setEffErr(null)
     setEffEnCours(true)
     try {
+      await avantOperation()
       await api.supprimeMonCv()
-      depuisServeur.current = true
       onProfil(await api.profil())
       setMode('choix')
       setEtape(0)
@@ -121,28 +131,7 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
     return () => document.removeEventListener('aj:etape', va)
   }, [])
 
-  // Enregistrement différé : on attend que la frappe s'arrête.
-  useEffect(() => {
-    if (premier.current) { premier.current = false; return }
-    if (depuisServeur.current) { depuisServeur.current = false; return }
-    setEtat('envoi')
-    const envoye = profil
-    const t = window.setTimeout(() => {
-      void api.enregistreProfil(profilEnvoi(envoye))
-        .then((p) => {
-          setEtat('ok')
-          // Si l'utilisateur a modifié entre-temps, on fusionne dans sa version
-          // et on laisse l'enregistrement suivant repartir.
-          depuisServeur.current = courant.current === envoye
-          onProfil({ ...courant.current, competencesOpt: p.competencesOpt, metiersOpt: p.metiersOpt })
-        })
-        .catch(() => setEtat('erreur'))
-    }, 800)
-    return () => window.clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profil])
-
-  const maj = (bout: Partial<Profil>) => onProfil({ ...profil, ...bout })
+  const maj = (bout: Partial<Profil>) => onModification({ ...profil, ...bout })
   const aCombler = manques(profil)
   const surCetEcran = aCombler.filter((m) => m.etape === etape)
   const c = useMemo(() => conseils(profil), [profil])
@@ -150,12 +139,12 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
   return (
     <div className="screen" id="ec-profil">
       <div className="pad">
-        <div className="pcols">
+        <fieldset className="pcols profil-champs" disabled={impEnCours || effEnCours || cv.envoi || cv.lecture === 'en_cours'}>
           <div className="pcol-a">
             <h2>Mon profil</h2>
             <p className="lead">
-              Une fiche structurée, que tu vérifies et corriges. C’est elle qui décide de
-              ce que le deck te propose.
+              Une fiche structurée, que tu vérifies et corriges. Elle accompagne tes candidatures
+              et sert au calcul d’adéquation des compétences.
             </p>
 
             <div className="pentete">
@@ -203,6 +192,16 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
                 </label>
               </div>
               <span className="pa">Ton CV au format standard JSON Resume : télécharge-le, ou importes-en un.</span>
+              {importPret && <div className="pal info" role="status">
+                <b>Importer {importPret.nom} ?</b>
+                Les rubriques du CV actuel seront remplacées. Tes critères de recherche seront gardés.
+                Une copie du profil précédent sera récupérable dans cet onglet.
+                <button type="button" className="btn-mini" onClick={() => void appliqueImport()}>Remplacer mon profil</button>
+                <button type="button" className="btn-mini" onClick={() => setImportPret(null)}>Annuler</button>
+              </div>}
+              {restauration && <button type="button" className="btn-mini" onClick={() => void appliqueImport(true)}>
+                Rétablir le profil avant import
+              </button>}
               {outilsMsg && (
                 <div className={`pal ${outilsMsg.ok ? 'ok' : 'manque'}`}>
                   <b>{outilsMsg.ok ? 'C’est fait' : 'Problème'}</b>{outilsMsg.texte}
@@ -311,13 +310,13 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
                 <details className="pguide" open>
                   <summary>Améliorer mon profil <i>{c.length}</i></summary>
                   <p className="pa">
-                    La force du profil ne filtre rien : elle dit à quel point une entreprise
-                    peut te lire. Force actuelle : {force(profil)} %.
+                    Richesse du profil : {force(profil)} %. Ce repère de rédaction est distinct
+                    de l’adéquation au poste calculée par CV-Matching.
                   </p>
                   <ol className="pconseils">
                     {c.map((x) => (
                       <li key={x.quoi}>
-                        <b className={x.gain ? 'g' : 'g z'}>{x.gain ? `+${x.gain}` : 'deck'}</b>
+                        <b className={x.gain ? 'g' : 'g z'}>{x.gain ? `+${x.gain}` : 'profil'}</b>
                         <span><b>{x.quoi}</b>{x.pourquoi}</span>
                         <button type="button" className="btn-mini" onClick={() => setEtape(x.etape)}>Corriger</button>
                       </li>
@@ -326,7 +325,7 @@ export function EcranProfil({ profil, onProfil }: { profil: Profil; onProfil: (p
                 </details>
               )}
           </aside>}
-        </div>
+        </fieldset>
       </div>
     </div>
   )
@@ -345,7 +344,7 @@ function QuiTuEs({ p, maj, ref_ }: { p: Profil; maj: (b: Partial<Profil>) => voi
         <label className="pf">
           <span className="pl">Initiale du nom</span>
           <input type="text" maxLength={2} value={p.initiale} onChange={(e) => maj({ initiale: e.target.value })} />
-          <span className="pa">Ton nom complet ne sera visible qu’après un match.</span>
+          <span className="pa">Vérifie les informations d’identité de ton profil avant de candidater.</span>
         </label>
       </div>
 
@@ -388,7 +387,7 @@ function CeQueTuCherches({ p, maj, ref_ }: { p: Profil; maj: (b: Partial<Profil>
           valeurs={p.metiersOpt} onChange={(metiersOpt) => maj({ metiersOpt })} />
         <span className="pa">
           Les 84 métiers du référentiel de l’OPT-NC, par famille. Ce que tu <b>vises</b>, pas ce que tu as fait :
-          le score compare chaque AVP à ton projet, métier par métier.
+          ces choix décrivent ton projet professionnel pour le recruteur.
         </span>
       </label>
       <details className="pf">
@@ -400,15 +399,15 @@ function CeQueTuCherches({ p, maj, ref_ }: { p: Profil; maj: (b: Partial<Profil>
         <span className="pl">Ouverture</span>
         <div className="pseg">
           <button type="button" className={p.ouverture === 'strict' ? 'on' : ''} onClick={() => maj({ ouverture: 'strict' })}>
-            Mon métier uniquement
+            Je privilégie mon métier
           </button>
           <button type="button" className={p.ouverture === 'ouvert' ? 'on' : ''} onClick={() => maj({ ouverture: 'ouvert' })}>
-            Ouvert aux métiers proches
+            Je suis ouvert aux métiers proches
           </button>
         </div>
         <span className="pa">
-          En mode ouvert, des offres accessibles depuis ton parcours entrent dans le deck,
-          avec une pénalité et une étiquette.
+          Ces préférences accompagnent ton profil. Utilise les filtres du deck pour choisir
+          les offres affichées ; l’adéquation compare les compétences de ton CV au poste.
         </span>
       </label>
 
@@ -430,7 +429,7 @@ function CeQueTuCherches({ p, maj, ref_ }: { p: Profil; maj: (b: Partial<Profil>
             value={p.salaireMin ?? ''}
             onChange={(e) => maj({ salaireMin: e.target.value === '' ? null : Number(e.target.value) })}
           />
-          <span className="pa">Laissé vide, ce critère est simplement ignoré — il ne te coûte aucun point.</span>
+          <span className="pa">Cette attente est transmise avec ton profil. Elle ne filtre pas les offres et ne modifie pas l’adéquation.</span>
         </label>
         <label className="pf">
           <span className="pl">Permis B</span>
@@ -605,7 +604,7 @@ function Relecture({ p }: { p: Profil }) {
           <span className="pj-v">{completude(p)} %</span>
         </div>
         <div>
-          <span className="pj-l">Force du profil</span>
+          <span className="pj-l">Richesse du profil</span>
           <span className="pj-b"><b className="f" style={{ width: `${force(p)}%` }} /></span>
           <span className="pj-v">{force(p)} %</span>
         </div>

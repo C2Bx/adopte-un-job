@@ -2,9 +2,11 @@
    Un seul état de session vit ici et descend aux écrans. Un seul jeu d'onglets :
    on swipe, on suit ses candidatures, on tient son profil. */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from './api'
-import { profilVide } from './regles'
+import { profilVide, profilEnvoi } from './regles'
+import { SauvegardeProfil } from './sauvegarde'
+import type { EtatSauvegarde } from './sauvegarde'
 import type { Profil, Utilisateur } from './types'
 import { Spinner } from './Attente'
 import { Connexion } from './ecrans/Connexion'
@@ -40,6 +42,30 @@ export function App() {
   const [panne, setPanne] = useState(false)
   const [moi, setMoi] = useState<Utilisateur | null>(null)
   const [profil, setProfil] = useState<Profil>(profilVide)
+  const [profilPret, setProfilPret] = useState(false)
+  const [profilErreur, setProfilErreur] = useState(false)
+  const [etatSauvegarde, setEtatSauvegarde] = useState<EtatSauvegarde>('repos')
+  const sauvegarde = useRef<SauvegardeProfil | null>(null)
+  const chargementProfil = useRef(0)
+
+  const modifieProfil = (p: Profil) => {
+    setProfil(p)
+    sauvegarde.current?.modifie(p)
+  }
+  const termineSauvegarde = async () => { await sauvegarde.current?.termine() }
+
+  useEffect(() => {
+    const protege = (e: BeforeUnloadEvent) => {
+      if (sauvegarde.current?.enAttente) { e.preventDefault(); e.returnValue = '' }
+    }
+    const reprend = () => { void sauvegarde.current?.termine().catch(() => undefined) }
+    window.addEventListener('beforeunload', protege)
+    window.addEventListener('online', reprend)
+    return () => {
+      window.removeEventListener('beforeunload', protege)
+      window.removeEventListener('online', reprend)
+    }
+  }, [])
   const [onglet, setOnglet] = useState<Onglet>(ongletDeLAdresse)
   const [badges, setBadges] = useState<Badges>({ interets: 0, interetsMatch: false })
 
@@ -71,10 +97,25 @@ export function App() {
 
   const chargeProfil = useCallback(async (u: Utilisateur | null) => {
     if (!u) return
+    const generation = ++chargementProfil.current
+    setProfilPret(false)
+    setProfilErreur(false)
+    sauvegarde.current?.arrete()
     try {
-      setProfil(await api.profil())
+      const p = await api.profil()
+      if (generation !== chargementProfil.current || (await api.moi())?.id !== u.id) return
+      const file = new SauvegardeProfil(u.id, async (brouillon) => {
+        if ((await api.moi())?.id !== u.id) throw new Error('Session changée')
+        await api.enregistreProfil(profilEnvoi(brouillon))
+      }, (e) => { if (sauvegarde.current === file) setEtatSauvegarde(e) })
+      sauvegarde.current = file
+      const brouillon = file.reprend()
+      setProfil(brouillon ?? p)
+      setEtatSauvegarde('repos')
+      setProfilPret(true)
+      if (brouillon) file.modifie(brouillon)
     } catch {
-      setProfil(profilVide)
+      if (generation === chargementProfil.current) setProfilErreur(true)
     }
   }, [])
 
@@ -109,7 +150,12 @@ export function App() {
 
   // Leur jeton dure une heure, sans renouvellement : à expiration, retour à la connexion.
   useEffect(() => {
-    const sortie = () => { setMoi(null); setProfil(profilVide) }
+    const sortie = () => {
+      chargementProfil.current++
+      sauvegarde.current?.arrete()
+      sauvegarde.current = null
+      setMoi(null); setProfil(profilVide); setProfilPret(false)
+    }
     window.addEventListener('aj:session-expiree', sortie)
     return () => window.removeEventListener('aj:session-expiree', sortie)
   }, [])
@@ -123,6 +169,12 @@ export function App() {
   }
 
   const sors = async () => {
+    // Le brouillon reste récupérable si le serveur est momentanément indisponible.
+    try { await termineSauvegarde() } catch { /* conservé dans l'onglet */ }
+    sauvegarde.current?.arrete()
+    sauvegarde.current = null
+    chargementProfil.current++
+    setProfilPret(false)
     await api.deconnexion()
     setMoi(null)
     setProfil(profilVide)
@@ -130,6 +182,7 @@ export function App() {
   }
 
   const va = (o: Onglet) => {
+    void termineSauvegarde().catch(() => undefined)
     setOnglet(o)
     void rafraichisBadges(moi)
   }
@@ -155,6 +208,17 @@ export function App() {
   }
   if (!moi) {
     return <Connexion onEntre={entre} />
+  }
+
+  if (!profilPret) {
+    return <div className="chargement" role={profilErreur ? 'alert' : 'status'}>
+      <b>{profilErreur ? 'Ton profil est temporairement indisponible' : 'Chargement du profil…'}</b>
+      {profilErreur && <>
+        <span>Réessaie pour retrouver ta saisie avant de continuer.</span>
+        <button className="btn primaire" onClick={() => void chargeProfil(moi)}>Réessayer</button>
+        <button className="btn" onClick={() => void sors()}>Se déconnecter</button>
+      </>}
+    </div>
   }
 
   return (
@@ -194,12 +258,19 @@ export function App() {
       {onglet === 'swipe' && (
         <EcranDeck
           profil={profil}
+          avantDecision={termineSauvegarde}
           versProfil={(e) => { setOnglet('profil'); viseEtape(e) }}
           onDecision={() => void rafraichisBadges(moi)}
         />
       )}
-      {onglet === 'interets' && <EcranMatchs />}
-      {onglet === 'profil' && <EcranProfil profil={profil} onProfil={setProfil} />}
+      {onglet === 'interets' && <EcranMatchs avantDecision={termineSauvegarde} />}
+      {etatSauvegarde === 'erreur' && <div className="pal manque" role="alert">
+        <b>Ton profil n’a pas encore été enregistré.</b>
+        Le brouillon est gardé dans cet onglet.
+        <button className="btn-mini" onClick={() => void termineSauvegarde().catch(() => undefined)}>Réessayer</button>
+      </div>}
+      {onglet === 'profil' && <EcranProfil profil={profil} onProfil={setProfil}
+        onModification={modifieProfil} etat={etatSauvegarde} avantOperation={termineSauvegarde} />}
 
       <nav className={`nav n${ONGLETS.length}`}>
         {ONGLETS.map((o) => (

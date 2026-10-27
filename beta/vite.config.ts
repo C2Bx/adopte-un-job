@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
       target: 'es2020',
     },
     server: relais
-      ? { proxy: { '/avp/relais.php': { target: relais, changeOrigin: true, secure: false } } }
+      ? { proxy: { '/avp/relais.php': { target: relais, changeOrigin: true, secure: true } } }
       : {},
   }
 })

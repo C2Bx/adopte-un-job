@@ -1,6 +1,4 @@
-/* Les règles du profil, au même endroit pour tous les écrans.
-   Elles doublent celles de api/depot.php : c'est le serveur qui fait foi, mais
-   sans copie ici l'utilisateur ne saurait ce qui manque qu'après un refus. */
+/* Les règles de complétude du profil. Elles ne calculent pas l'adéquation. */
 
 import type { Profil, ProfilEnvoi } from './types'
 
@@ -24,8 +22,13 @@ export const REQUIS: Exigence[] = [
   { cle: 'competences', libelle: 'Au moins trois compétences', etape: 3, champ: '#f-comp' },
 ]
 
+export function nombreCompetences(p: Profil): number {
+  const noms = [...p.competences, ...p.competencesOpt.map((c) => c.nom)]
+  return new Set(noms.map((n) => n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()).filter(Boolean)).size
+}
+
 export function rempli(p: Profil, cle: keyof Profil): boolean {
-  if (cle === 'competences') return p.competences.length >= 3
+  if (cle === 'competences') return nombreCompetences(p) >= 3
   if (cle === 'experiences') return p.experiences.length > 0 || p.formations.length > 0
   if (cle === 'metiers') return p.metiers.length > 0 || p.metiersOpt.length > 0
   const v = p[cle]
@@ -45,15 +48,15 @@ export function completude(p: Profil): number {
 /** La force ne filtre rien : elle dit à quel point une entreprise peut te lire. */
 export function force(p: Profil): number {
   let pts = 0
-  if (p.competences.length >= 6) pts += 25
-  else if (p.competences.length >= 3) pts += 12
+  if (nombreCompetences(p) >= 6) pts += 25
+  else if (nombreCompetences(p) >= 3) pts += 12
   if (p.experiences.length >= 2) pts += 25
   else if (p.experiences.length === 1) pts += 15
   if (p.langues.length) pts += 10
   if (p.salaireMin != null) pts += 10
   if (p.permis !== null) pts += 5
   if (p.formations.length) pts += 10
-  return Math.min(100, pts)
+  return Math.round(pts / 85 * 100)
 }
 
 export interface Conseil {
@@ -63,58 +66,24 @@ export interface Conseil {
   etape: number
 }
 
-/* Chaque conseil annonce ce qu'il rapporte, et les points sont ceux de force() :
-   le guide ne peut donc pas promettre ce que le calcul ne donnera pas. */
+/** Conseils de rédaction : aucun effet annoncé sur le classement des offres. */
 export function conseils(p: Profil): Conseil[] {
   const c: Conseil[] = []
-  const a = (gain: number, quoi: string, pourquoi: string, etape: number) =>
-    c.push({ gain, quoi, pourquoi, etape })
-
-  if (p.competences.length < 3) {
-    a(25, 'Ajoute au moins trois compétences',
-      'C’est le critère le plus lourd du score : une offre qui demande trois compétences que tu n’as pas déclarées te classe bas, même si tu les as.', 3)
-  } else if (p.competences.length < 6) {
-    a(13, 'Monte à six compétences',
-      'Six, c’est le seuil où le score cesse de dépendre d’un seul mot bien placé.', 3)
-  }
-  if (!p.experiences.length) {
-    a(25, 'Décris au moins une expérience',
-      'Sans expérience datée, l’ancienneté vaut zéro et toutes les offres qui demandent deux ans te filtrent.', 2)
-  } else if (p.experiences.length === 1) {
-    a(10, 'Ajoute une deuxième expérience',
-      'Deux périodes suffisent à montrer une progression — un stage, une alternance, un job d’été comptent.', 2)
-  }
-  if (!p.formations.length) {
-    a(10, 'Renseigne ta formation',
-      'Sans niveau, les offres qui exigent un diplôme te laissent en incertitude plutôt qu’en correspondance.', 2)
-  }
-  if (!p.langues.length) {
-    a(10, 'Déclare tes langues',
-      'Au format européen : « B2 » se compare, « anglais courant » non.', 3)
-  }
-  if (p.salaireMin == null) {
-    a(10, 'Indique un salaire minimum',
-      'Il ne te ferme aucune offre : il sert à ne pas te proposer ce que tu refuserais de toute façon.', 1)
-  }
-  if (p.permis === null) {
-    a(5, 'Réponds sur le permis B',
-      'Beaucoup d’offres l’exigent. Non renseigné, l’offre reste visible mais le doute pèse sur le score.', 1)
-  }
-  c.sort((x, y) => y.gain - x.gain)
-
-  // Ceux-ci ne rapportent aucun point : ils changent le deck.
-  if (p.ouverture === 'strict' && p.metiers.length + p.metiersOpt.length === 1) {
-    c.push({ gain: 0, etape: 1, quoi: 'Passe en « ouvert aux métiers proches »',
-      pourquoi: 'Un seul métier en mode strict : les autres métiers de la même famille passent après. L’ouverture les classe par compatibilité, sans distinction.' })
-  }
-  if (p.zones.length === 1) {
-    c.push({ gain: 0, etape: 0, quoi: 'Accepte une zone de plus',
-      pourquoi: 'Une offre hors de tes zones reste visible, mais l’écart pèse sur son score et s’affiche en clair.' })
-  }
-  if (p.competencesOpt.length < 3 && p.competences.length >= 3) {
-    c.push({ gain: 0, etape: 3, quoi: 'Rapproche tes compétences du référentiel OPT-NC',
-      pourquoi: 'Les AVP sont décrits avec les 409 compétences du référentiel. Celles qui s’y rattachent comptent dans le score structurel ; les autres ne pèsent que par leurs mots.' })
-  }
+  const ajoute = (quoi: string, pourquoi: string, etape: number) => c.push({ gain: 0, quoi, pourquoi, etape })
+  if (nombreCompetences(p) < 3) ajoute('Décris au moins trois compétences',
+    'Les compétences libres et celles du référentiel comptent. Précise ce que tu sais faire.', 3)
+  else if (nombreCompetences(p) < 6) ajoute('Précise tes compétences',
+    'Ajoute celles que tes expériences permettent d’illustrer ; la quantité seule ne garantit pas l’adéquation.', 3)
+  if (!p.experiences.length) ajoute('Décris une expérience',
+    'Un stage, une alternance, un bénévolat ou un emploi peuvent illustrer tes compétences.', 2)
+  else if (p.experiences.length === 1) ajoute('Complète ton parcours si nécessaire',
+    'Une autre expérience pertinente aide le recruteur à comprendre ton parcours.', 2)
+  if (!p.formations.length) ajoute('Renseigne ta formation', 'Précise ton diplôme ou ton domaine de formation.', 2)
+  if (!p.langues.length) ajoute('Déclare tes langues', 'Indique un niveau européen si tu le connais.', 3)
+  if (p.salaireMin == null) ajoute('Précise tes attentes si tu le souhaites',
+    'Le salaire souhaité accompagne ton profil ; il ne filtre pas les offres et ne modifie pas l’adéquation.', 1)
+  if (p.permis === null) ajoute('Réponds sur le permis B si tu le souhaites',
+    'Cette indication accompagne ton profil. Vérifie les prérequis indiqués dans chaque avis.', 1)
   return c
 }
 

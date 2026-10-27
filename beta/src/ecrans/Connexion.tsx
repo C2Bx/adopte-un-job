@@ -90,15 +90,15 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
           </p>
         )}
 
-        <div className="prole" role="tablist" aria-label="Type de compte">
+        <div className="prole" role="group" aria-label="Type de compte">
           <button
             type="button"
-            className={mode === 'connexion' ? 'on' : ''}
+            className={mode === 'connexion' ? 'on' : ''} aria-pressed={mode === 'connexion'}
             onClick={() => { setMode('connexion'); setErreur(null); setInfo(null) }}
           >J’ai déjà un compte</button>
           <button
             type="button"
-            className={mode === 'inscription' ? 'on' : ''}
+            className={mode === 'inscription' ? 'on' : ''} aria-pressed={mode === 'inscription'}
             onClick={() => { setMode('inscription'); setErreur(null); setInfo(null) }}
           >Créer un compte</button>
         </div>
@@ -129,8 +129,8 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
                   className={agentOpt === false ? 'on' : ''} onClick={() => setAgentOpt(false)}>Non</button>
               </div>
               <span className="pa">
-                Pour te montrer d’abord ce qui te concerne : mobilité interne si tu es déjà
-                à l’OPT, recrutement externe sinon.
+                Cette information accompagne ton compte et permet à l’équipe de suivre
+                les candidatures des agents de l’OPT.
               </span>
             </div>
           )}
@@ -154,7 +154,7 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
           {(mode !== 'oubli' || codeRecu.trim() !== '') && <label className="pf">
             <span className="pl">{mode === 'oubli' ? 'Nouveau mot de passe' : 'Mot de passe'}</span>
             <input
-              type="password" value={mdp} required minLength={mode === 'connexion' ? 1 : 12}
+              type="password" value={mdp} required maxLength={128} minLength={mode === 'connexion' ? 1 : 12}
               autoComplete={mode === 'connexion' ? 'current-password' : 'new-password'}
               onChange={(e) => setMdp(e.target.value)}
             />

@@ -3,7 +3,7 @@
    UN SEUL CV par personne : leur API range le fichier sous `cv_<id>.pdf` ou
    `.jpg`, et un nouveau dépôt remplace l'ancien. PDF, PNG ou JPEG seulement.
 
-   La lecture (le traitement n8n de Florian) REMPLACE le profil chez eux. La
+   La lecture n8n arrive dans cvJsonGenere, séparément du profil validé. La
    règle est de ne jamais écraser ce que la personne a saisi : on ne la lance
    donc que si le parcours est vide. Sinon le CV est joint, la saisie reste, et
    l'écran le dit. Leur route attend la fin de la lecture : jusqu'à 3 minutes.
@@ -27,7 +27,7 @@ const FORMATS = '.pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg'
 
 type Lecture = 'repos' | 'en_cours' | 'faite' | 'gardee' | 'echec'
 
-export function useMesCV(onProfilLu?: () => void) {
+export function useMesCV(onProfilLu?: () => void, avantOperation?: () => Promise<void>) {
   const [actif, setActif] = useState<CvInfo | null>(null)
   const [pret, setPret] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -49,6 +49,7 @@ export function useMesCV(onProfilLu?: () => void) {
     setErreur(null)
     setEnvoi(true)
     try {
+      await avantOperation?.()
       setActif(await api.deposeFichierCV(f))
     } catch (e) {
       setErreur(e instanceof ErreurApi ? e.message : 'Le fichier n’a pas pu être déposé.')
@@ -71,10 +72,12 @@ export function useMesCV(onProfilLu?: () => void) {
   const ouvre = async () => {
     // la fenêtre s'ouvre tout de suite, sinon le navigateur la bloque après l'attente
     const w = window.open('', '_blank')
+    if (w) w.opener = null
     try {
       const url = await api.urlFichierCV()
       if (w) w.location.href = url
       else window.location.href = url
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
     } catch (e) {
       w?.close()
       setErreur(e instanceof ErreurApi ? e.message : 'Le fichier n’a pas pu être ouvert.')

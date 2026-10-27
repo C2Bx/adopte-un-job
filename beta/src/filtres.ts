@@ -22,7 +22,7 @@ export interface Filtres {
   encadrement?: boolean
   debutant?: boolean
   salaire?: boolean
-  /** Les offres closes, pour s'entraîner : un autre jeu d'offres, pas un filtre. */
+  /** Les offres closes, en lecture seule : un autre jeu d'offres, pas un filtre. */
   clos?: boolean
 }
 
@@ -51,7 +51,7 @@ const VALEURS: Record<Categorie, (o: Offre) => string[]> = {
 }
 
 const VRAI: Record<Option, (o: Offre) => boolean> = {
-  teletravail: (o) => o.teletravail !== 'non',
+  teletravail: (o) => ['hybride', 'total'].includes(o.teletravail),
   encadrement: (o) => (o.nbAgentsEncadres ?? 0) > 0,
   debutant: (o) => o.experienceMin === 0,
   salaire: (o) => Boolean(o.salaire),

@@ -40,6 +40,7 @@ interface Props {
   versProfil: (etape: number) => void
   /** Prévient la coquille qu'une décision a changé, pour ses pastilles. */
   onDecision?: () => void
+  avantDecision: () => Promise<void>
 }
 
 /* Défilement horizontal d'une rangée de puces, à la souris.
@@ -115,7 +116,7 @@ type Decision = 'oui' | 'non' | 'plus_tard'
 
 const kf = (n: number) => `${Math.round(n / 1000)} k`
 
-export function EcranDeck({ profil, versProfil, onDecision }: Props) {
+export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Props) {
   const barreFiltres = useGlisseHorizontal<HTMLDivElement>()
   // toutes les offres du jeu courant (ouvertes ou closes) ; les filtres s'y appliquent sans réseau
   const [toutes, setToutes] = useState<Offre[] | null>(null)
@@ -128,7 +129,7 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   const adequationDe = (o: Offre | null | undefined) => (o?.reference ? adequations.get(o.reference) : undefined)
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
-  const [envoyee, setEnvoyee] = useState<{ offre: Offre; entrainement: boolean } | null>(null)
+  const [envoyee, setEnvoyee] = useState<Offre | null>(null)
   const [detail, setDetail] = useState<Offre | null>(null)
   const [filtres, setFiltres] = useState<Filtres>({})
   const [recherche, setRecherche] = useState('')
@@ -231,14 +232,16 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   }
 
   const decide = async (o: Offre, decision: Decision) => {
+    if (o.statut === 'close') return
     setEnCours(true)
     // On retire la carte tout de suite : attendre le réseau pour la faire
     // disparaître donnerait l'impression que le geste n'a pas été pris.
     setToutes((l) => (l ?? []).filter((x) => x.id !== o.id))
     setDernier(o)
     try {
-      const r = await api.swipe(o.id, decision)
-      if (decision === 'oui') setEnvoyee({ offre: o, entrainement: o.statut === 'close' && r.ok })
+      await avantDecision()
+      await api.swipe(o.id, decision)
+      if (decision === 'oui') setEnvoyee(o)
       onDecision?.()
     } catch (e) {
       setToutes((l) => [o, ...(l ?? [])])
@@ -269,7 +272,7 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
   clavier.current = (e: KeyboardEvent) => {
     const cible = e.target as HTMLElement | null
     if (cible?.closest('input, textarea, select, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return
-    if (!courante || enCours || detail || envoyee || panneauFiltres) return
+    if (!courante || courante.statut === 'close' || enCours || detail || envoyee || panneauFiltres || rechercheOuverte) return
     if (e.key === 'ArrowRight') { e.preventDefault(); void decide(courante, 'oui') }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); void decide(courante, 'non') }
     else if (e.key === 'ArrowDown') { e.preventDefault(); void decide(courante, 'plus_tard') }
@@ -307,12 +310,12 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
                   {erreur ?? (actifs
                     ? 'Tes filtres sont trop stricts pour ce qui reste : retire-en un, ou efface-les tous.'
                     : aucuneOuverte && !filtres.clos
-                      ? `Aucun avis n’est ouvert sur la plateforme en ce moment (${compteur?.expires ?? 0} clos). Les AVP arrivent au fil de l’eau — reviens demain, ou entraîne-toi sur les offres closes.`
-                      : 'Aucune autre offre ouverte aujourd’hui. Les AVP de l’OPT-NC arrivent au fil de l’eau — reviens demain, ou entraîne-toi sur les offres closes.')}
+                      ? `Aucun avis n’est ouvert sur la plateforme en ce moment (${compteur?.expires ?? 0} clos). Les AVP arrivent au fil de l’eau — reviens demain, ou consulte les offres closes.`
+                      : 'Aucune autre offre ouverte aujourd’hui. Les AVP de l’OPT-NC arrivent au fil de l’eau — reviens demain, ou consulte les offres closes.')}
                 </p>
                 <div className="btns vide-actions">
                   {actifs > 0 && <button className="btn primaire" onClick={toutEffacer}>Effacer les filtres</button>}
-                  {!filtres.clos && <button className="btn" onClick={() => setFiltres((f) => ({ ...f, clos: true }))}>M’entraîner sur les offres closes</button>}
+                  {!filtres.clos && <button className="btn" onClick={() => setFiltres((f) => ({ ...f, clos: true }))}>Consulter les offres closes</button>}
                 </div>
               </div>
             </div>
@@ -331,7 +334,7 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
               peutRevenir={Boolean(dernier)}
               occupe={enCours}
               onDetail={() => { setDetail(courante); void api.vue(courante.id, 'detail') }}
-              onDecide={(d) => void decide(courante, d)}
+              onDecide={courante.statut === 'close' ? undefined : (d) => void decide(courante, d)}
               onRetour={() => void reviens()}
               adequation={adequationDe(courante)}
             />
@@ -378,15 +381,11 @@ export function EcranDeck({ profil, versProfil, onDecision }: Props) {
 
       {envoyee && (
         <Feuille onFermer={() => setEnvoyee(null)}>
-          <div className="eyebrow">{envoyee.entrainement ? 'Entraînement' : 'Candidature envoyée'}</div>
-          <h2>{envoyee.entrainement ? 'Offre close, geste enregistré' : 'C’est parti'}</h2>
+          <div className="eyebrow">Candidature envoyée</div>
+          <h2>C’est parti</h2>
           <p className="qui">
-            {envoyee.entrainement
-              ? <>Cet AVP est clos : ton geste compte pour t’entraîner, aucune candidature n’est envoyée.</>
-              : <>
-                  Ta candidature pour <b>{envoyee.offre.titre}</b> est chez le recruteur : il lit ton profil
-                  et ton CV. Tu suis sa réponse dans « Candidatures ».
-                </>}
+            Ta candidature pour <b>{envoyee.titre}</b> est chez le recruteur : il lit ton profil
+            et ton CV. Tu suis sa réponse dans « Candidatures ».
           </p>
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
             <button className="btn primaire" onClick={() => setEnvoyee(null)}>Continuer</button>
@@ -464,7 +463,7 @@ function PanneauFiltres({ f, comptes, total, actifs, change, toutEffacer, fermer
         <button role="radio" aria-checked={!f.clos} className={!f.clos ? 'on' : ''}
           onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: undefined }))}>Ouvertes</button>
         <button role="radio" aria-checked={Boolean(f.clos)} className={f.clos ? 'on' : ''}
-          onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: true }))}>Closes (entraînement)</button>
+          onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: true }))}>Archives (lecture seule)</button>
       </div>
 
       {CATEGORIES.map(({ cle, titre }) => {
@@ -687,7 +686,7 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
     >
       <span className={`teinte ${dx > 0 ? 'oui' : 'non'}`} aria-hidden="true"
         style={{ opacity: Math.min(1, Math.abs(dx) / SEUIL) }} />
-      <span className="stamp yes" style={{ opacity: Math.max(0, Math.min(1, dx / SEUIL)) }}>{close ? 'ESSAI' : 'OUI'}</span>
+      <span className="stamp yes" style={{ opacity: Math.max(0, Math.min(1, dx / SEUIL)) }}>OUI</span>
       <span className="stamp no" style={{ opacity: Math.max(0, Math.min(1, -dx / SEUIL)) }}>NON</span>
 
       {pages.length > 1 && (
@@ -708,7 +707,7 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
               onClick={(e) => { e.stopPropagation(); onDetail?.() }}>
               Voir l’offre
             </button>
-            {close && <span className="badge-pass close">clos — pour t’entraîner</span>}
+            {close && <span className="badge-pass close">close — lecture seule</span>}
           </div>
           <h2 className="role">{o.titre}</h2>
           <div className="org">
@@ -742,9 +741,9 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
       <div className="facts">
         <div className="line">
           {o.province && <span>{o.province}</span>}
-          <span>{o.teletravail === 'non' ? 'sur site' : `télétravail ${o.teletravail}`}</span>
+          <span>{o.teletravail === 'inconnu' ? 'Télétravail non renseigné' : o.teletravail === 'non' ? 'sur site' : `télétravail ${o.teletravail}`}</span>
           {o.debut && <span>dès {o.debut}</span>}
-          {o.experienceMin > 0 && <span>{o.experienceMin} ans d’expérience</span>}
+          {o.experienceMin !== null && o.experienceMin > 0 && <span>{o.experienceMin} ans d’expérience</span>}
           {o.nbAgentsEncadres ? <span>encadre {o.nbAgentsEncadres} agents</span> : null}
           {o.salaire?.[0] ? <em>{kf(o.salaire[0])}{o.salaire[1] ? ` – ${kf(o.salaire[1])}` : ''} XPF</em> : null}
         </div>
@@ -775,10 +774,10 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
           </div>
           <div className="coin">
             <button type="button" className="oui"
-              onClick={(e) => { e.stopPropagation(); onDecide?.('oui') }} aria-label={close ? 'M’entraîner' : 'Candidater'}>
+              onClick={(e) => { e.stopPropagation(); onDecide?.('oui') }} aria-label="Candidater">
               <svg><use href="#i-heart" /></svg>
             </button>
-            <span>{close ? 'S’entraîner' : 'Candidater'}</span>
+            <span>Candidater</span>
           </div>
         </div>
       )}
@@ -792,6 +791,40 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
    avant de chercher le bouton. */
 export function Feuille({ onFermer, children }: { onFermer: () => void; children: React.ReactNode }) {
   const boite = useRef<HTMLDivElement>(null)
+  const fermer = useRef(onFermer)
+  fermer.current = onFermer
+  useEffect(() => {
+    const avant = document.activeElement as HTMLElement | null
+    const element = boite.current
+    if (!element) return
+    const caches: { el: HTMLElement; inert: boolean }[] = []
+    let branche: HTMLElement | null = element.parentElement
+    while (branche?.parentElement && branche !== document.body) {
+      for (const voisin of Array.from(branche.parentElement.children)) {
+        if (voisin !== branche && voisin instanceof HTMLElement) {
+          caches.push({ el: voisin, inert: voisin.inert }); voisin.inert = true
+        }
+      }
+      branche = branche.parentElement
+    }
+    const selecteur = 'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
+    const focusables = () => Array.from(element.querySelectorAll<HTMLElement>(selecteur)).filter((e) => e.getClientRects().length > 0)
+    ;(focusables()[0] ?? element).focus()
+    const clavier = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermer.current(); return }
+      if (e.key !== 'Tab') return
+      const items = focusables(); const premier = items[0]; const dernier = items.at(-1)
+      if (!premier) { e.preventDefault(); element.focus() }
+      else if (e.shiftKey && (document.activeElement === premier || document.activeElement === element)) { e.preventDefault(); dernier?.focus() }
+      else if (!e.shiftKey && (document.activeElement === dernier || document.activeElement === element)) { e.preventDefault(); premier.focus() }
+    }
+    element.addEventListener('keydown', clavier)
+    return () => {
+      element.removeEventListener('keydown', clavier)
+      for (const { el, inert } of caches) el.inert = inert
+      if (avant?.isConnected) avant.focus()
+    }
+  }, [])
   const depart = useRef<number | null>(null)
   const capture = useRef(false)
   const [dy, setDy] = useState(0)
@@ -826,7 +859,7 @@ export function Feuille({ onFermer, children }: { onFermer: () => void; children
     <div className="sheet" onClick={onFermer}>
       <div
         ref={boite}
-        className="sheet-box"
+        className="sheet-box" role="dialog" aria-modal="true" aria-label="Détail et options" tabIndex={-1}
         style={{
           transform: dy ? `translateY(${dy}px)` : undefined,
           transition: lache ? 'transform .2s var(--ease)' : undefined,
@@ -872,7 +905,7 @@ export function BlocEntete({ offre: o, profil, adequation }: { offre: Offre; pro
         {adequation && <PastilleAdequation a={adequation} />}
         {(o.ville ?? o.zone) && <span className="cle">{o.ville ?? o.zone}</span>}
         <span className="cle">{o.contrat}</span>
-        {o.teletravail !== 'non' && <span className="cle">Télétravail {o.teletravail}</span>}
+        {['hybride', 'total'].includes(o.teletravail) && <span className="cle">Télétravail {o.teletravail}</span>}
         {o.joursRestants !== null && o.joursRestants >= 0 && (
           <span className={`cle${o.joursRestants <= 7 ? ' urgent' : ''}`}>
             {o.joursRestants === 0 ? 'Dernier jour' : `Clôture dans ${o.joursRestants} j`}
@@ -947,11 +980,11 @@ export function BlocContact({ offre: o }: { offre: Offre }) {
   }
   return (
     <section className="do-contact">
-      <h3>Pour candidater</h3>
+      <h3>{o.statut === 'close' ? 'Contact de l’avis archivé' : 'Pour candidater'}</h3>
       <p>Cet avis indique à qui s’adresser à l’Office des postes et télécommunications.</p>
       <div className="do-contact-l">
         {o.contactEmail && (
-          <a href={`mailto:${o.contactEmail}?subject=${encodeURIComponent(`Candidature — ${o.titre}${o.reference ? ` (${o.reference})` : ''}`)}`}>
+          <a href={`mailto:${o.contactEmail}?subject=${encodeURIComponent(`${o.statut === 'close' ? 'Renseignement' : 'Candidature'} — ${o.titre}${o.reference ? ` (${o.reference})` : ''}`)}`}>
             {o.contactEmail}
           </a>
         )}

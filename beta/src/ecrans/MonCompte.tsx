@@ -111,7 +111,7 @@ export function MonCompte() {
           </label>
           <label className="pf">
             <span className="pl">Nouveau mot de passe</span>
-            <input type="password" value={nouveau} required minLength={12} autoComplete="new-password"
+            <input type="password" value={nouveau} required minLength={12} maxLength={128} autoComplete="new-password"
               onChange={(e) => setNouveau(e.target.value)} />
             <span className="pa">Douze caractères au minimum.</span>
           </label>
