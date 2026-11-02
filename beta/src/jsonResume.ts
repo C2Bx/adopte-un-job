@@ -44,3 +44,23 @@ export function completeDepuisExtraction(courant: Doc, extrait: Doc): Doc {
   }
   return out
 }
+
+
+/** Retient seulement les champs explicitement cochés dans l’aperçu. */
+export function selectionneChamps(doc: Doc, choix: string[]): Doc {
+  const autorises = new Set(choix)
+  const filtre = (v: unknown, chemin: string): unknown => {
+    if (autorises.has(chemin)) return structuredClone(v)
+    if (Array.isArray(v)) {
+      const l = v.map((x, i) => filtre(x, `${chemin}.${i}`)).filter((x) => x !== undefined)
+      return l.length ? l : undefined
+    }
+    if (objet(v)) {
+      const o: Doc = {}
+      for (const [k, x] of Object.entries(v)) { const a = filtre(x, chemin ? `${chemin}.${k}` : k); if (a !== undefined) o[k] = a }
+      return Object.keys(o).length ? o : undefined
+    }
+    return undefined
+  }
+  return (filtre(doc, '') ?? {}) as Doc
+}

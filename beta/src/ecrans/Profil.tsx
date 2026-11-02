@@ -5,6 +5,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import { valideJsonResume } from '../jsonResume'
+import { ApercuDocument } from './RelectureDocument'
+import { ProfilEnrichi } from './ProfilEnrichi'
 import {
   ETAPES, NIVEAUX, anneesExperience, completude, conseils, force, manques,
 } from '../regles'
@@ -42,7 +44,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
   const [effErr, setEffErr] = useState<string | null>(null)
   const [expEnCours, setExpEnCours] = useState(false)
   const [impEnCours, setImpEnCours] = useState(false)
-  const [importPret, setImportPret] = useState<{ doc: unknown; nom: string } | null>(null)
+  const [importPret, setImportPret] = useState<{ doc: Record<string, unknown>; avant: Record<string, unknown>; nom: string } | null>(null)
   const [restauration, setRestauration] = useState(api.copieAvantImportDisponible())
   const [outilsMsg, setOutilsMsg] = useState<{ ok: boolean; texte: string } | null>(null)
 
@@ -79,8 +81,9 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
       const texte = await f.text()
       let doc: unknown
       try { doc = JSON.parse(texte) } catch { throw new Error('Ce fichier n’est pas un JSON valide.') }
-      valideJsonResume(doc)
-      setImportPret({ doc, nom: f.name })
+      const valide = valideJsonResume(doc)
+      const avant = await api.exporteProfil()
+      setImportPret({ doc: valide, avant, nom: f.name })
     } catch (e) {
       setOutilsMsg({ ok: false, texte: e instanceof ErreurApi ? e.message : e instanceof Error ? e.message : 'Ce JSON Resume n’a pas pu être importé.' })
     } finally {
@@ -139,7 +142,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
   return (
     <div className="screen" id="ec-profil">
       <div className="pad">
-        <fieldset className="pcols profil-champs" disabled={impEnCours || effEnCours || cv.envoi || cv.lecture === 'en_cours'}>
+        <fieldset className="pcols profil-champs" disabled={impEnCours || effEnCours || cv.envoi || cv.lecture === 'en_cours' || cv.validation}>
           <div className="pcol-a">
             <h2>Mon profil</h2>
             <p className="lead">
@@ -196,6 +199,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
                 <b>Importer {importPret.nom} ?</b>
                 Les rubriques du CV actuel seront remplacées. Tes critères de recherche seront gardés.
                 Une copie du profil précédent sera récupérable dans cet onglet.
+                <ApercuDocument document={importPret.doc} avant={importPret.avant} />
                 <button type="button" className="btn-mini" onClick={() => void appliqueImport()}>Remplacer mon profil</button>
                 <button type="button" className="btn-mini" onClick={() => setImportPret(null)}>Annuler</button>
               </div>}
@@ -289,7 +293,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
               {etape === 1 && <CeQueTuCherches p={profil} maj={maj} ref_={ref} />}
               {etape === 2 && <Parcours p={profil} maj={maj} />}
               {etape === 3 && <Competences p={profil} maj={maj} ref_={ref} />}
-              {etape === 4 && <Relecture p={profil} />}
+              {etape === 4 && <><Relecture p={profil} /><ProfilEnrichi avantOperation={avantOperation} onRelu={onProfil} /></>}
             </div>
 
             <div className="pnav">
@@ -357,8 +361,8 @@ function QuiTuEs({ p, maj, ref_ }: { p: Profil; maj: (b: Partial<Profil>) => voi
           onChange={(zones) => maj({ zones })}
         />
         <span className="pa">
-          On ne te demande pas où tu habites : le lieu de résidence est un critère de
-          discrimination, et il n’a aucune utilité pour le score.
+          Indique les zones où tu souhaites travailler ; aucune adresse de résidence
+          n’est demandée dans ce formulaire.
         </span>
       </label>
 
@@ -675,7 +679,7 @@ function Relecture({ p }: { p: Profil }) {
       </div>
 
       <div className="pmasque">
-        <b>Ce qui n’est jamais collecté</b>
+        <b>Les informations demandées</b>
         Ta photo, ton lieu de résidence, ta date de naissance et l’année de tes diplômes.
         Aucun de ces éléments n’entre dans le score, et chacun est un vecteur de
         discrimination connu.
@@ -709,12 +713,12 @@ function CompetencesOptBloc({ p, maj }: { p: Profil; maj: (b: Partial<Profil>) =
     <div className="prep">
       <div className="prep-t"><h3>Dans les mots de l’OPT-NC</h3></div>
       <p className="pa" style={{ marginTop: 0 }}>
-        Les AVP sont écrits avec les 409 compétences du référentiel. Tes compétences y sont rattachées
-        automatiquement par leurs mots — vérifie, retire ce qui est faux, ajoute ce qui manque.
+        Les AVP utilisent les compétences du référentiel OPT-NC. Choisis celles qui décrivent ton parcours ;
+        vérifie aussi les codes déjà présents dans un profil importé.
       </p>
       <div className="pchips">
         {p.competencesOpt.length === 0
-          ? <span className="pvide">Rien de rattaché pour l’instant : enregistre d’abord tes compétences.</span>
+          ? <span className="pvide">Cherche une compétence du référentiel pour l’ajouter.</span>
           : p.competencesOpt.map((c) => (
             <span className={`pchip on${c.source === 'saisie' ? '' : ' lib'}`} key={c.code}
               title={c.depuis ? `rattachée depuis « ${c.depuis} »` : 'ajoutée par toi'}>

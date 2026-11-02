@@ -8,7 +8,7 @@
    mais il ne s'affiche que si elle l'expose : un lien qui mène à un message
    d'excuse vaut moins que pas de lien. */
 
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { api } from '../api'
 import type { CompteurOffres } from '../api'
 import { Spinner } from '../Attente'
@@ -16,7 +16,10 @@ import { BoutonTheme } from '../theme'
 import { ErreurApi } from '../types'
 import type { Utilisateur } from '../types'
 
+const CataloguePublic = lazy(() => import('./CataloguePublic'))
+
 export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Promise<void> }) {
+  const [catalogue, setCatalogue] = useState(() => new URLSearchParams(location.search).has('offre'))
   const [mode, setMode] = useState<'connexion' | 'inscription' | 'oubli'>('connexion')
   const [oubliPossible, setOubliPossible] = useState(false)
   const [codeRecu, setCodeRecu] = useState('')
@@ -68,6 +71,8 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
     }
   }
 
+  if (catalogue) return <Suspense fallback={<p role="status">Chargement de la consultation…</p>}><CataloguePublic retour={() => setCatalogue(false)} /></Suspense>
+
   return (
     <div className="accueil">
       <div className="accueil-theme"><BoutonTheme /></div>
@@ -90,6 +95,8 @@ export function Connexion({ onEntre }: { onEntre: (u: Utilisateur) => void | Pro
           </p>
         )}
 
+        <button type="button" className="btn" onClick={() => setCatalogue(true)}>Consulter les offres sans compte</button>
+        <a className="btn-mini" href={`${import.meta.env.BASE_URL}?demo=1`}>Essayer avec des données fictives</a>
         <div className="prole" role="group" aria-label="Type de compte">
           <button
             type="button"

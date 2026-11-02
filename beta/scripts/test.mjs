@@ -10,9 +10,9 @@ const temporaire = mkdtempSync(join(tmpdir(), 'aj-regression-'))
 let nombre = 0
 const test = async (nom, action) => { await action(); console.log(`OK ${++nombre} — ${nom}`) }
 try {
-  for (const nom of ['types', 'regles', 'jsonResume', 'sauvegarde', 'api', 'filtres', 'dates']) {
+  for (const nom of ['types', 'regles', 'jsonResume', 'sauvegarde', 'api', 'filtres', 'dates', 'upgrade', 'modeDemo']) {
     let texte = readFileSync(join(racine, 'src', `${nom}.ts`), 'utf8').replace('import.meta.env.BASE_URL', "'/avp/'")
-    if (nom === 'api') texte += '\nexport {documentDepuisProfil,offreDepuisAvp};'
+
     const js = ts.transpileModule(texte, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText
       .replace(/from '\.\/(\w+)'/g, "from './$1.mjs'")
     writeFileSync(join(temporaire, `${nom}.mjs`), js)
@@ -22,8 +22,9 @@ try {
   globalThis.sessionStorage = { getItem: (k) => valeurs.get(k) ?? null, setItem: (k, v) => valeurs.set(k, v), removeItem: (k) => valeurs.delete(k) }
   globalThis.localStorage = globalThis.sessionStorage
   globalThis.window = { dispatchEvent() {} }
+  globalThis.location = { search: '', href: 'https://local/avp/' }
   const { SauvegardeProfil } = await charge('sauvegarde')
-  const { valideJsonResume, completeDepuisExtraction } = await charge('jsonResume')
+  const { valideJsonResume, completeDepuisExtraction, selectionneChamps } = await charge('jsonResume')
   const { profilVide, profilEnvoi, manques, force } = await charge('regles')
   const { api, documentDepuisProfil, offreDepuisAvp } = await charge('api')
   const { resultats } = await charge('filtres')
@@ -76,7 +77,7 @@ try {
     assert.equal(d.work[0].endDate, undefined); assert.deepEqual(d.work[0].highlights, ['Preuve'])
   })
   await test('l’absence de données ne devient pas une promesse sur l’offre', () => {
-    const o = offreDepuisAvp({ id: 1 }); assert.equal(o.contrat, 'Non renseigné'); assert.equal(o.experienceMin, null); assert.equal(o.teletravail, 'inconnu')
+    const o = offreDepuisAvp({ id: 1 }); assert.equal(o.contrat, 'Non renseigné'); assert.equal(o.experienceMin, null); assert.equal(o.teletravail, 'inconnu'); assert.equal(o.zone, 'Non renseigné')
     assert.equal(resultats([o], { debutant: true }).length, 0); assert.equal(resultats([o], { teletravail: true }).length, 0)
     assert.equal(offreDepuisAvp({ id: 2, typeContrat: 'FULL_TIME' }).contrat, 'Temps plein')
   })
@@ -98,6 +99,7 @@ try {
     if (p === '/profils/moi' && methode === 'PUT') { doc = JSON.parse(o.body); envois.push(doc); return Response.json({}) }
     if (p === '/profils/moi/cv/traitement') { extraction(); return Response.json({}) }
     if (p === '/matching/v1/match') return Response.json({ resultats: [] })
+    if (p === '/matching/v1/score') return Response.json({ points_forts: [{ attendu: 'Vente', note: 80 }] })
     if (p === '/avp') return Response.json({ contenu: [{ id: 1, dateLimite: '2020-01-01' }], totalPages: 1 })
     throw Error(`Appel inattendu ${methode} ${p}`)
   }
@@ -120,14 +122,67 @@ try {
   await test('la chaîne extraction réelle relit et conserve une écriture concurrente', async () => {
     doc = { basics: { name: 'Nom saisi' }, meta: { agentOpt: true } }; genere = { basics: { name: 'Nom extrait' }, skills: [{ name: 'Vente' }] }
     extraction = () => { doc.work = [{ position: 'Saisi pendant lecture' }] }
-    await api.lisCV(); assert.equal(doc.basics.name, 'Nom saisi'); assert.equal(doc.work[0].position, 'Saisi pendant lecture'); assert.equal(doc.meta.agentOpt, true)
+    envois = []; await api.lisCV(); assert.equal(envois.length, 0, 'aucune écriture avant validation');
+    await api.valideLectureCV(['basics.name', 'skills.0.name'], genere); assert.equal(doc.basics.name, 'Nom saisi'); assert.equal(doc.work[0].position, 'Saisi pendant lecture'); assert.equal(doc.meta.agentOpt, true)
   })
   await test('le matching transporte le jeton seulement vers le relais', async () => {
     await api.adequations(); const r = requetes.findLast((r) => r.p === '/matching/v1/match')
     assert(r.o.headers.Authorization.startsWith('Bearer ')); assert(!JSON.parse(r.o.body).basics.name)
   })
+  await test('le détail de matching identique est réutilisé sans nouvel appel', async () => {
+    requetes = []; const a = await api.detailAdequation('TEST-1'); const b = await api.detailAdequation('TEST-1')
+    assert.deepEqual(a, b); assert.equal(requetes.filter((r) => r.p === '/matching/v1/score').length, 1)
+  })
   await test('une offre close ne déclenche pas de décision réelle', async () => {
     requetes = []; await assert.rejects(api.swipe(1, 'oui')); assert(!requetes.some((r) => r.p?.startsWith('/swipes/')))
+  })
+  const { trieOffres, limiteComparaison, choixPersistes, litLocal, ecritLocal, lienOffre, idOffrePartagee } = await charge('upgrade')
+  await test('les tris ne mutent pas les offres et placent les données absentes en dernier', () => {
+    const a = offreDepuisAvp({ id: 1, reference: 'r1', titre: 'Zèbre', dateLimite: '2099-01-01', datePublication: '2026-10-02' })
+    const b = offreDepuisAvp({ id: 2, reference: 'r2', titre: 'Agent', dateLimite: null, datePublication: null })
+    assert.deepEqual(trieOffres([a, b], 'titre').map((x) => x.id), [2, 1]); assert.deepEqual(trieOffres([b, a], 'cloture').map((x) => x.id), [1, 2])
+    const l = [b, a]; trieOffres(l, 'publication'); assert.equal(l[0], b)
+    assert.deepEqual(trieOffres([a, b], 'adequation', new Map([['r2', { pourcentage: 80 }]])).map((x) => x.id), [2, 1])
+  })
+  await test('le comparateur limite la sélection à trois offres et permet de retirer', () => {
+    assert.deepEqual(limiteComparaison([1, 2, 3], 4), [1, 2, 3]); assert.deepEqual(limiteComparaison([1, 2, 3], 2), [1, 3]); assert.deepEqual(limiteComparaison([], 1), [1])
+  })
+  await test('recherches et notes locales sont isolées par compte', async () => {
+    ecritLocal('notes-test', ['note privée']); assert.deepEqual(litLocal('notes-test', []), ['note privée'])
+    utilisateur = 11; await api.connexion('autre@example.invalid', 'fictif'); assert.deepEqual(litLocal('notes-test', []), [])
+    assert.deepEqual(choixPersistes({ vue: 'invalide', tri: 'invalide' }), { vue: 'cartes', tri: 'cloture' })
+    assert.equal(litLocal('absent', 'défaut'), 'défaut')
+  })
+  await test('le lien partagé contient seulement l’identifiant de l’offre et conserve le mode démo', () => {
+    location.href = 'https://local/avp/?demo=1&token=confidentiel&email=prive'; const url = new URL(lienOffre(42)); assert.equal(url.searchParams.get('offre'), '42'); assert.equal(url.searchParams.get('demo'), '1'); assert.equal(url.searchParams.get('token'), null); assert.equal(url.searchParams.get('email'), null)
+    location.search = '?offre=42'; assert.equal(idOffrePartagee(), 42); location.search = '?offre=abc'; assert.equal(idOffrePartagee(), null); location.search = ''
+  })
+  await test('la recherche gère accents, expression exacte et exclusion', () => {
+    const o = offreDepuisAvp({ id: 1, titre: 'Chargé de clientèle', description: 'Accueil à Nouméa' })
+    assert.equal(resultats([o], { q: '"charge de clientele" noumea' }).length, 1)
+    assert.equal(resultats([o], { q: 'clientele -accueil' }).length, 0)
+  })
+  await test('la sélection de l’extraction n’intègre aucun champ décoché ni métadonnée', () => {
+    const extrait = { basics: { name: 'Fictif', phone: '123' }, skills: [{ name: 'Vente', keywords: ['A'] }, { name: 'Conseil' }], meta: { inconnu: true } }
+    assert.deepEqual(selectionneChamps(extrait, ['basics.name', 'skills.1.name']), { basics: { name: 'Fictif' }, skills: [{ name: 'Conseil' }] })
+  })
+  await test('une extraction changée depuis son aperçu est refusée sans écrire', async () => {
+    envois = []; genere = { skills: [{ name: 'Autre' }] }
+    await assert.rejects(api.valideLectureCV(['skills.0.name'], { skills: [{ name: 'Ancien' }] })); assert.equal(envois.length, 0)
+  })
+  await test('les compléments enrichissent le profil sans changer l’identité ni les critères', async () => {
+    doc = { basics: { name: 'Identité conservée' }, work: [{ name: 'Entreprise', position: 'Conseil', startDate: '2020' }], meta: { criteres: { zones: ['Nord'] } } }
+    await api.enregistreComplements({ basics: { label: 'Titre', summary: 'Résumé' }, work: [{ name: 'Entreprise', position: 'Conseil', highlights: ['Résultat'] }], projects: [{ name: 'Projet' }] })
+    assert.equal(doc.basics.name, 'Identité conservée'); assert.equal(doc.basics.label, 'Titre'); assert.equal(doc.work[0].startDate, '2020'); assert.deepEqual(doc.meta.criteres.zones, ['Nord'])
+  })
+  await test('la démonstration ne contacte aucun service métier et sépare ses données', async () => {
+    location.search = '?demo=1'; location.href = 'https://local/avp/?demo=1'
+    let appels = []
+    globalThis.fetch = async (url) => { appels.push(url); if (String(url).endsWith('referentiel.json')) return Response.json(ref); throw Error('Appel métier interdit en démo') }
+    const { activeDemo } = await charge('modeDemo'); activeDemo()
+    assert.equal((await api.moi()).id, 9900); const l = await api.deck(); assert.equal(l.length, 4)
+    await api.swipe(l[0].id, 'oui'); assert.equal((await api.interets()).length, 1); await api.profil()
+    await assert.rejects(api.oubli('fictif@example.invalid')); assert(appels.every((x) => String(x).endsWith('referentiel.json')))
   })
   console.log(`${nombre} tests de régression réussis.`)
 } finally { rmSync(temporaire, { recursive: true, force: true }) }

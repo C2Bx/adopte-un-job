@@ -1,0 +1,69 @@
+/* Upgrades MS3 après rendu : styles isolés de la version de référence. */
+.upgrade-rangee { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:12px 0; }
+.upgrade-haut { padding:20px 24px; border-bottom:1px solid var(--line); background:var(--surface); }
+.upgrade-commandes label,.upgrade-public label,.upgrade-enrichi label,.upgrade-carnet label { display:grid; gap:6px; margin:10px 0; color:var(--ink); }
+.upgrade-commandes select,.upgrade-commandes input,.upgrade-public input,.upgrade-public select,.upgrade-enrichi input,.upgrade-enrichi textarea,.upgrade-carnet input,.upgrade-carnet textarea,.upgrade-rangee select,.upgrade-rangee input { max-width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); font:inherit; }
+.upgrade-commandes summary,.upgrade-carnet summary,.upgrade-enrichi summary,.upgrade-comparateur summary { cursor:pointer; padding:12px 0; font-weight:700; }
+.upgrade-commandes input { min-width:0; }
+.upgrade-deck.screen { display:block; overflow:auto; }
+#ec-swipe.upgrade-deck > .stack { height:680px; min-height:550px; padding-top:16px; }
+#ec-swipe.upgrade-deck .filters { margin-top:0; }
+.app:has(#ec-swipe.upgrade-deck:not(.verrouille)) .topbar { position:relative; left:auto; right:auto; top:auto; grid-area:entete; padding:18px 24px; background:var(--bg); }
+.app:has(#ec-swipe.upgrade-deck:not(.verrouille)) { grid-template-areas:"rail entete" "rail corps"; }
+.upgrade-vue-liste > .stack { display:block!important; height:auto!important; min-height:0!important; padding:20px!important; }
+#ec-swipe.upgrade-vue-liste .zone-deck { min-height:0; }
+.upgrade-vue-liste .empty { position:relative; min-height:200px; }
+.upgrade-liste { display:grid; gap:16px; margin:16px 0; }
+.upgrade-liste article { border:1px solid var(--line); border-radius:14px; background:var(--surface); padding:20px; }
+.upgrade-liste h3 { margin:0 0 10px; color:var(--ink); }
+.upgrade-liste p { line-height:1.6; color:var(--ink-2); }
+.upgrade-reperes { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; font-size:.85em; }
+.upgrade-reperes span { padding:4px 8px; background:var(--surface-2); border:1px solid var(--line); border-radius:20px; }
+.upgrade-tableau { max-width:100%; overflow:auto; margin:16px 0; }
+.upgrade-tableau table { border-collapse:collapse; width:100%; min-width:650px; background:var(--surface); }
+.upgrade-tableau th,.upgrade-tableau td { text-align:left; vertical-align:top; padding:14px; border:1px solid var(--line); min-width:140px; line-height:1.5; }
+.upgrade-tableau caption { text-align:left; padding:10px 0; font-weight:700; }
+.upgrade-tableau td .btn-mini { margin:4px; }
+.upgrade-apercu { max-height:360px; overflow:auto; padding:12px; margin:12px 0; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; }
+.upgrade-apercu dl>div { padding:10px 0; border-bottom:1px solid var(--line); }
+.upgrade-apercu dt { font-weight:700; margin-bottom:6px; }
+.upgrade-apercu dd { margin:4px 0; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.5; }
+.upgrade-public { max-width:1100px; margin:0 auto; padding:28px 20px 80px; height:100dvh; overflow:auto; }
+.upgrade-public h1 { font-size:2rem; margin:12px 0; }
+.upgrade-enrichi,.upgrade-carnet { margin:18px 0; padding:12px; border:1px solid var(--line); border-radius:12px; }
+.upgrade-enrichi fieldset { margin:0; padding:0; border:0; min-width:0; }
+.upgrade-bloc { padding:14px; margin:12px 0; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; }
+.upgrade-sommaire { display:flex; flex-wrap:wrap; gap:8px; grid-column:1/-1; }
+.detail-offre details>summary { cursor:pointer; font-weight:700; padding:14px 0; }
+.upgrade-aide { position:relative; color:var(--ink); }
+.upgrade-aide>summary { cursor:pointer; padding:10px; font-weight:600; }
+.upgrade-aide[open] { position:absolute; z-index:50; top:10px; right:16px; width:min(92vw,540px); max-height:75dvh; overflow:auto; padding:18px; border:1px solid var(--line); border-radius:14px; background:var(--surface); box-shadow:0 12px 40px #0003; }
+.upgrade-aide p,.upgrade-aide li { line-height:1.65; margin:10px 0; }
+.upgrade-demo { position:fixed; z-index:80; bottom:0; left:92px; right:0; padding:8px 16px; background:#ffdf9a; color:#352500; font-size:13px; }
+.upgrade-evitement { position:fixed; z-index:200; top:0; left:110px; padding:14px; background:var(--surface); transform:translateY(-150%); }
+.upgrade-evitement:focus { transform:none; }
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+html[data-taille="grande"] { --t-sm:16px; --t-md:18px; --t-xs:14px; font-size:18px; }
+html[data-taille="tres-grande"] { --t-sm:18px; --t-md:20px; --t-xs:16px; font-size:20px; }
+html[data-densite="compacte"] .upgrade-liste article,html[data-densite="compacte"] .upgrade-tableau td,html[data-densite="compacte"] .upgrade-tableau th { padding:10px; }
+@media(max-width:719px) {
+  .app:has(#ec-swipe.upgrade-deck:not(.verrouille)) { grid-template-areas:none; }
+  .app:has(#ec-swipe.upgrade-deck:not(.verrouille)) .topbar { grid-area:auto; padding:10px 14px; }
+  .upgrade-haut { padding:14px; }
+  #ec-swipe.upgrade-deck > .stack { height:620px; }
+  #ec-swipe.upgrade-deck .filters.filtres-avp { display:flex; flex-wrap:wrap; padding:10px; }
+  .upgrade-commandes .upgrade-rangee>* { flex:1 1 150px; }
+  .upgrade-demo { left:0; bottom:64px; }
+  .upgrade-aide>summary { font-size:13px; padding:6px; }
+  .upgrade-rangee input { min-width:0; width:100%; }
+}
+@media(prefers-reduced-motion:reduce) { .upgrade-deck * { scroll-behavior:auto!important; } .spin { animation:none; } }
+
+.app:has(#ec-swipe.upgrade-deck) #ec-swipe .filters { margin-top:0; }
+
+.app:has(.upgrade-demo) .screen { padding-bottom:44px; }
+@media(max-width:719px) {
+  .upgrade-commandes .upgrade-rangee>* { flex:1 1 130px; min-width:0; }
+  .upgrade-commandes select { width:100%; min-width:0; }
+  .app:has(.upgrade-demo) .screen { padding-bottom:82px; }
+}

@@ -7,6 +7,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
 import { dateApi } from '../dates'
+import { useLocal } from './OutilsOffres'
+import { litLocal } from '../upgrade'
+import type { RepereOffre } from '../upgrade'
+import { ApercuDocument } from './RelectureDocument'
+import { manques } from '../regles'
 import { Detail, Feuille } from './Deck'
 import { PastilleAdequation } from './Adequation'
 import { useAdequations } from '../adequation'
@@ -91,6 +96,13 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
   const [mdp, setMdp] = useState('')
   const [reco, setReco] = useState(false)
   const large = useLarge()
+  const [q, setQ] = useLocal('recherche-candidatures', '')
+  const [statut, setStatut] = useState('tous')
+  const [tri, setTri] = useState('date')
+  const [, actualise] = useState(0)
+  const [validation, setValidation] = useState<{ offre: Interet; doc: Record<string, unknown>; cv: string | null } | null>(null)
+  const [action, setAction] = useState(false)
+  useEffect(() => { const ecoute = () => actualise((n) => n + 1); window.addEventListener('aj:upgrade-local', ecoute); return () => window.removeEventListener('aj:upgrade-local', ecoute) }, [])
 
   const charge = useCallback(async () => {
     try {
@@ -116,18 +128,39 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
     }
   }
 
-  const redecide = async (x: Interet, d: Onglet) => {
+  const executeDecision = async (x: Interet, d: Onglet) => {
+    if (action) return
+    setAction(true)
     try {
       await avantDecision()
       const r = await api.swipe(x.id, d)
       setInterets((l) => (l ?? []).map((y) => (y.id === x.id ? { ...y, decision: d, candidature: r.candidature ?? y.candidature } : y)))
     } catch (e) {
       setErreur(e instanceof ErreurApi ? e.message : 'La décision n’a pas été enregistrée.')
-    }
+    } finally { setAction(false) }
   }
 
 
-  const liste = (interets ?? []).filter((x) => x.decision === onglet)
+  const redecide = async (x: Interet, d: Onglet) => {
+    if (action) return
+    if (d !== 'oui') { await executeDecision(x, d); return }
+    setAction(true); setErreur(null)
+    try {
+      await avantDecision()
+      if (manques(await api.profil()).length) throw new Error('Complète ton profil avant de candidater.')
+      if (!litLocal('confirmer-candidature', true)) { setAction(false); await executeDecision(x, d); return }
+      const [doc, fichiers] = await Promise.all([api.exporteProfil(), api.cvs()])
+      setValidation({ offre: x, doc, cv: fichiers.actif?.nom ?? null })
+    } catch (e) { setErreur(e instanceof Error ? e.message : 'Le récapitulatif est indisponible.') }
+    finally { setAction(false) }
+  }
+
+  const normalise = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const liste = (interets ?? []).filter((x) => {
+    const local = litLocal<RepereOffre>(`offre.${x.id}`, { note: '', etiquettes: '' })
+    return x.decision === onglet && (statut === 'tous' || x.candidature?.equipe === statut)
+      && normalise(`${x.titre} ${x.reference ?? ''} ${local.note} ${local.etiquettes}`).includes(normalise(q))
+  }).sort((a, b) => tri === 'titre' ? a.titre.localeCompare(b.titre, 'fr') : tri === 'statut' ? (a.candidature?.equipe ?? '').localeCompare(b.candidature?.equipe ?? '') : tri === 'etiquettes' ? litLocal<RepereOffre>(`offre.${a.id}`, { note: '', etiquettes: '' }).etiquettes.localeCompare(litLocal<RepereOffre>(`offre.${b.id}`, { note: '', etiquettes: '' }).etiquettes, 'fr') : dateApi(b.quand) - dateApi(a.quand))
   const compte = (d: Onglet) => (interets ?? []).filter((x) => x.decision === d).length
 
   // Sur grand écran, une ligne est toujours détaillée : un panneau vide à côté
@@ -144,6 +177,11 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
           réponse s’affiche ici. Ce que tu as écarté ou mis de côté reste ici, révocable.
         </p>
 
+        <div className="upgrade-rangee"><label>Rechercher dans mes offres et mes notes <input type="search" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+          <label>Réponse reçue <select value={statut} onChange={(e) => setStatut(e.target.value)}><option value="tous">Toutes</option><option value="EN_ATTENTE">En attente</option><option value="VALIDEE">Retenue</option><option value="REJETEE">Non retenue</option><option value="ANNULEE">Annulée</option></select></label>
+          <label>Ordre <select value={tri} onChange={(e) => setTri(e.target.value)}><option value="date">Décision récente</option><option value="titre">Titre</option><option value="statut">Statut reçu</option><option value="etiquettes">Étiquettes personnelles</option></select></label>
+          <button className="btn-mini" onClick={() => { setErreur(null); void charge() }}>Actualiser</button>
+        </div>
         {erreur && <div className="pal manque"><b>Problème</b>{erreur}</div>}
 
         {!synchro && (interets ?? []).some((x) => x.candidature) && (
@@ -232,7 +270,7 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
                     : <>
                           <button className="fort" onClick={() => void reviens(x)}>{x.decision === 'oui' ? 'Annuler et remettre dans le deck' : 'Remettre dans le deck'}</button>
                           {ONGLETS.filter((o) => o.cle !== x.decision && x.statut !== 'close').map((o) => (
-                            <button key={o.cle} onClick={() => void redecide(x, o.cle)}>
+                            <button key={o.cle} disabled={action} onClick={() => void redecide(x, o.cle)}>
                               {o.cle === 'oui' ? 'Candidater' : o.cle === 'non' ? 'Écarter' : 'Plus tard'}
                             </button>
                           ))}
@@ -268,6 +306,14 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
           </div>
         </Feuille>
       )}
+      {validation && <Feuille onFermer={() => setValidation(null)}>
+        <h2>Relire avant de candidater</h2><h3>{validation.offre.titre}</h3>
+        <p>Document CV : {validation.cv ?? 'Aucun document déposé'}</p>
+        <ApercuDocument document={validation.doc} />
+        <p>Le profil enregistré est utilisé par l’API existante ; ce récapitulatif n’est pas une copie figée chez le recruteur.</p>
+        <button className="btn primaire" disabled={action} onClick={() => { const x = validation.offre; setValidation(null); void executeDecision(x, 'oui') }}>Confirmer ma candidature</button>
+        <button className="btn" onClick={() => setValidation(null)}>Annuler</button>
+      </Feuille>}
     </div>
   )
 }

@@ -73,7 +73,8 @@ function texte(o: Offre): string {
 function passe(o: Offre, f: Filtres, sauf?: Categorie): boolean {
   if (f.q) {
     const t = texte(o)
-    if (!plat(f.q).split(/\s+/).filter(Boolean).every((m) => t.includes(m))) return false
+    const termes = plat(f.q).match(/-?"[^"]+"|\S+/g) ?? []
+    if (!termes.every((mot) => { const exclu = mot.startsWith('-'); const valeur = (exclu ? mot.slice(1) : mot).replace(/^"|"$/g, ''); return !valeur || (exclu ? !t.includes(valeur) : t.includes(valeur)) })) return false
   }
   for (const { cle } of CATEGORIES) {
     const choisis = f[cle]

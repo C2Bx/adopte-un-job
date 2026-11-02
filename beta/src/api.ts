@@ -16,7 +16,7 @@
    protégé (`relais.php`). Le jour où il le fera, DIRECT = true. */
 
 import { ErreurApi } from './types'
-import { valideJsonResume, completeDepuisExtraction } from './jsonResume'
+import { valideJsonResume, completeDepuisExtraction, selectionneChamps } from './jsonResume'
 import type {
   CompetenceOpt, CvInfo, Interet, MetierOpt, Offre, Profil, ProfilEnvoi,
   Referentiels, StatutCandidature, StatutEquipe, Utilisateur,
@@ -92,6 +92,7 @@ interface Options {
 }
 
 async function brut(methode: string, chemin: string, o: Options = {}): Promise<Response> {
+  if (new URLSearchParams(location.search).get('demo') === '1') throw new Error('Cette action est indisponible dans la démo fictive.')
   const entetes: Record<string, string> = { Accept: 'application/json' }
   const sessionAppel = o.anonyme ? null : moiSession()
   if (sessionAppel) entetes['Authorization'] = `Bearer ${sessionAppel.jeton}`
@@ -195,7 +196,7 @@ function zone(ville: string | null, province: string | null): string {
   const p = (province ?? '').toLowerCase()
   if (p.includes('nord')) return 'Nord'
   if (p.includes('îles') || p.includes('iles') || p.includes('loyaut')) return 'Îles'
-  return 'Sud'
+  return p.includes('sud') ? 'Sud' : 'Non renseigné'
 }
 
 function formationDepuisTexte(t: string): number | null {
@@ -215,7 +216,7 @@ function joursAvant(date: string | null): number | null {
 }
 
 /** Une offre de leur API, dans la forme que les écrans connaissent. */
-function offreDepuisAvp(a: AvpEquipe): Offre {
+export function offreDepuisAvp(a: AvpEquipe): Offre {
   const ville = texte(a.ville)
   const province = texte(a.province)
   const libres = (a.informationsLibres ?? []).map((i) => `${i.cle ?? ''} ${i.valeur ?? ''}`).join(' ')
@@ -406,7 +407,7 @@ const NIVEAUX_LIB = ['Bac', 'Bac+2', 'Bac+3', 'Bac+5']
 const CECRL = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
 
 /** Leur JSON (JSON Resume) → le profil des écrans. Tolérant : un champ absent reste vide. */
-function profilDepuisDocument(doc: Json, ref: RefStatique): Profil {
+export function profilDepuisDocument(doc: Json, ref: RefStatique): Profil {
   const b = objet(doc.basics)
   const c = objet(objet(doc.meta).criteres)
   const morceaux = String(b.name ?? '').trim().split(/\s+/).filter(Boolean)
@@ -500,7 +501,7 @@ function fusionne(anciens: Json[], nouveaux: Json[], cle: (x: Json) => string): 
 }
 
 /** Le profil des écrans → leur JSON, écrit par-dessus le dernier lu (aucun champ inconnu perdu). */
-function documentDepuisProfil(p: ProfilEnvoi, competencesOpt: CompetenceOpt[], email: string, base: Json): Json {
+export function documentDepuisProfil(p: ProfilEnvoi, competencesOpt: CompetenceOpt[], email: string, base: Json): Json {
   const b = objet(base.basics)
   const meta = objet(base.meta)
   const resume = typeof b.summary === 'string' && !b.summary.startsWith('Métiers visés : ') ? b.summary : undefined
@@ -672,6 +673,7 @@ function avecRangs(l: ResultatMatching[]): Map<string, Adequation> {
 
 /* Un seul calcul par version du profil, partagé par tous les écrans (3 à 4 s
    pour toutes les offres). Un échec n'est pas gardé : on réessaiera. */
+const detailsCache = new Map<string, { quand: number; detail: DetailAdequation }>()
 let adequationsCache: { cle: string; quand: number; p: Promise<Map<string, Adequation>> } | null = null
 
 /* ==================================================================== api */
@@ -680,6 +682,38 @@ const NON_DISPONIBLE = (quoi: string) =>
   Promise.reject(new ErreurApi('non_disponible', `${quoi} n’existe pas dans l’API de l’équipe.`, 501))
 
 export const api = {
+  async offresPubliques(): Promise<Offre[]> { return offres() },
+  async apercuLectureCV(): Promise<{ courant: Json; extrait: Json }> {
+    const courant = await lisProfilEquipe()
+    return { courant, extrait: dernierGenere }
+  },
+  async valideLectureCV(choix: string[], extraitAttendu: Json): Promise<void> {
+    if (!choix.length) throw new Error('Choisis au moins un champ à intégrer.')
+    await ecritureProfil(async () => {
+      const courant = await lisProfilEquipe()
+      if (JSON.stringify(dernierGenere) !== JSON.stringify(extraitAttendu)) throw new Error('La lecture du CV a changé. Recharge son aperçu avant de valider.')
+      const lu = selectionneChamps(dernierGenere, choix)
+      const fusion = completeDepuisExtraction(courant, lu)
+      await envoieDocument({ ...fusion, meta: { ...objet(fusion.meta), lectureCv: { le: new Date().toISOString() }, source: 'saisie-validee' } })
+    })
+  },
+  async enregistreComplements(doc: Json): Promise<Profil> {
+    valideJsonResume(doc)
+    return ecritureProfil(async () => {
+      const courant = await lisProfilEquipe()
+      const b = objet(doc.basics)
+      const work = tableau(courant.work).map((w) => {
+        const edit = tableau(doc.work).find((x) => x.position === w.position && x.name === w.name)
+        return edit ? { ...w, ...(edit.summary !== undefined ? { summary: edit.summary } : {}), ...(edit.highlights !== undefined ? { highlights: edit.highlights } : {}) } : w
+      })
+      const complement: Json = {}
+      for (const k of ['projects', 'certificates', 'volunteer']) if (k in doc) complement[k] = doc[k]
+      const presentation = { ...objet(courant.basics) }
+      for (const k of ['label', 'summary', 'profiles']) if (k in b) presentation[k] = b[k]
+      await envoieDocument({ ...courant, ...complement, basics: presentation, work })
+      return api.profil()
+    })
+  },
   /* ------------------------------------------------------------- comptes */
   async inscription(email: string, motdepasse: string, prenom: string, nom: string, agentOpt: boolean): Promise<Utilisateur> {
     await appel('POST', '/auth/register', {
@@ -711,6 +745,7 @@ export const api = {
     dernierDoc = {}
     dernierGenere = {}
     adequationsCache = null
+    detailsCache.clear()
     return { id: j.sub, email: email.trim().toLowerCase(), comptesModifiables: false }
   },
   async deconnexion() {
@@ -718,6 +753,7 @@ export const api = {
     dernierDoc = {}
     dernierGenere = {}
     adequationsCache = null
+    detailsCache.clear()
     offreDeCandidature.clear()
   },
   async moi(): Promise<Utilisateur | null> {
@@ -833,18 +869,9 @@ export const api = {
       }
       throw e
     }
-    // Relire au dernier moment : une saisie faite pendant le traitement reste prioritaire.
-    await ecritureProfil(async () => {
-      const courant = await lisProfilEquipe()
-      const lu = dernierGenere
-      valideJsonResume(lu)
-      const fusion = completeDepuisExtraction(courant, lu)
-      await envoieDocument({ ...fusion, meta: {
-        ...objet(fusion.meta),
-        lectureCv: { le: new Date().toISOString() },
-        source: parcoursVide(courant) ? 'extraction' : objet(courant.meta).source ?? 'saisie',
-      } })
-    })
+    await lisProfilEquipe()
+    valideJsonResume(dernierGenere)
+    // Après rendu : l’extraction est présentée avant toute écriture du profil validé.
     return true
   },
   /**
@@ -874,6 +901,9 @@ export const api = {
   async detailAdequation(reference: string): Promise<DetailAdequation | null> {
     const cv = cvPourMatching(await documentCourant())
     if (!cv) return null
+    const cle = JSON.stringify([reference, cv])
+    const precedent = detailsCache.get(cle)
+    if (precedent && Date.now() - precedent.quand < 5 * 60_000) return precedent.detail
     type Preuve = { attendu: string; phrase_cv?: string | null; note?: number; points?: number }
     try {
       const d = await appel<{ points_forts?: Preuve[]; a_verifier?: Preuve[]; savoir_etre?: Preuve[]; prerequis?: Prerequis[] }>(
@@ -887,13 +917,16 @@ export const api = {
       const manquantes = (d?.a_verifier ?? []).map((x) => ({
         attendu: x.attendu, note: note(x), poids: Number(x.points ?? 0), couverte: false, preuve: null,
       })).sort((a, b) => b.poids - a.poids)
-      return {
+      const detail: DetailAdequation = {
         competences: [...couvertes, ...manquantes],
         savoirEtre: (d?.savoir_etre ?? []).map((x) => ({ attendu: x.attendu, note: note(x) })),
         prerequis: (d?.prerequis ?? []).map((x) => ({
           prerequis: x.prerequis, statut: x.statut, motif: x.motif ?? null, obligatoire: x.obligatoire !== false,
         })),
       }
+      if (detailsCache.size >= 50) detailsCache.clear()
+      detailsCache.set(cle, { quand: Date.now(), detail })
+      return detail
     } catch {
       return null
     }

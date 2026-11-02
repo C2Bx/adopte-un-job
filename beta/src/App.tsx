@@ -14,6 +14,7 @@ import { EcranProfil } from './ecrans/Profil'
 import { EcranDeck } from './ecrans/Deck'
 import { EcranMatchs } from './ecrans/Matchs'
 import { BoutonTheme } from './theme'
+import { Aide } from './ecrans/Aide'
 
 export type Onglet = 'swipe' | 'interets' | 'profil'
 
@@ -223,6 +224,8 @@ export function App() {
 
   return (
     <div className="app">
+      <a href="#ec-swipe" className="upgrade-evitement" onClick={(e) => { const cible = document.querySelector<HTMLElement>('.screen'); if (cible) { e.preventDefault(); cible.tabIndex = -1; cible.focus() } }}>Aller au contenu</a>
+      {new URLSearchParams(location.search).get('demo') === '1' && <div className="upgrade-demo" role="status">Démonstration fictive — aucune candidature ni donnée envoyée aux services de l’équipe. <a href={import.meta.env.BASE_URL}>Quitter la démo</a></div>}
       <header className="topbar">
         {/* Le logo porte déjà le nom : l'écrire une seconde fois à côté ferait
             doublon. L'alt le rend au lecteur d'écran. */}
@@ -233,6 +236,7 @@ export function App() {
             alt="" aria-hidden="true" className="logo logo-nuit" width={168} height={36} />
         </span>
         <span className="spacer" />
+        <Aide />
         {/* Sur téléphone, la recherche et les filtres vivent ici (là où était la
             déconnexion, désormais seulement dans le menu du bas) : une loupe qui
             ouvre la recherche, un entonnoir qui ouvre les filtres. Le deck écoute

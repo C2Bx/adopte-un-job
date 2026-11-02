@@ -10,6 +10,10 @@ import type { Adequation, CompteurOffres } from '../api'
 import { useAdequations } from '../adequation'
 import { BlocAdequation, PastilleAdequation } from './Adequation'
 import { manques } from '../regles'
+import { CommandesOffres, ListeOffres, Comparateur, CarnetOffre, useLocal } from './OutilsOffres'
+import { choixPersistes, idOffrePartagee, limiteComparaison, trieOffres } from '../upgrade'
+import type { VueOffres, TriOffres } from '../upgrade'
+import { ApercuDocument } from './RelectureDocument'
 import { Attente } from '../Attente'
 import { ErreurApi } from '../types'
 import type { Offre, Profil } from '../types'
@@ -131,8 +135,29 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
   const [enCours, setEnCours] = useState(false)
   const [envoyee, setEnvoyee] = useState<Offre | null>(null)
   const [detail, setDetail] = useState<Offre | null>(null)
-  const [filtres, setFiltres] = useState<Filtres>({})
-  const [recherche, setRecherche] = useState('')
+  const [filtres, setFiltres, erreurStockage] = useLocal<Filtres>('filtres', {})
+  const [recherche, setRecherche] = useState(filtres.q ?? '')
+  const [presentation, setPresentation] = useLocal('presentation', choixPersistes(null))
+  const { vue, tri } = choixPersistes(presentation)
+  const changeVue = (v: VueOffres) => setPresentation({ vue: v, tri })
+  const changeTri = (t: TriOffres) => setPresentation({ vue, tri: t })
+  const [selection, setSelection] = useState<number[]>([])
+  const [validation, setValidation] = useState<{ offre: Offre; doc: Record<string, unknown>; cv: string | null } | null>(null)
+  const [preparation, setPreparation] = useState(false)
+  const [confirmer, setConfirmer] = useLocal('confirmer-candidature', true)
+  const [partageErreur, setPartageErreur] = useState('')
+  useEffect(() => {
+    const id = idOffrePartagee()
+    if (id === null) return
+    let actif = true
+    void api.offresPubliques().then((l) => {
+      if (!actif) return
+      const offre = l.find((o) => o.id === id)
+      if (offre) setDetail(offre)
+      else setPartageErreur('Cette offre n’est plus disponible dans la liste actuelle.')
+    }).catch(() => { if (actif) setPartageErreur('L’offre partagée n’a pas pu être chargée. Réessaie plus tard.') })
+    return () => { actif = false }
+  }, [])
   // le panneau des filtres (une feuille, sur téléphone comme sur ordinateur)
   const [panneauFiltres, setPanneauFiltres] = useState(false)
   // sur téléphone, la recherche s'ouvre en feuille depuis la loupe de la barre du haut
@@ -162,7 +187,6 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
   const aCombler = manques(profil)
 
   const charge = useCallback(async (clos: boolean) => {
-    if (aCombler.length) { setToutes([]); return }
     setErreur(null)
     try {
       setToutes(await api.deck(clos))
@@ -170,12 +194,12 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
       setToutes([])
       setErreur(e instanceof ErreurApi ? e.message : 'Le deck n’a pas pu être chargé.')
     }
-  }, [aCombler.length])
+  }, [])
 
   // on ne recharge que si le jeu change (ouvertes ↔ closes) ; le reste filtre sur place
   useEffect(() => { void charge(Boolean(filtres.clos)) }, [charge, filtres.clos])
 
-  const offres = useMemo(() => (toutes ? resultats(toutes, filtres) : null), [toutes, filtres])
+  const offres = useMemo(() => (toutes ? trieOffres(resultats(toutes, filtres), tri, adequations) : null), [toutes, filtres, tri, adequations])
   const comptes = useMemo(() => (toutes ? compteurs(toutes, filtres) : null), [toutes, filtres])
 
   // La recherche part quand la frappe s'arrête, pas à chaque lettre.
@@ -197,41 +221,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
     }
   }, [courante])
 
-  if (aCombler.length) {
-    return (
-      <div className="screen verrouille" id="ec-swipe">
-        <div className="stack">
-          <div className="zone-deck">
-            <div className="empty verrou">
-              <div>
-                <svg className="v-cadenas" aria-hidden="true"><use href="#i-lock" /></svg>
-                <h2>Le deck s’ouvre avec ton profil</h2>
-                <p>
-                  Il reste {aCombler.length} information{aCombler.length > 1 ? 's' : ''} à
-                  renseigner. Quand tu candidates, c’est ton profil que le recruteur
-                  lit : sans elles, ta candidature arriverait vide.
-                </p>
-                <ul className="v-liste">
-                  {aCombler.map((m) => (
-                    <li key={m.cle}>
-                      <button type="button" onClick={() => versProfil(m.etape)}>{m.libelle}</button>
-                    </li>
-                  ))}
-                </ul>
-                <div className="v-actions">
-                  <button className="btn primaire" onClick={() => versProfil(aCombler[0]!.etape)}>
-                    Compléter mon profil
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const decide = async (o: Offre, decision: Decision) => {
+  const envoieDecision = async (o: Offre, decision: Decision) => {
     if (o.statut === 'close') return
     setEnCours(true)
     // On retire la carte tout de suite : attendre le réseau pour la faire
@@ -250,6 +240,19 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
     } finally {
       setEnCours(false)
     }
+  }
+
+  const decide = async (o: Offre, decision: Decision) => {
+    if (enCours || preparation || o.statut === 'close') return
+    if (decision === 'oui' && aCombler.length) { versProfil(aCombler[0]!.etape); return }
+    if (decision !== 'oui' || !confirmer) { await envoieDecision(o, decision); return }
+    setPreparation(true); setErreur(null)
+    try {
+      await avantDecision()
+      const [doc, fichiers] = await Promise.all([api.exporteProfil(), api.cvs()])
+      setValidation({ offre: o, doc, cv: fichiers.actif?.nom ?? null })
+    } catch (e) { setErreur(e instanceof Error ? e.message : 'Le récapitulatif n’a pas pu être préparé.') }
+    finally { setPreparation(false) }
   }
 
   const reviens = async () => {
@@ -272,7 +275,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
   clavier.current = (e: KeyboardEvent) => {
     const cible = e.target as HTMLElement | null
     if (cible?.closest('input, textarea, select, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return
-    if (!courante || courante.statut === 'close' || enCours || detail || envoyee || panneauFiltres || rechercheOuverte) return
+    if (!courante || courante.statut === 'close' || enCours || preparation || validation || vue !== 'cartes' || detail || envoyee || panneauFiltres || rechercheOuverte) return
     if (e.key === 'ArrowRight') { e.preventDefault(); void decide(courante, 'oui') }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); void decide(courante, 'non') }
     else if (e.key === 'ArrowDown') { e.preventDefault(); void decide(courante, 'plus_tard') }
@@ -284,7 +287,16 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
   const toutEffacer = () => { setFiltres(efface); setRecherche('') }
 
   return (
-    <div className="screen" id="ec-swipe">
+    <div className={`screen upgrade-deck ${vue !== 'cartes' ? 'upgrade-vue-liste' : ''}`} id="ec-swipe">
+      <div className="upgrade-haut">
+        <CommandesOffres vue={vue} tri={tri} changeVue={changeVue} changeTri={changeTri} filtres={filtres}
+          changeFiltres={(f) => { setFiltres(f); setRecherche(f.q ?? '') }} />
+        <label><input type="checkbox" checked={confirmer} onChange={(e) => setConfirmer(e.target.checked)} /> Relire mon dossier avant chaque candidature</label>
+        {aCombler.length > 0 && <p>Tu peux consulter les offres. <button className="btn-mini" onClick={() => versProfil(aCombler[0]!.etape)}>Compléter mon profil avant de candidater</button></p>}
+        {(erreurStockage || partageErreur) && <p role="status">{partageErreur || 'Les filtres ne peuvent pas être conservés dans ce navigateur.'}</p>}
+        {toutes && <Comparateur offres={toutes} scores={adequations} selection={selection} change={setSelection} />}
+        {erreur && <div role="alert" className="pal manque">{erreur}<button className="btn-mini" onClick={() => void charge(Boolean(filtres.clos))}>Réessayer le chargement</button></div>}
+      </div>
       <div className="stack">
         <div className="filters filtres-avp" ref={barreFiltres}>
           <input
@@ -321,18 +333,20 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
             </div>
           )}
 
-          {suivante && (
+          {vue !== 'cartes' && offres && <ListeOffres offres={offres} scores={adequations} tableau={vue === 'tableau'} ouvrir={setDetail}
+            comparer={(id) => setSelection(limiteComparaison(selection, id))} selection={selection} />}
+          {vue === 'cartes' && suivante && (
             <Carte key={`bg-${suivante.id}`} offre={suivante} profondeur={1} profil={profil} />
           )}
 
-          {courante && (
+          {vue === 'cartes' && courante && (
             <Carte
               key={courante.id}
               offre={courante}
               profondeur={0}
               profil={profil}
               peutRevenir={Boolean(dernier)}
-              occupe={enCours}
+              occupe={enCours || preparation}
               onDetail={() => { setDetail(courante); void api.vue(courante.id, 'detail') }}
               onDecide={courante.statut === 'close' ? undefined : (d) => void decide(courante, d)}
               onRetour={() => void reviens()}
@@ -341,12 +355,19 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
           )}
         </div>
 
-        {courante && <Panneau offre={courante} profil={profil} adequation={adequationDe(courante)} />}
+        {vue === 'cartes' && courante && <Panneau offre={courante} profil={profil} adequation={adequationDe(courante)} />}
       </div>
 
       {detail && (
         <Feuille onFermer={() => setDetail(null)}>
           <Detail offre={detail} profil={profil} adequation={adequationDe(detail)} />
+          <div className="upgrade-rangee">
+            <button className="btn-mini" disabled={selection.length >= 3 && !selection.includes(detail.id)} onClick={() => setSelection(limiteComparaison(selection, detail.id))}>{selection.includes(detail.id) ? 'Retirer du comparateur' : 'Comparer cette offre'}</button>
+            {detail.statut !== 'close' && <>
+              <button className="btn primaire" disabled={enCours || preparation} onClick={() => { const o = detail; setDetail(null); void decide(o, 'oui') }}>Candidater</button>
+              <button className="btn-mini" disabled={enCours || preparation} onClick={() => { const o = detail; setDetail(null); void decide(o, 'plus_tard') }}>Plus tard</button>
+            </>}
+          </div>
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
             <button className="btn primaire" onClick={() => setDetail(null)}>Fermer</button>
           </div>
@@ -379,13 +400,24 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
         </Feuille>
       )}
 
+      {validation && <Feuille onFermer={() => setValidation(null)}>
+        <h2>Relire avant de candidater</h2><h3>{validation.offre.titre}</h3>
+        <p>{validation.offre.reference} · clôture : {validation.offre.expire?.slice(0, 10) ?? 'non renseignée'}</p>
+        <p>Ton profil enregistré actuellement sera utilisé par l’API de l’équipe. Relis-le avant de confirmer.</p>
+        <p>Document CV : {validation.cv ?? 'Aucun document déposé'}</p>
+        <ApercuDocument document={validation.doc} />
+        <p className="pa">Ce récapitulatif n’est pas une copie figée du dossier chez les recruteurs.</p>
+        <button className="btn primaire" disabled={enCours} onClick={() => { const o = validation.offre; setValidation(null); void envoieDecision(o, 'oui') }}>Confirmer ma candidature</button>
+        <button className="btn" onClick={() => setValidation(null)}>Annuler</button>
+      </Feuille>}
       {envoyee && (
         <Feuille onFermer={() => setEnvoyee(null)}>
-          <div className="eyebrow">Candidature envoyée</div>
+          <div className="eyebrow">{new URLSearchParams(location.search).get('demo') === '1' ? 'Candidature simulée' : 'Candidature envoyée'}</div>
           <h2>C’est parti</h2>
           <p className="qui">
-            Ta candidature pour <b>{envoyee.titre}</b> est chez le recruteur : il lit ton profil
-            et ton CV. Tu suis sa réponse dans « Candidatures ».
+            {new URLSearchParams(location.search).get('demo') === '1'
+              ? <>Simulation pour <b>{envoyee.titre}</b> : aucun dossier n’a été envoyé. Le résultat reste dans cette démonstration.</>
+              : <>Ta candidature pour <b>{envoyee.titre}</b> est chez le recruteur : il lit ton profil et ton CV. Tu suis sa réponse dans « Candidatures ».</>}
           </p>
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
             <button className="btn primaire" onClick={() => setEnvoyee(null)}>Continuer</button>
@@ -1038,13 +1070,19 @@ export function EnBref({ offre: o }: { offre: Offre }) {
 export function Detail({ offre: o, profil, adequation }: { offre: Offre; profil?: Profil; adequation?: Adequation }) {
   return (
     <div className="detail-offre">
+      <nav className="upgrade-sommaire" aria-label="Rubriques de l’offre">
+        <button className="btn-mini" onClick={(e) => e.currentTarget.closest('.detail-offre')?.querySelector('[data-rubrique="poste"]')?.scrollIntoView({ block: 'start', behavior: 'instant' })}>Le poste</button>
+        <button className="btn-mini" onClick={(e) => e.currentTarget.closest('.detail-offre')?.querySelector('[data-rubrique="conditions"]')?.scrollIntoView({ block: 'start', behavior: 'instant' })}>Conditions et prérequis</button>
+        <button className="btn-mini" onClick={(e) => e.currentTarget.closest('.detail-offre')?.querySelector('[data-rubrique="contact"]')?.scrollIntoView({ block: 'start', behavior: 'instant' })}>Contact</button>
+      </nav>
       <div className="do-principal">
         <BlocEntete offre={o} profil={profil} adequation={adequation} />
         <BlocAdequation offre={o} adequation={adequation} />
-        <BlocPoste offre={o} profil={profil} />
-        <BlocContact offre={o} />
+        <details open data-rubrique="poste"><summary>Missions et compétences attendues</summary><BlocPoste offre={o} profil={profil} /></details>
+        <div data-rubrique="contact"><BlocContact offre={o} /></div>
+        <CarnetOffre key={o.id} offre={o} />
       </div>
-      <EnBref offre={o} />
+      <div data-rubrique="conditions"><EnBref offre={o} /></div>
     </div>
   )
 }

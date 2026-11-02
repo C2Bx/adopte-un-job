@@ -175,7 +175,12 @@ export function BlocAdequation({ offre: o, adequation: a }: { offre: Offre; adeq
         </div>
       </div>
 
-      {!a.fiable && a.avertissement && <p className="adq-avert">{a.avertissement}</p>}
+      {(!a.fiable || a.avertissement) && <p className="adq-avert" role="status">{a.avertissement ?? 'Résultat à interpréter avec prudence : les informations disponibles sont insuffisantes.'}</p>}
+      <details className="upgrade-explication"><summary>Comment lire cette adéquation ?</summary>
+        <p>Le pourcentage et les preuves sont fournis par CV-Matching. Ils décrivent les compétences retrouvées dans le profil ; ce n’est pas une probabilité d’embauche.</p>
+        <p>Les compétences couvertes, les écarts et les prérequis sont distincts. Un prérequis marqué « à vérifier » n’est pas confirmé par le score. Le salaire souhaité et les préférences locales ne modifient pas ce résultat.</p>
+        <p>Si une preuve est inexacte, relis les expériences et compétences de ton profil. Aucun nouveau calcul n’est effectué par cette interface.</p>
+      </details>
 
       {detail === undefined && <p className="adq-attente">Calcul du détail, compétence par compétence…</p>}
       {detail && detail.competences.length > 0 && <Barres liste={detail.competences} />}

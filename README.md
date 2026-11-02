@@ -9,15 +9,18 @@ l'Université de la Nouvelle-Calédonie.
 
 📰 **L'article de présentation** (dev.to, track *SaaS no limit*) : https://dev.to/c2b/adopte-un-job-on-swipe-les-vrais-postes-de-lopt-nc-et-on-voit-pourquoi-ils-nous-correspondent-48pc
 
-## État de la version
+## Upgrades et améliorations après rendu — version 0.2.0
 
-La stabilisation du **27 octobre 2026** est intégrée aux sources. La compilation et les
-25 tests et contrôles locaux passent ; le contrôle npm ne signale aucune vulnérabilité
-au moment de cette vérification. Cette version n’est **pas encore déployée** sur le site.
-Le fonctionnement complet avec les services de l’équipe reste à valider après publication.
+**La version du rendu et les améliorations ultérieures sont distinguées.**
 
-Les opérations de mise en ligne sont décrites plus bas. Les décisions encore ouvertes
-ne sont pas présentées comme des fonctionnalités livrées.
+- **Référence avant la fin du rendu :** `b823f58`, 20 octobre 2026.
+- **Stabilisation après audit :** `16c3bb0`, 27 octobre 2026.
+- **Upgrades MS3 :** version `0.2.0`, 27 octobre 2026, développée après le rendu.
+
+Les nouveaux outils sont décrits dans [Upgrades après rendu](docs/UPGRADES-APRES-RENDU.md)
+et [l'historique](CHANGELOG.md). Ils utilisent les routes déjà disponibles : aucune API serveur
+ajoutée et aucun travail demandé aux autres groupes. La présence dans Git ne signifie pas que
+le site de production a été redéployé.
 
 ## Une interface, rien d'autre
 
@@ -58,8 +61,8 @@ dans ce dépôt : ils appartiennent à MS5 et MS4. L'application **affiche** l'a
 CV-Matching ; elle ne la calcule pas.
 
 **La lecture du CV préserve la saisie.** Le traitement de Florian range sa lecture à part
-(`cvJsonGenere`). L'interface le lance si le parcours est vide, puis relit le profil avant
-de compléter les champs absents, en préservant l'identité et les métadonnées déjà saisies.
+(`cvJsonGenere`). L'interface le lance si le parcours est vide, présente un aperçu sélectionnable, puis relit
+le profil avant d'intégrer les champs validés dans les absences, en préservant la saisie.
 Les écritures de cet onglet sont sérialisées. Une garantie atomique entre plusieurs appareils
 nécessiterait un contrat de version côté MS2.
 
@@ -110,6 +113,7 @@ npm run build      # dist/ : à déposer tel quel sous /avp/
 ## L'interface en bref
 
 - **Accueil** : inscription (avec « Es-tu déjà agent de l'OPT-NC ? », transmis à leur API), connexion, mot de passe oublié, nombre de postes ouverts en ce moment.
+- **Consultation après rendu** : cartes, liste ou tableau ; tris, recherches mémorisées, comparaison, liens et notes locales. Consultation des offres sans compte depuis l’accueil.
 - **Swipe** : sur grand écran, filtres et détail de l'offre à gauche (65 %), carte à droite (35 %) sur toute la hauteur ; on glisse depuis n'importe quel point de la carte. Sur téléphone, recherche et filtres dans la barre du haut. Carte claire, bordure et détails bleu sombre, touches orange (direction artistique « a » de la maquette).
 - **Adéquation** : pastille « Bonne adéquation · 42 % » sur la carte, et dans le détail (aussi sur téléphone) un tableau de bord : jauge, compétences couvertes, rang de l'offre parmi toutes, savoir-être, prérequis, et la note de chaque compétence ; une info-bulle claire donne la preuve tirée du profil ou ce que la compétence pèse dans le score.
 - **Couleurs de l'adéquation** : le niveau donné par CV-Matching colore la pastille, la jauge et le liseré — vert pour *excellente* (≥ 75 %) et *très bonne* (≥ 50 %), bleu pour *bonne* (≥ 33 %), ambre pour *partielle* (≥ 20 %), rouge pour *faible*. Indicateurs teintés (couvertes vert, rang bleu, savoir-être orange, prérequis ambre), barres vertes (couverte) ou orange (à travailler), savoir-être en pastilles orangées, statut des prérequis en couleur. Tout passe par les jetons du thème : la nuit suit.
@@ -157,7 +161,7 @@ Les préférences accompagnent le profil ; elles ne filtrent pas automatiquement
 modifient pas le score de compétences. Les filtres du deck restent explicites.
 Les compétences OPT participent à la complétude ; une date d’expérience vidée reste effacée.
 Une information d’offre absente reste non renseignée. Les archives sont en lecture seule.
-Les feuilles gèrent le focus, la fermeture par Échap et le retour au déclencheur.
+Les feuilles gèrent le focus, la fermeture par Échap et le retour au déclencheur. Cette section décrit la stabilisation ; les ajouts 0.2.0 sont recensés séparément dans la documentation Upgrades.
 
 ### Protection du matching
 
