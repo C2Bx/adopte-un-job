@@ -41,3 +41,10 @@ aucun changement demandé à MS1/MS2/MS4/MS5/MS6/MS7. Détail et limites :
 
 La disponibilité de ces changements dans Git ne signifie pas que le site de production
 a été redéployé. La publication du site est une opération distincte.
+
+
+## Publication 0.2.0 — 2 novembre 2026
+
+La version applicative `8abffd7` est publiée sur https://zako.nc/avp/. Les références du rendu et
+de la stabilisation sont conservées. Les [contrôles après publication](docs/DEPLOIEMENT-2026-11-02.md)
+confirment le commit servi, les fichiers statiques et les protections testées.

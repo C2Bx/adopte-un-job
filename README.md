@@ -9,6 +9,12 @@ l'Université de la Nouvelle-Calédonie.
 
 📰 **L'article de présentation** (dev.to, track *SaaS no limit*) : https://dev.to/c2b/adopte-un-job-on-swipe-les-vrais-postes-de-lopt-nc-et-on-voit-pourquoi-ils-nous-correspondent-48pc
 
+## En production depuis le 2 novembre 2026
+
+La version **0.2.0** est publiée sur [zako.nc/avp](https://zako.nc/avp/), commit applicatif
+**`8abffd7`**. [Contrôles de publication](docs/DEPLOIEMENT-2026-11-02.md).
+Le rendu d'octobre reste une référence distincte de ces évolutions.
+
 ## Upgrades et améliorations après rendu — version 0.2.0
 
 **La version du rendu et les améliorations ultérieures sont distinguées.**

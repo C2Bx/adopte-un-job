@@ -2,6 +2,9 @@
 
 Version applicative : **0.2.0**, développée le **27 octobre 2026**, après la fin du rendu.
 
+**Publiée en production le 2 novembre 2026**, commit applicatif `8abffd7`.
+Voir [les contrôles de publication](DEPLOIEMENT-2026-11-02.md).
+
 ## Repères de version
 
 | Période | Référence | Signification |
