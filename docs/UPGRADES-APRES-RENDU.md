@@ -2,6 +2,9 @@
 
 Version applicative actuelle : **0.2.1**, évolution du **16 novembre 2026**, après la fin du rendu.
 
+**0.2.1 publiée en production le 16 novembre 2026**, commit applicatif `bdb4ebc`.
+Voir [les contrôles de publication](DEPLOIEMENT-2026-11-16.md).
+
 La consultation sans compte et le mode fictif intégré de la 0.2.0 sont retirés à la demande de Bastian.
 L’accueil et l’aide ne les proposent plus. Un lien d’offre nécessite une connexion ;
 `?demo=1` n’active plus aucun scénario fictif. Le prototype historique `demo/` reste une archive locale,

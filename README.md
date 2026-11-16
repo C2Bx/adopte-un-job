@@ -12,6 +12,7 @@ l'Université de la Nouvelle-Calédonie.
 ## Production
 
 La version **0.2.1** retire la consultation sans compte et le mode de démonstration intégré.
+Publiée le **16 novembre 2026**, commit applicatif `bdb4ebc`. [Contrôles de publication](docs/DEPLOIEMENT-2026-11-16.md).
 Les offres et les liens partagés nécessitent une connexion. Le paramètre historique `?demo=1`
 n’active plus de données fictives. [Suivi de cette évolution](docs/UPGRADES-APRES-RENDU.md).
 Publication initiale de la 0.2.0 : [contrôles du 2 novembre](docs/DEPLOIEMENT-2026-11-02.md).
