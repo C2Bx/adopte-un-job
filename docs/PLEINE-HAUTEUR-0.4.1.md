@@ -1,5 +1,8 @@
 # Offre pleine hauteur — 0.4.1 — 17 novembre 2026
 
+**En production depuis le 17 novembre 2026**, commit applicatif `fc6faa2`.
+[Contrôles de publication](DEPLOIEMENT-0.4.1-2026-11-17.md).
+
 Amélioration après rendu, à la demande de Bastian : la carte utilise toute la hauteur disponible sous
 l’en-tête et jusqu’en bas de la zone de contenu, avec une marge de 8 à 10 px.
 
