@@ -199,9 +199,7 @@ export function MesCV({ cv }: { cv: EtatCV }) {
     <div className="pvoie mescv">
       <b>Mon CV</b>
       <span>
-        PDF ou photo (PNG, JPEG). <b>Ta saisie n’est jamais remplacée</b> : la lecture
-        automatique ne remplit que les profils encore vides. Un Word : enregistre-le
-        d’abord en PDF.
+        PDF ou photo (PNG, JPEG). Tu relis et sélectionnes les données extraites avant de compléter les champs manquants. <b>Ta saisie reste prioritaire.</b> Pour un Word, enregistre-le d’abord en PDF.
       </span>
       {cv.erreur && <div className="pal manque"><b>Problème</b>{cv.erreur}</div>}
       <div className="mescv-actions"><BoutonDepot cv={cv} /></div>

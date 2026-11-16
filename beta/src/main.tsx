@@ -4,6 +4,7 @@ import './design.css'
 import './beta.css'
 import './v2.css'
 import './upgrades.css'
+import './interface.css'
 import { App } from './App'
 import { ProtectionEcran } from './ProtectionEcran'
 

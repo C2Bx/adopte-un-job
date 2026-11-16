@@ -11,11 +11,13 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
-La version **0.2.1** retire la consultation sans compte et le mode de démonstration intégré.
-Publiée le **16 novembre 2026**, commit applicatif `bdb4ebc`. [Contrôles de publication](docs/DEPLOIEMENT-2026-11-16.md).
-Les offres et les liens partagés nécessitent une connexion. Le paramètre historique `?demo=1`
-n’active plus de données fictives. [Suivi de cette évolution](docs/UPGRADES-APRES-RENDU.md).
-Publication initiale de la 0.2.0 : [contrôles du 2 novembre](docs/DEPLOIEMENT-2026-11-02.md).
+La version **0.3.0** refond l’interface : navigation, disposition des écrans, actions visibles,
+fenêtres de détail, guide par page et favoris par glissement vers le haut de la poignée.
+[Description et recette de la refonte](docs/REFONTE-UI-0.3.0.md).
+
+Les offres et les liens partagés nécessitent une connexion. Le mode fictif reste retiré.
+Historique des publications : [0.2.0 le 2 novembre](docs/DEPLOIEMENT-2026-11-02.md),
+[0.2.1 le 16 novembre](docs/DEPLOIEMENT-2026-11-16.md).
 Le rendu d'octobre reste une référence distincte de ces évolutions.
 
 ## Upgrades et améliorations après rendu — version 0.2.0
@@ -83,6 +85,7 @@ nécessiterait un contrat de version côté MS2.
 | `beta/src/api.ts` | Le seul endroit qui parle à leur API, et qui traduit leurs réponses dans les formes que les écrans connaissent. |
 | `beta/src/filtres.ts` | Les filtres du deck, calculés dans le navigateur : plusieurs choix par catégorie (OU), catégories combinées (ET), compteurs dynamiques. |
 | `beta/public/relais.php` | Un relais **protégé** vers leur API, tant qu'elle n'envoie pas d'en-têtes CORS, et vers CV-Matching. Il ne relaie que les routes listées, chacune avec sa seule méthode. Pour CV-Matching, il vérifie la session auprès du hub, applique des quotas et ajoute la clé côté serveur ; le jeton n’est jamais transmis au moteur. |
+| `beta/src/Guide.tsx`, `beta/src/Dialogue.tsx`, `beta/src/interface.css` | Tutoriel par page, fenêtres au premier plan et agencement de la version 0.3.0. |
 | `beta/src/sauvegarde.ts` | File de sauvegarde indépendante des écrans et brouillon par compte dans l'onglet. |
 | `beta/src/jsonResume.ts` | Contrôle de l'import et fusion de l'extraction dans les champs absents. |
 | `beta/public/matching-securite.php` | Contrôle du jeton et quotas techniques du relais de matching. |
@@ -121,9 +124,10 @@ npm run build      # dist/ : à déposer tel quel sous /avp/
 
 ## L'interface en bref
 
+- **Guide** : depuis l’en-tête, tutoriel de la page avec progression, Précédent, Suivant, Arrêter et Terminer.
 - **Accueil** : inscription (avec « Es-tu déjà agent de l'OPT-NC ? », transmis à leur API), connexion, mot de passe oublié, nombre de postes ouverts en ce moment.
 - **Consultation après rendu** : cartes, liste ou tableau ; tris, recherches mémorisées, comparaison, liens et notes locales. Connexion requise pour consulter les offres, y compris via un lien partagé.
-- **Swipe** : sur grand écran, filtres et détail de l'offre à gauche (65 %), carte à droite (35 %) sur toute la hauteur ; on glisse depuis n'importe quel point de la carte. Sur téléphone, recherche et filtres dans la barre du haut. Carte claire, bordure et détails bleu sombre, touches orange (direction artistique « a » de la maquette).
+- **Offres** : recherche et filtres regroupés ; détail à gauche et carte à droite sur grand écran. Barre cœur/croix/étoile/retour séparée du contenu défilant. Glisser à gauche pour passer, à droite pour candidater ; glisser la poignée vers le haut pour garder en favori. Les archives restent en lecture seule.
 - **Adéquation** : pastille « Bonne adéquation · 42 % » sur la carte, et dans le détail (aussi sur téléphone) un tableau de bord : jauge, compétences couvertes, rang de l'offre parmi toutes, savoir-être, prérequis, et la note de chaque compétence ; une info-bulle claire donne la preuve tirée du profil ou ce que la compétence pèse dans le score.
 - **Couleurs de l'adéquation** : le niveau donné par CV-Matching colore la pastille, la jauge et le liseré — vert pour *excellente* (≥ 75 %) et *très bonne* (≥ 50 %), bleu pour *bonne* (≥ 33 %), ambre pour *partielle* (≥ 20 %), rouge pour *faible*. Indicateurs teintés (couvertes vert, rang bleu, savoir-être orange, prérequis ambre), barres vertes (couverte) ou orange (à travailler), savoir-être en pastilles orangées, statut des prérequis en couleur. Tout passe par les jetons du thème : la nuit suit.
 - **Filtres** : une barre (recherche, bouton Filtres, filtres actifs retirables, nombre d'offres) et un panneau par sections, avec cases à cocher et bascule offres ouvertes / archives en lecture seule.

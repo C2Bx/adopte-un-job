@@ -43,7 +43,7 @@ type Onglet = 'oui' | 'plus_tard' | 'non'
 
 const ONGLETS: { cle: Onglet; nom: string }[] = [
   { cle: 'oui', nom: 'Candidatures' },
-  { cle: 'plus_tard', nom: 'Plus tard' },
+  { cle: 'plus_tard', nom: 'Favoris' },
   { cle: 'non', nom: 'Écartés' },
 ]
 
@@ -177,7 +177,7 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
           réponse s’affiche ici. Ce que tu as écarté ou mis de côté reste ici, révocable.
         </p>
 
-        <div className="upgrade-rangee"><label>Rechercher dans mes offres et mes notes <input type="search" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <div className="upgrade-rangee ui-suivi-filtres"><label>Rechercher dans mes offres et mes notes <input type="search" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           <label>Réponse reçue <select value={statut} onChange={(e) => setStatut(e.target.value)}><option value="tous">Toutes</option><option value="EN_ATTENTE">En attente</option><option value="VALIDEE">Retenue</option><option value="REJETEE">Non retenue</option><option value="ANNULEE">Annulée</option></select></label>
           <label>Ordre <select value={tri} onChange={(e) => setTri(e.target.value)}><option value="date">Décision récente</option><option value="titre">Titre</option><option value="statut">Statut reçu</option><option value="etiquettes">Étiquettes personnelles</option></select></label>
           <button className="btn-mini" onClick={() => { setErreur(null); void charge() }}>Actualiser</button>
@@ -271,7 +271,7 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
                           <button className="fort" onClick={() => void reviens(x)}>{x.decision === 'oui' ? 'Annuler et remettre dans le deck' : 'Remettre dans le deck'}</button>
                           {ONGLETS.filter((o) => o.cle !== x.decision && x.statut !== 'close').map((o) => (
                             <button key={o.cle} disabled={action} onClick={() => void redecide(x, o.cle)}>
-                              {o.cle === 'oui' ? 'Candidater' : o.cle === 'non' ? 'Écarter' : 'Plus tard'}
+                              {o.cle === 'oui' ? 'Candidater' : o.cle === 'non' ? 'Écarter' : 'Mettre en favori'}
                             </button>
                           ))}
                         </>}

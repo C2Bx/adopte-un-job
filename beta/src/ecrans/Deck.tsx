@@ -5,6 +5,9 @@
    du produit ; un « oui » est une candidature. */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Feuille } from '../Dialogue'
+export { Feuille } from '../Dialogue'
+
 import { api } from '../api'
 import type { Adequation, CompteurOffres } from '../api'
 import { useAdequations } from '../adequation'
@@ -270,14 +273,16 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
     }
   }
 
-  /* ← passer, → candidater, ↓ plus tard, Retour arrière : revenir, Espace : page
+  /* ← passer, → candidater, ↑/↓ favoris, Retour arrière : revenir, Espace : page
      suivante. Jamais pendant une saisie, ni quand une feuille est ouverte. */
   clavier.current = (e: KeyboardEvent) => {
+    if (document.querySelector('dialog[open]')) return
     const cible = e.target as HTMLElement | null
     if (cible?.closest('input, textarea, select, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return
     if (!courante || courante.statut === 'close' || enCours || preparation || validation || vue !== 'cartes' || detail || envoyee || panneauFiltres || rechercheOuverte) return
     if (e.key === 'ArrowRight') { e.preventDefault(); void decide(courante, 'oui') }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); void decide(courante, 'non') }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); void decide(courante, 'plus_tard') }
     else if (e.key === 'ArrowDown') { e.preventDefault(); void decide(courante, 'plus_tard') }
     else if (e.key === 'Backspace' && dernier) { e.preventDefault(); void reviens() }
     else if (e.key === ' ') { e.preventDefault(); window.dispatchEvent(new Event('aj:page-suivante')) }
@@ -287,11 +292,13 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
   const toutEffacer = () => { setFiltres(efface); setRecherche('') }
 
   return (
-    <div className={`screen upgrade-deck ${vue !== 'cartes' ? 'upgrade-vue-liste' : ''}`} id="ec-swipe">
+    <div className={`screen upgrade-deck ${vue !== 'cartes' ? 'upgrade-vue-liste' : ''} ${offres !== null && !courante ? 'deck-vide' : ''}`} id="ec-swipe">
+      <div className="deck-contenu">
       <div className="upgrade-haut">
+        <div className="ui-titre-page"><div><p className="ui-surtitre">Les postes de l’OPT-NC</p><h1>Les offres</h1></div><span className="ui-badge">Cartes · liste · tableau</span></div>
         <CommandesOffres vue={vue} tri={tri} changeVue={changeVue} changeTri={changeTri} filtres={filtres}
           changeFiltres={(f) => { setFiltres(f); setRecherche(f.q ?? '') }} />
-        <label><input type="checkbox" checked={confirmer} onChange={(e) => setConfirmer(e.target.checked)} /> Relire mon dossier avant chaque candidature</label>
+        <details className="ui-options"><summary>Options de candidature</summary><label><input type="checkbox" checked={confirmer} onChange={(e) => setConfirmer(e.target.checked)} /> Relire mon dossier avant chaque candidature</label></details>
         {aCombler.length > 0 && <p>Tu peux consulter les offres. <button className="btn-mini" onClick={() => versProfil(aCombler[0]!.etape)}>Compléter mon profil avant de candidater</button></p>}
         {(erreurStockage || partageErreur) && <p role="status">{partageErreur || 'Les filtres ne peuvent pas être conservés dans ce navigateur.'}</p>}
         {toutes && <Comparateur offres={toutes} scores={adequations} selection={selection} change={setSelection} />}
@@ -336,7 +343,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
           {vue !== 'cartes' && offres && <ListeOffres offres={offres} scores={adequations} tableau={vue === 'tableau'} ouvrir={setDetail}
             comparer={(id) => setSelection(limiteComparaison(selection, id))} selection={selection} />}
           {vue === 'cartes' && suivante && (
-            <Carte key={`bg-${suivante.id}`} offre={suivante} profondeur={1} profil={profil} />
+            <div className="deck-fond" aria-hidden="true" />
           )}
 
           {vue === 'cartes' && courante && (
@@ -345,11 +352,9 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
               offre={courante}
               profondeur={0}
               profil={profil}
-              peutRevenir={Boolean(dernier)}
               occupe={enCours || preparation}
               onDetail={() => { setDetail(courante); void api.vue(courante.id, 'detail') }}
               onDecide={courante.statut === 'close' ? undefined : (d) => void decide(courante, d)}
-              onRetour={() => void reviens()}
               adequation={adequationDe(courante)}
             />
           )}
@@ -358,6 +363,10 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
         {vue === 'cartes' && courante && <Panneau offre={courante} profil={profil} adequation={adequationDe(courante)} />}
       </div>
 
+      </div>
+      {vue === 'cartes' && offres !== null && <ActionsOffre close={courante?.statut === 'close'} vide={!courante} occupe={enCours || preparation}
+        peutRevenir={Boolean(dernier)} onRetour={() => void reviens()} onDecide={(d) => { if (courante) void decide(courante, d) }} />}
+
       {detail && (
         <Feuille onFermer={() => setDetail(null)}>
           <Detail offre={detail} profil={profil} adequation={adequationDe(detail)} />
@@ -365,7 +374,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
             <button className="btn-mini" disabled={selection.length >= 3 && !selection.includes(detail.id)} onClick={() => setSelection(limiteComparaison(selection, detail.id))}>{selection.includes(detail.id) ? 'Retirer du comparateur' : 'Comparer cette offre'}</button>
             {detail.statut !== 'close' && <>
               <button className="btn primaire" disabled={enCours || preparation} onClick={() => { const o = detail; setDetail(null); void decide(o, 'oui') }}>Candidater</button>
-              <button className="btn-mini" disabled={enCours || preparation} onClick={() => { const o = detail; setDetail(null); void decide(o, 'plus_tard') }}>Plus tard</button>
+              <button className="btn-mini" disabled={enCours || preparation} onClick={() => { const o = detail; setDetail(null); void decide(o, 'plus_tard') }}>Mettre en favori</button>
             </>}
           </div>
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
@@ -602,16 +611,14 @@ function employeur(o: Offre): string {
 
 const SEUIL = 90          // pixels au-delà desquels le glissé vaut décision
 
-function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, onDecide, onRetour, adequation }: {
+function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequation }: {
   offre: Offre
   profondeur: number
   profil: Profil
   adequation?: Adequation
-  peutRevenir?: boolean
   occupe?: boolean
   onDetail?: () => void
   onDecide?: (d: Decision) => void
-  onRetour?: () => void
 }) {
   const pages = useMemo(() => pagesDe(o, profil), [o, profil])
   const [page, setPage] = useState(0)
@@ -649,14 +656,18 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
   const depart = useRef<{ x: number; y: number } | null>(null)
   const capture = useRef(false)
   const [dx, setDx] = useState(0)
+  const [dy, setDy] = useState(0)
+  const axe = useRef<'x' | 'y' | null>(null)
+  const glisseVersHaut = useRef(false)
   const [lache, setLache] = useState(false)
-  const [sortie, setSortie] = useState<0 | 1 | -1>(0)
 
   const jouable = profondeur === 0 && !occupe && Boolean(onDecide)
 
   const debut = (e: React.PointerEvent) => {
-    if (!jouable) return
+    if (!jouable || (e.target instanceof Element && e.target.closest('button, a, input, select, textarea'))) return
     depart.current = { x: e.clientX, y: e.clientY }
+    glisseVersHaut.current = e.target instanceof Element && Boolean(e.target.closest('.carte-poignee'))
+    axe.current = null
     capture.current = false
     setLache(false)
   }
@@ -665,24 +676,35 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
     const d = e.clientX - depart.current.x
     const dv = e.clientY - depart.current.y
     if (!capture.current) {
-      if (Math.abs(d) < 6 || Math.abs(dv) > Math.abs(d)) return
+      if (Math.abs(dv) > 10 && Math.abs(dv) > Math.abs(d)) {
+        if (glisseVersHaut.current && dv < 0) axe.current = 'y'
+        else { depart.current = null; return }
+      } else {
+        if (Math.abs(d) < 10) return
+        axe.current = 'x'
+      }
       capture.current = true
       ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
     }
-    setDx(d)
+    if (axe.current === 'y') { setDy(Math.min(0, dv)); setDx(0) }
+    else { setDx(d); setDy(0) }
   }
   const fin = (e: React.PointerEvent) => {
     if (!depart.current) return
     const aGlisse = capture.current
+    const vertical = axe.current === 'y'
+    const versHaut = e.clientY - depart.current.y < -SEUIL
     const boite = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const aGauche = e.clientX - boite.left < boite.width / 3
     depart.current = null
     capture.current = false
     setLache(true)
+    setDy(0)
+    if (aGlisse && vertical) { setDx(0); if (versHaut) onDecide?.('plus_tard'); return }
     if (aGlisse && Math.abs(dx) > SEUIL) {
       const sens = dx > 0 ? 1 : -1
-      setSortie(sens)
-      window.setTimeout(() => onDecide?.(sens > 0 ? 'oui' : 'non'), 160)
+      setDx(0)
+      onDecide?.(sens > 0 ? 'oui' : 'non')
       return
     }
     setDx(0)
@@ -691,10 +713,8 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
     }
   }
 
-  const transform = sortie
-    ? `translateX(${sortie * 700}px) rotate(${sortie * 22}deg)`
-    : dx
-      ? `translateX(${dx}px) rotate(${dx / 22}deg)`
+  const transform = dx || dy
+      ? `translate(${dx}px, ${dy}px) rotate(${dx / 22}deg)`
       : `translateY(${profondeur * 8}px) scale(${1 - profondeur * 0.03})`
 
   return (
@@ -712,12 +732,13 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
       onPointerDown={debut}
       onPointerMove={bouge}
       onPointerUp={fin}
-      onPointerCancel={fin}
+      onPointerCancel={() => { depart.current = null; capture.current = false; setDx(0); setDy(0); setLache(true) }}
     >
       <span className={`teinte ${dx > 0 ? 'oui' : 'non'}`} aria-hidden="true"
         style={{ opacity: Math.min(1, Math.abs(dx) / SEUIL) }} />
       <span className="stamp yes" style={{ opacity: Math.max(0, Math.min(1, dx / SEUIL)) }}>OUI</span>
       <span className="stamp no" style={{ opacity: Math.max(0, Math.min(1, -dx / SEUIL)) }}>NON</span>
+      <span className="stamp favori" style={{ opacity: Math.max(0, Math.min(1, -dy / SEUIL)) }}>FAVORI</span>
 
       {pages.length > 1 && (
         <div className="segs">
@@ -729,6 +750,9 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
         </div>
       )}
 
+      <div className={`carte-poignee${jouable ? '' : ' inactive'}`} title="Glisser cette poignée vers le haut pour mettre en favori">
+        <svg aria-hidden="true"><use href="#i-star" /></svg><span>↑ Glisser ici vers le haut · Favori</span>
+      </div>
       <div className="stage">
         <div className="hero">
           <div className="hero-top">
@@ -737,7 +761,7 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
               onClick={(e) => { e.stopPropagation(); onDetail?.() }}>
               Voir l’offre
             </button>
-            {close && <span className="badge-pass close">close — lecture seule</span>}
+            {close && <span className="badge-pass close">Offre expirée · lecture seule</span>}
           </div>
           <h2 className="role">{o.titre}</h2>
           <div className="org">
@@ -779,133 +803,26 @@ function Carte({ offre: o, profondeur, profil, peutRevenir, occupe, onDetail, on
         </div>
       </div>
 
-      {jouable && (
-        <div className="coins" onPointerDown={(e) => e.stopPropagation()}>
-          <div className="coin">
-            <button type="button" className="retour" disabled={!peutRevenir}
-              onClick={(e) => { e.stopPropagation(); onRetour?.() }} aria-label="Revenir sur la dernière décision">
-              <svg><use href="#i-undo" /></svg>
-            </button>
-            <span>Retour</span>
-          </div>
-          <div className="coin">
-            <button type="button" className="non"
-              onClick={(e) => { e.stopPropagation(); onDecide?.('non') }} aria-label="Passer">
-              <svg><use href="#i-x" /></svg>
-            </button>
-            <span>Passer</span>
-          </div>
-          <div className="coin">
-            <button type="button" className="fav"
-              onClick={(e) => { e.stopPropagation(); onDecide?.('plus_tard') }} aria-label="Plus tard">
-              <svg><use href="#i-star" /></svg>
-            </button>
-            <span>Plus tard</span>
-          </div>
-          <div className="coin">
-            <button type="button" className="oui"
-              onClick={(e) => { e.stopPropagation(); onDecide?.('oui') }} aria-label="Candidater">
-              <svg><use href="#i-heart" /></svg>
-            </button>
-            <span>Candidater</span>
-          </div>
-        </div>
-      )}
+
     </article>
   )
 }
 
-/* --------------------------------------------------------------- la feuille */
-
-/* Une feuille se ferme en la poussant vers le bas : c'est le geste qu'on essaie
-   avant de chercher le bouton. */
-export function Feuille({ onFermer, children }: { onFermer: () => void; children: React.ReactNode }) {
-  const boite = useRef<HTMLDivElement>(null)
-  const fermer = useRef(onFermer)
-  fermer.current = onFermer
-  useEffect(() => {
-    const avant = document.activeElement as HTMLElement | null
-    const element = boite.current
-    if (!element) return
-    const caches: { el: HTMLElement; inert: boolean }[] = []
-    let branche: HTMLElement | null = element.parentElement
-    while (branche?.parentElement && branche !== document.body) {
-      for (const voisin of Array.from(branche.parentElement.children)) {
-        if (voisin !== branche && voisin instanceof HTMLElement) {
-          caches.push({ el: voisin, inert: voisin.inert }); voisin.inert = true
-        }
-      }
-      branche = branche.parentElement
-    }
-    const selecteur = 'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
-    const focusables = () => Array.from(element.querySelectorAll<HTMLElement>(selecteur)).filter((e) => e.getClientRects().length > 0)
-    ;(focusables()[0] ?? element).focus()
-    const clavier = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermer.current(); return }
-      if (e.key !== 'Tab') return
-      const items = focusables(); const premier = items[0]; const dernier = items.at(-1)
-      if (!premier) { e.preventDefault(); element.focus() }
-      else if (e.shiftKey && (document.activeElement === premier || document.activeElement === element)) { e.preventDefault(); dernier?.focus() }
-      else if (!e.shiftKey && (document.activeElement === dernier || document.activeElement === element)) { e.preventDefault(); premier.focus() }
-    }
-    element.addEventListener('keydown', clavier)
-    return () => {
-      element.removeEventListener('keydown', clavier)
-      for (const { el, inert } of caches) el.inert = inert
-      if (avant?.isConnected) avant.focus()
-    }
-  }, [])
-  const depart = useRef<number | null>(null)
-  const capture = useRef(false)
-  const [dy, setDy] = useState(0)
-  const [lache, setLache] = useState(false)
-
-  const debut = (e: React.PointerEvent) => {
-    if ((boite.current?.scrollTop ?? 0) > 0) return
-    depart.current = e.clientY
-    capture.current = false
-    setLache(false)
-  }
-  const bouge = (e: React.PointerEvent) => {
-    if (depart.current === null) return
-    const d = e.clientY - depart.current
-    if (!capture.current) {
-      if (d < 6) return
-      capture.current = true
-      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    }
-    setDy(Math.max(0, d))
-  }
-  const fin = () => {
-    if (depart.current === null) return
-    depart.current = null
-    capture.current = false
-    setLache(true)
-    if (dy > 90) onFermer()
-    else setDy(0)
-  }
-
-  return (
-    <div className="sheet" onClick={onFermer}>
-      <div
-        ref={boite}
-        className="sheet-box" role="dialog" aria-modal="true" aria-label="Détail et options" tabIndex={-1}
-        style={{
-          transform: dy ? `translateY(${dy}px)` : undefined,
-          transition: lache ? 'transform .2s var(--ease)' : undefined,
-        }}
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={debut}
-        onPointerMove={bouge}
-        onPointerUp={fin}
-        onPointerCancel={fin}
-      >
-        <div className="poignee" />
-        <div className="panneau">{children}</div>
-      </div>
+function ActionsOffre({ close, vide, occupe, peutRevenir, onRetour, onDecide }: {
+  close: boolean; vide: boolean; occupe: boolean; peutRevenir: boolean; onRetour: () => void; onDecide: (d: Decision) => void
+}) {
+  return <footer className="deck-actions" aria-label="Actions sur l’offre">
+    <p className="deck-actions-info" role="status">{vide ? 'Aucune offre à traiter dans cette sélection.' : close ? 'Offre expirée : consultation uniquement, aucune candidature possible.' : occupe ? 'Traitement en cours…' : '← Passer · ↑ Favori depuis la poignée · Candidater →'}</p>
+    <div className="coins">
+      <div className="coin"><button type="button" className="retour" disabled={!peutRevenir || close || occupe} onClick={onRetour} aria-label="Revenir sur la dernière décision"><svg aria-hidden="true"><use href="#i-undo" /></svg></button><span>Retour</span></div>
+      <div className="coin"><button type="button" className="non" disabled={close || vide || occupe} onClick={() => onDecide('non')} aria-label="Passer"><svg aria-hidden="true"><use href="#i-x" /></svg></button><span>Passer</span></div>
+      <div className="coin"><button type="button" className="fav" disabled={close || vide || occupe} onClick={() => onDecide('plus_tard')} aria-label="Mettre en favori"><svg aria-hidden="true"><use href="#i-star" /></svg></button><span>Favori</span></div>
+      <div className="coin"><button type="button" className="oui" disabled={close || vide || occupe} onClick={() => onDecide('oui')} aria-label="Candidater"><svg aria-hidden="true"><use href="#i-heart" /></svg></button><span>Candidater</span></div>
     </div>
-  )
+  </footer>
 }
+
+/* --------------------------------------------------------------- la feuille */
 
 /* ------------------------------------------------------------ le détail */
 

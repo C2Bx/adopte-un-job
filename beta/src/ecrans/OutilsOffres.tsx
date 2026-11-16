@@ -31,7 +31,7 @@ export function CommandesOffres({ vue, tri, changeVue, changeTri, filtres, chang
         <option value="cloture">Clôture la plus proche</option><option value="publication">Publication récente</option><option value="titre">Titre</option><option value="adequation">Adéquation disponible</option>
       </select></label>
     </div>
-    <details><summary>Mes recherches dans ce navigateur</summary>
+    <details className="ui-recherches"><summary>Recherches enregistrées</summary>
       <div className="upgrade-rangee"><input aria-label="Nom de la recherche" maxLength={60} value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex. Informatique à Nouméa" />
         <button className="btn-mini" disabled={!nom.trim() || recherches.length >= 12} onClick={() => { setRecherches([...recherches, { nom: nom.trim(), filtres, tri }]); setNom('') }}>Mémoriser la recherche</button></div>
       {recherches.map((r, i) => <div className="upgrade-rangee" key={`${r.nom}-${i}`}>

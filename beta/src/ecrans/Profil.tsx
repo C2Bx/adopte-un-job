@@ -158,7 +158,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
               </span>
             </div>
 
-            {mode !== 'choix' && <MesCV cv={cv} />}
+            {mode !== 'choix' && <details className="ui-cv"><summary>Mon CV : fichier et lecture</summary><MesCV cv={cv} /></details>}
 
             {/* Les trois façons de remplir son profil, côte à côte. */}
             {mode === 'choix' && (
@@ -178,6 +178,73 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
             )}
             {mode === 'choix' && <ZoneCV cv={cv} />}
 
+            {mode === 'questions' && (
+              <Questions
+                profil={profil}
+                maj={maj}
+                ref_={ref}
+                onFin={() => { setMode('form'); setEtape(4) }}
+                onQuitter={() => setMode('form')}
+              />
+            )}
+
+            {mode === 'form' && <>
+            <details className="ui-assistant"><summary>Affiner mon profil par questions</summary><div className="qzrappel">
+              <span>Neuf questions courtes remplissent l’essentiel — plus rapide que le formulaire.</span>
+              <button type="button" className="btn-mini" onClick={() => setMode('questions')}>Affiner par questions</button>
+            </div></details>
+
+            <div className="petapes">
+              {ETAPES.map((t, i) => {
+                const n = aCombler.filter((m) => m.etape === i).length
+                return (
+                  <button
+                    key={t}
+                    className={`${i === etape ? 'on' : ''}${i < etape ? ' fait' : ''}`}
+                    onClick={() => setEtape(i)}
+                  >
+                    <span className="n">{i + 1}</span>{t}
+                    {n > 0 && <i className="pm">{n}</i>}
+                  </button>
+                )
+              })}
+            </div>
+
+            {surCetEcran.length > 0 && (
+              <div className="pmanques">
+                <b>
+                  Il manque {surCetEcran.length === 1 ? 'une chose' : `${surCetEcran.length} choses`} sur cet écran
+                </b>
+                <ul>
+                  {surCetEcran.map((m) => (
+                    <li key={m.cle}>
+                      <button type="button" onClick={() => document.querySelector<HTMLElement>(m.champ)?.focus()}>
+                        {m.libelle}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="pform">
+              {etape === 0 && <QuiTuEs p={profil} maj={maj} ref_={ref} />}
+              {etape === 1 && <CeQueTuCherches p={profil} maj={maj} ref_={ref} />}
+              {etape === 2 && <Parcours p={profil} maj={maj} />}
+              {etape === 3 && <Competences p={profil} maj={maj} ref_={ref} />}
+              {etape === 4 && <><Relecture p={profil} /><ProfilEnrichi avantOperation={avantOperation} onRelu={onProfil} /></>}
+            </div>
+
+            <div className="pnav">
+              {etape > 0
+                ? <button className="btn-mini" onClick={() => setEtape(etape - 1)}>← Précédent</button>
+                : <span />}
+              {etape < ETAPES.length - 1 && (
+                <button className="btn-fort" onClick={() => setEtape(etape + 1)}>Suivant →</button>
+              )}
+            </div>
+            </>}
+            <details className="ui-profil-outils"><summary>Mon compte, import et export</summary>
             <MonCompte />
 
             <div className="poutils">
@@ -239,72 +306,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
               </div>
             )}
 
-            {mode === 'questions' && (
-              <Questions
-                profil={profil}
-                maj={maj}
-                ref_={ref}
-                onFin={() => { setMode('form'); setEtape(4) }}
-                onQuitter={() => setMode('form')}
-              />
-            )}
-
-            {mode === 'form' && <>
-            <div className="qzrappel">
-              <span>Neuf questions courtes remplissent l’essentiel — plus rapide que le formulaire.</span>
-              <button type="button" className="btn-mini" onClick={() => setMode('questions')}>Affiner par questions</button>
-            </div>
-
-            <div className="petapes">
-              {ETAPES.map((t, i) => {
-                const n = aCombler.filter((m) => m.etape === i).length
-                return (
-                  <button
-                    key={t}
-                    className={`${i === etape ? 'on' : ''}${i < etape ? ' fait' : ''}`}
-                    onClick={() => setEtape(i)}
-                  >
-                    <span className="n">{i + 1}</span>{t}
-                    {n > 0 && <i className="pm">{n}</i>}
-                  </button>
-                )
-              })}
-            </div>
-
-            {surCetEcran.length > 0 && (
-              <div className="pmanques">
-                <b>
-                  Il manque {surCetEcran.length === 1 ? 'une chose' : `${surCetEcran.length} choses`} sur cet écran
-                </b>
-                <ul>
-                  {surCetEcran.map((m) => (
-                    <li key={m.cle}>
-                      <button type="button" onClick={() => document.querySelector<HTMLElement>(m.champ)?.focus()}>
-                        {m.libelle}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="pform">
-              {etape === 0 && <QuiTuEs p={profil} maj={maj} ref_={ref} />}
-              {etape === 1 && <CeQueTuCherches p={profil} maj={maj} ref_={ref} />}
-              {etape === 2 && <Parcours p={profil} maj={maj} />}
-              {etape === 3 && <Competences p={profil} maj={maj} ref_={ref} />}
-              {etape === 4 && <><Relecture p={profil} /><ProfilEnrichi avantOperation={avantOperation} onRelu={onProfil} /></>}
-            </div>
-
-            <div className="pnav">
-              {etape > 0
-                ? <button className="btn-mini" onClick={() => setEtape(etape - 1)}>← Précédent</button>
-                : <span />}
-              {etape < ETAPES.length - 1 && (
-                <button className="btn-fort" onClick={() => setEtape(etape + 1)}>Suivant →</button>
-              )}
-            </div>
-            </>}
+            </details>
           </div>
 
           {<aside className="pcol-b">
@@ -322,7 +324,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
                       <li key={x.quoi}>
                         <b className={x.gain ? 'g' : 'g z'}>{x.gain ? `+${x.gain}` : 'profil'}</b>
                         <span><b>{x.quoi}</b>{x.pourquoi}</span>
-                        <button type="button" className="btn-mini" onClick={() => setEtape(x.etape)}>Corriger</button>
+                        <button type="button" className="btn-mini" onClick={() => { setMode('form'); setEtape(x.etape) }}>Corriger</button>
                       </li>
                     ))}
                   </ol>

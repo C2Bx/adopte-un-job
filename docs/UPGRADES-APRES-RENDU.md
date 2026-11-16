@@ -1,6 +1,9 @@
 # Upgrades et améliorations après rendu — MS3
 
-Version applicative actuelle : **0.2.1**, évolution du **16 novembre 2026**, après la fin du rendu.
+Version applicative actuelle : **0.3.0**, évolution du **16 novembre 2026**, après la fin du rendu.
+
+La 0.3.0 ajoute la [refonte UI, le tutoriel par page et le swipe haut pour les favoris](REFONTE-UI-0.3.0.md).
+Les limites de stockage et la séparation avec le rendu restent applicables.
 
 **0.2.1 publiée en production le 16 novembre 2026**, commit applicatif `bdb4ebc`.
 Voir [les contrôles de publication](DEPLOIEMENT-2026-11-16.md).
@@ -56,6 +59,8 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
 | Candidatures organisées | Recherche dans titre/référence/notes/étiquettes, filtre sur statut réellement reçu et tri par date/titre/statut/étiquettes. |
 | Notes personnelles | Texte par offre, limité à 3 000 caractères, non transmis au serveur. |
 | Offres mises de côté | Étiquettes personnelles, recherche et classement dans l'écran des candidatures. |
+| Guide par page | Tutoriel avec progression, Précédent, Suivant, Arrêter et Terminer, sans recouvrement des commandes (0.3.0). |
+| Favoris et gestes | Étoile ou glissement de la poignée vers le haut ; actions visibles et archives désactivées (0.3.0). |
 | Mobile | Commandes qui se replient, alternatives aux gestes et tableaux à défilement horizontal. |
 | Accessibilité | Boutons explicites, labels, lien d'évitement, focus visible et dialogues accessibles conservés. |
 | Confort de lecture | Trois tailles de texte et densité confortable/compacte, conservées localement. |

@@ -15,11 +15,12 @@ import { EcranDeck } from './ecrans/Deck'
 import { EcranMatchs } from './ecrans/Matchs'
 import { BoutonTheme } from './theme'
 import { Aide } from './ecrans/Aide'
+import { Guide } from './Guide'
 
 export type Onglet = 'swipe' | 'interets' | 'profil'
 
 const ONGLETS: { cle: Onglet; icone: string; nom: string }[] = [
-  { cle: 'swipe', icone: 'i-swipe', nom: 'Swipe' },
+  { cle: 'swipe', icone: 'i-swipe', nom: 'Offres' },
   { cle: 'interets', icone: 'i-heart', nom: 'Candidatures' },
   { cle: 'profil', icone: 'i-user', nom: 'Profil' },
 ]
@@ -39,6 +40,7 @@ function ongletDeLAdresse(): Onglet {
 interface Badges { interets: number; interetsMatch: boolean }
 
 export function App() {
+  const [guide, setGuide] = useState(false)
   const [charge, setCharge] = useState(false)
   const [panne, setPanne] = useState(false)
   const [moi, setMoi] = useState<Utilisateur | null>(null)
@@ -223,7 +225,7 @@ export function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app${guide ? ' avec-guide' : ''}`}>
       <a href="#ec-swipe" className="upgrade-evitement" onClick={(e) => { const cible = document.querySelector<HTMLElement>('.screen'); if (cible) { e.preventDefault(); cible.tabIndex = -1; cible.focus() } }}>Aller au contenu</a>
       <header className="topbar">
         {/* Le logo porte déjà le nom : l'écrire une seconde fois à côté ferait
@@ -235,28 +237,13 @@ export function App() {
             alt="" aria-hidden="true" className="logo logo-nuit" width={168} height={36} />
         </span>
         <span className="spacer" />
-        <Aide />
-        {/* Sur téléphone, la recherche et les filtres vivent ici (là où était la
-            déconnexion, désormais seulement dans le menu du bas) : une loupe qui
-            ouvre la recherche, un entonnoir qui ouvre les filtres. Le deck écoute
-            ces deux événements. Masqué sur grand écran (barre dédiée dans le deck). */}
-        {onglet === 'swipe' && (
-          <div className="topbar-actions">
-            <button className="iconbtn" title="Rechercher" aria-label="Rechercher une offre"
-              onClick={() => document.dispatchEvent(new Event('aj:recherche'))}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4 4" />
-              </svg>
-            </button>
-            <button className="iconbtn" title="Filtres" aria-label="Filtrer les offres"
-              onClick={() => document.dispatchEvent(new Event('aj:filtres'))}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M4 6h16M7 12h10M10 18h4" />
-              </svg>
-            </button>
-          </div>
-        )}
+        <Aide onGuide={() => setGuide(true)} />
+        <BoutonTheme />
+        <button className="iconbtn ui-deconnexion" onClick={() => void sors()} title="Se déconnecter" aria-label="Se déconnecter">
+          <svg aria-hidden="true"><use href="#i-sortie" /></svg>
+        </button>
       </header>
+      {guide && <Guide key={onglet} onglet={onglet} onFermer={() => setGuide(false)} />}
 
       {onglet === 'swipe' && (
         <EcranDeck
@@ -267,7 +254,7 @@ export function App() {
         />
       )}
       {onglet === 'interets' && <EcranMatchs avantDecision={termineSauvegarde} />}
-      {etatSauvegarde === 'erreur' && <div className="pal manque" role="alert">
+      {etatSauvegarde === 'erreur' && <div className="pal manque ui-alerte-sauvegarde" role="alert">
         <b>Ton profil n’a pas encore été enregistré.</b>
         Le brouillon est gardé dans cet onglet.
         <button className="btn-mini" onClick={() => void termineSauvegarde().catch(() => undefined)}>Réessayer</button>
@@ -275,7 +262,7 @@ export function App() {
       {onglet === 'profil' && <EcranProfil profil={profil} onProfil={setProfil}
         onModification={modifieProfil} etat={etatSauvegarde} avantOperation={termineSauvegarde} />}
 
-      <nav className={`nav n${ONGLETS.length}`}>
+      <nav className={`nav n${ONGLETS.length}`} aria-label="Navigation principale">
         {ONGLETS.map((o) => (
           <button key={o.cle} onClick={() => va(o.cle)} aria-current={onglet === o.cle ? 'page' : undefined}>
             <svg><use href={`#${o.icone}`} /></svg>
@@ -285,13 +272,6 @@ export function App() {
             {o.nom}
           </button>
         ))}
-        {/* sur grand écran, la déconnexion vit en bas du rail ; sur téléphone, dans la barre du haut */}
-        {/* jour / nuit : dans le menu, sur tous les écrans */}
-        <BoutonTheme dansMenu />
-        <button className="nav-sortie" onClick={() => void sors()} title="Se déconnecter">
-          <svg><use href="#i-sortie" /></svg>
-          Déconnexion
-        </button>
       </nav>
     </div>
   )

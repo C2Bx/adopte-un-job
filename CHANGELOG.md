@@ -1,5 +1,17 @@
 # Historique des versions
 
+## 0.3.0 — Refonte UI après rendu — 16 novembre 2026
+
+- Navigation simplifiée, en-tête stable, contenu défilant et barre d’actions toujours accessible.
+- Agencement des offres, du profil et des candidatures ; fenêtres natives au premier plan.
+- Correction du retour de carte après annulation du récapitulatif et des gestes tactiles.
+- Favoris par étoile ou glissement de la poignée vers le haut ; ancien classement « Plus tard » conservé.
+- Tutoriel par page : progression, Précédent, Suivant, Arrêter et Terminer, sans masquer les commandes.
+- Suppression du rendu complet de la carte d’arrière-plan.
+- 35 contrôles applicatifs/PHP, recette sur sept formats et tutoriels sur six formats.
+- Périmètre MS3 et API existantes inchangés. [Détails et limites de la recette](docs/REFONTE-UI-0.3.0.md).
+
+
 ## 0.2.1 — Retrait de deux accès après rendu — 16 novembre 2026
 
 - Suppression de la consultation des offres sans compte et de son écran.
