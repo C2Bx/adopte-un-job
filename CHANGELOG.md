@@ -1,5 +1,16 @@
 # Historique des versions
 
+## 0.3.1 — Ajustements UI après rendu — 16 novembre 2026
+
+- Actions intégrées à la carte de droite, sans barre occupant toute la page.
+- Glissé souris gauche/droite/haut depuis la carte, sans sélection de texte ni glissé natif parasite.
+- Filtres : recherche des choix, catégories repliables, sélection lisible et pied fixe.
+- Guide en pop-up avec projecteur, reste de l’interface grisé, lancement initial automatique par compte et navigateur.
+- Candidatures actualisées automatiquement : ouverture, retour de fenêtre et intervalle visible de 30 secondes ; bouton Actualiser retiré.
+- Données affichées conservées lors d’une erreur ; date absente tolérée.
+- 36 tests applicatifs/PHP réussis et recette sur sept formats. [Détails](docs/AJUSTEMENTS-UI-0.3.1.md).
+
+
 ## 0.3.0 — Refonte UI après rendu — 16 novembre 2026
 
 - Navigation simplifiée, en-tête stable, contenu défilant et barre d’actions toujours accessible.

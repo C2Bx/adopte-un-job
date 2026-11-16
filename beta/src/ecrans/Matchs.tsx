@@ -4,7 +4,7 @@
    pas : c'est ça qu'il faut montrer, sans quoi la liste reste vide et l'écran
    passe pour cassé. */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import { dateApi } from '../dates'
 import { useLocal } from './OutilsOffres'
@@ -104,32 +104,58 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
   const [action, setAction] = useState(false)
   useEffect(() => { const ecoute = () => actualise((n) => n + 1); window.addEventListener('aj:upgrade-local', ecoute); return () => window.removeEventListener('aj:upgrade-local', ecoute) }, [])
 
+  const requeteEnCours = useRef(false)
+  const mutationEnCours = useRef(false)
+  const revision = useRef(0)
+  const vivant = useRef(true)
   const charge = useCallback(async () => {
+    if (requeteEnCours.current || mutationEnCours.current) return
+    requeteEnCours.current = true
+    const debut = revision.current
     try {
       const d = await api.interetsSynchro()
+      if (!vivant.current || debut !== revision.current) return
       setInterets(d.interets)
       setSynchro(d.equipeConnecte)
+      setErreur(null)
     } catch (e) {
-      setInterets([])
-      setErreur(e instanceof ErreurApi ? e.message : 'Liste indisponible.')
-    }
+      if (!vivant.current || debut !== revision.current) return
+      setInterets((ancien) => ancien ?? [])
+      setErreur(e instanceof ErreurApi ? e.message : 'Liste indisponible. Nouvelle tentative automatique.')
+    } finally { requeteEnCours.current = false }
   }, [])
 
-  useEffect(() => { void charge() }, [charge])
+  useEffect(() => {
+    vivant.current = true
+    void charge()
+    const reprend = () => { if (document.visibilityState === 'visible') void charge() }
+    const horloge = window.setInterval(reprend, 30_000)
+    window.addEventListener('focus', reprend)
+    document.addEventListener('visibilitychange', reprend)
+    return () => {
+      vivant.current = false
+      window.clearInterval(horloge)
+      window.removeEventListener('focus', reprend)
+      document.removeEventListener('visibilitychange', reprend)
+    }
+  }, [charge])
 
   /* Une décision se revoit : on la remet dans le deck, ou on la change de
      colonne. Sans ça, la promesse « réversible » du chapô est un mensonge. */
   const reviens = async (x: Interet) => {
+    if (mutationEnCours.current) return
+    mutationEnCours.current = true; revision.current++
     try {
       await api.annuleSwipe(x.id)
       setInterets((l) => (l ?? []).filter((y) => y.id !== x.id))
     } catch (e) {
       setErreur(e instanceof ErreurApi ? e.message : 'Impossible de remettre cette offre dans le deck.')
-    }
+    } finally { mutationEnCours.current = false; revision.current++ }
   }
 
   const executeDecision = async (x: Interet, d: Onglet) => {
-    if (action) return
+    if (action || mutationEnCours.current) return
+    mutationEnCours.current = true; revision.current++
     setAction(true)
     try {
       await avantDecision()
@@ -137,7 +163,7 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
       setInterets((l) => (l ?? []).map((y) => (y.id === x.id ? { ...y, decision: d, candidature: r.candidature ?? y.candidature } : y)))
     } catch (e) {
       setErreur(e instanceof ErreurApi ? e.message : 'La décision n’a pas été enregistrée.')
-    } finally { setAction(false) }
+    } finally { mutationEnCours.current = false; revision.current++; setAction(false) }
   }
 
 
@@ -180,8 +206,9 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
         <div className="upgrade-rangee ui-suivi-filtres"><label>Rechercher dans mes offres et mes notes <input type="search" value={q} onChange={(e) => setQ(e.target.value)} /></label>
           <label>Réponse reçue <select value={statut} onChange={(e) => setStatut(e.target.value)}><option value="tous">Toutes</option><option value="EN_ATTENTE">En attente</option><option value="VALIDEE">Retenue</option><option value="REJETEE">Non retenue</option><option value="ANNULEE">Annulée</option></select></label>
           <label>Ordre <select value={tri} onChange={(e) => setTri(e.target.value)}><option value="date">Décision récente</option><option value="titre">Titre</option><option value="statut">Statut reçu</option><option value="etiquettes">Étiquettes personnelles</option></select></label>
-          <button className="btn-mini" onClick={() => { setErreur(null); void charge() }}>Actualiser</button>
+
         </div>
+        <p className="ui-synchro-auto">Mise à jour automatique toutes les 30 secondes lorsque cette page est visible.</p>
         {erreur && <div className="pal manque"><b>Problème</b>{erreur}</div>}
 
         {!synchro && (interets ?? []).some((x) => x.candidature) && (

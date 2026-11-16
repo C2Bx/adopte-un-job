@@ -51,6 +51,19 @@ export function App() {
   const sauvegarde = useRef<SauvegardeProfil | null>(null)
   const chargementProfil = useRef(0)
 
+  const guidesVus = useRef(new Set<number>())
+  useEffect(() => {
+    if (!moi || !profilPret || guidesVus.current.has(moi.id)) return
+    const cle = `aj.guide.initial.${moi.id}`
+    let vu = false
+    try { vu = localStorage.getItem(cle) === '1' } catch { /* mémorisation limitée à cette session */ }
+    guidesVus.current.add(moi.id)
+    if (!vu) {
+      try { localStorage.setItem(cle, '1') } catch { /* la session évite les répétitions */ }
+      setGuide(true)
+    }
+  }, [moi, profilPret])
+
   const modifieProfil = (p: Profil) => {
     setProfil(p)
     sauvegarde.current?.modifie(p)
@@ -225,7 +238,7 @@ export function App() {
   }
 
   return (
-    <div className={`app${guide ? ' avec-guide' : ''}`}>
+    <div className="app">
       <a href="#ec-swipe" className="upgrade-evitement" onClick={(e) => { const cible = document.querySelector<HTMLElement>('.screen'); if (cible) { e.preventDefault(); cible.tabIndex = -1; cible.focus() } }}>Aller au contenu</a>
       <header className="topbar">
         {/* Le logo porte déjà le nom : l'écrire une seconde fois à côté ferait

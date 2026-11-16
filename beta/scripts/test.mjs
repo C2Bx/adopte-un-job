@@ -86,6 +86,9 @@ try {
     for (const d of ['2026-10-27T01:00:00Z', '2026-10-27T12:00:00+11:00', '2026-10-27 01:00:00']) assert.equal(dateApi(d), attendu)
     assert(Number.isNaN(dateApi('invalide')))
   })
+  await test('une date absente ne fait pas planter l’affichage des candidatures', () => {
+    for (const valeur of [undefined, null, '']) assert(Number.isNaN(dateApi(valeur)))
+  })
   await test('le repère de rédaction atteint réellement 100', () => {
     assert.equal(force({ ...profil('Test'), competences: ['a', 'b', 'c', 'd', 'e', 'f'], experiences: [{}, {}], formations: [{}], langues: [{}], salaireMin: 1, permis: true }), 100)
   })

@@ -2,8 +2,8 @@ import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 /** Une fenêtre au premier plan, indépendante des conteneurs défilants. */
-export function Feuille({ onFermer, children, titre = 'Détail et options' }: {
-  onFermer: () => void; children: React.ReactNode; titre?: string
+export function Feuille({ onFermer, children, pied, titre = 'Détail et options' }: {
+  onFermer: () => void; children: React.ReactNode; pied?: React.ReactNode; titre?: string
 }) {
   const dialogue = useRef<HTMLDialogElement>(null)
   const titreId = useId()
@@ -36,6 +36,7 @@ export function Feuille({ onFermer, children, titre = 'Détail et options' }: {
         <button type="button" className="btn-mini" onClick={onFermer} autoFocus>Fermer <span aria-hidden="true">×</span></button>
       </div>
       <div className="dialogue-corps"><div className="panneau">{children}</div></div>
+      {pied && <div className="dialogue-pied">{pied}</div>}
     </div>
   </dialog>, document.body)
 }

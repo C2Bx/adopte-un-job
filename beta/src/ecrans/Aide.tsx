@@ -20,7 +20,7 @@ export function Aide({ onGuide }: { onGuide: () => void }) {
       <li>Une candidature utilise ton profil dans HACKAVPI. Les réponses affichées viennent des recruteurs.</li>
       <li>L’adéquation de CV-Matching décrit les compétences, sans décider de ton recrutement.</li></ol>
     <p>Recherche : plusieurs mots sont combinés. Utilise des guillemets pour une expression exacte et « -mot » pour exclure un terme.</p>
-    <p>Sur les cartes : flèche droite pour candidater, gauche pour passer, haut ou bas pour les favoris. Glisse la poignée de la carte vers le haut pour garder une offre ; le texte reste défilable. Les boutons offrent les mêmes actions. Échap ferme les feuilles.</p>
+    <p>Sur les cartes : flèche droite pour candidater, gauche pour passer, haut ou bas pour les favoris. À la souris, maintiens le clic gauche sur la carte et glisse à gauche, à droite ou vers le haut. Sur écran tactile, utilise la poignée pour le glissement vers le haut ; le texte reste défilable. Les boutons offrent les mêmes actions. Échap ferme les feuilles.</p>
     <p>« En attente » n’indique pas que le dossier a été lu. « Retenue » et « Non retenue » sont les décisions reçues. « Entretien à programmer » s’affiche uniquement si le recruteur le signale.</p>
     <p>Notes, étiquettes et recherches sont locales à ce navigateur. Les brouillons de profil et la copie avant import restent dans cet onglet. Ces données ne sont pas synchronisées.</p>
     <p>Les archives sont en lecture seule. Une erreur de réseau n’est jamais une confirmation d’envoi : vérifie tes candidatures avant de réessayer.</p>

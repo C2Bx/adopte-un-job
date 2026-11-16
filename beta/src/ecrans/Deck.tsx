@@ -4,7 +4,7 @@
    touchant une puce, effet instantané. Le glissé gauche/droite reste le geste
    du produit ; un « oui » est une candidature. */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Feuille } from '../Dialogue'
 export { Feuille } from '../Dialogue'
 
@@ -276,7 +276,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
   /* ← passer, → candidater, ↑/↓ favoris, Retour arrière : revenir, Espace : page
      suivante. Jamais pendant une saisie, ni quand une feuille est ouverte. */
   clavier.current = (e: KeyboardEvent) => {
-    if (document.querySelector('dialog[open]')) return
+    if (document.querySelector('dialog[open], .guide-voile')) return
     const cible = e.target as HTMLElement | null
     if (cible?.closest('input, textarea, select, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return
     if (!courante || courante.statut === 'close' || enCours || preparation || validation || vue !== 'cartes' || detail || envoyee || panneauFiltres || rechercheOuverte) return
@@ -288,6 +288,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
     else if (e.key === ' ') { e.preventDefault(); window.dispatchEvent(new Event('aj:page-suivante')) }
   }
 
+  const [presentationOuverte, setPresentationOuverte] = useState(() => window.matchMedia('(min-width: 720px)').matches)
   const actifs = nbActifs(filtres)
   const toutEffacer = () => { setFiltres(efface); setRecherche('') }
 
@@ -296,9 +297,10 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
       <div className="deck-contenu">
       <div className="upgrade-haut">
         <div className="ui-titre-page"><div><p className="ui-surtitre">Les postes de l’OPT-NC</p><h1>Les offres</h1></div><span className="ui-badge">Cartes · liste · tableau</span></div>
+        <details className="ui-presentation" open={presentationOuverte} onToggle={(e) => setPresentationOuverte(e.currentTarget.open)}><summary>Affichage et recherches</summary>
         <CommandesOffres vue={vue} tri={tri} changeVue={changeVue} changeTri={changeTri} filtres={filtres}
           changeFiltres={(f) => { setFiltres(f); setRecherche(f.q ?? '') }} />
-        <details className="ui-options"><summary>Options de candidature</summary><label><input type="checkbox" checked={confirmer} onChange={(e) => setConfirmer(e.target.checked)} /> Relire mon dossier avant chaque candidature</label></details>
+        <details className="ui-options"><summary>Options de candidature</summary><label><input type="checkbox" checked={confirmer} onChange={(e) => setConfirmer(e.target.checked)} /> Relire mon dossier avant chaque candidature</label></details></details>
         {aCombler.length > 0 && <p>Tu peux consulter les offres. <button className="btn-mini" onClick={() => versProfil(aCombler[0]!.etape)}>Compléter mon profil avant de candidater</button></p>}
         {(erreurStockage || partageErreur) && <p role="status">{partageErreur || 'Les filtres ne peuvent pas être conservés dans ce navigateur.'}</p>}
         {toutes && <Comparateur offres={toutes} scores={adequations} selection={selection} change={setSelection} />}
@@ -316,7 +318,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
           )}
         </div>
 
-        <div className="zone-deck">
+        <div className={`zone-deck${!courante ? ' zone-vide' : ''}`}>
           {offres === null && <div className="empty"><div><Attente texte="Chargement des offres…" centre /></div></div>}
 
           {offres !== null && !courante && (
@@ -340,6 +342,8 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
             </div>
           )}
 
+          {vue === 'cartes' && offres !== null && !courante && <ActionsOffre close={false} vide occupe={enCours || preparation} peutRevenir={Boolean(dernier)} onRetour={() => void reviens()} onDecide={() => {}} />}
+
           {vue !== 'cartes' && offres && <ListeOffres offres={offres} scores={adequations} tableau={vue === 'tableau'} ouvrir={setDetail}
             comparer={(id) => setSelection(limiteComparaison(selection, id))} selection={selection} />}
           {vue === 'cartes' && suivante && (
@@ -356,6 +360,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
               onDetail={() => { setDetail(courante); void api.vue(courante.id, 'detail') }}
               onDecide={courante.statut === 'close' ? undefined : (d) => void decide(courante, d)}
               adequation={adequationDe(courante)}
+              actions={<ActionsOffre close={courante.statut === 'close'} vide={false} occupe={enCours || preparation} peutRevenir={Boolean(dernier)} onRetour={() => void reviens()} onDecide={(d) => void decide(courante, d)} />}
             />
           )}
         </div>
@@ -364,8 +369,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
       </div>
 
       </div>
-      {vue === 'cartes' && offres !== null && <ActionsOffre close={courante?.statut === 'close'} vide={!courante} occupe={enCours || preparation}
-        peutRevenir={Boolean(dernier)} onRetour={() => void reviens()} onDecide={(d) => { if (courante) void decide(courante, d) }} />}
+
 
       {detail && (
         <Feuille onFermer={() => setDetail(null)}>
@@ -384,9 +388,12 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
       )}
 
       {panneauFiltres && comptes && (
-        <Feuille onFermer={() => setPanneauFiltres(false)}>
+        <Feuille titre="Filtrer les offres" onFermer={() => setPanneauFiltres(false)} pied={<div className="pf-pied">
+          <button className="btn" disabled={actifs === 0} onClick={toutEffacer}>Tout effacer</button>
+          <button className="btn primaire" onClick={() => setPanneauFiltres(false)}>Voir {offres?.length ?? 0} offre{offres?.length !== 1 ? 's' : ''}</button>
+        </div>}>
           <PanneauFiltres f={filtres} comptes={comptes} total={offres?.length ?? 0} actifs={actifs}
-            change={setFiltres} toutEffacer={toutEffacer} fermer={() => setPanneauFiltres(false)} />
+            change={setFiltres} />
         </Feuille>
       )}
 
@@ -481,58 +488,51 @@ function BarreFiltres({ f, total, actifs, ouvre, change, toutEffacer }: {
    chacune, le nombre d'offres qu'on verrait en la cochant compte tenu du reste.
    Plusieurs cases dans une section = l'une OU l'autre ; d'une section à
    l'autre = les deux. Le bouton du bas dit combien d'offres on va voir. */
-function PanneauFiltres({ f, comptes, total, actifs, change, toutEffacer, fermer }: {
-  f: Filtres; comptes: Compteurs; total: number; actifs: number; change: Maj; toutEffacer: () => void; fermer: () => void
+function PanneauFiltres({ f, comptes, total, actifs, change }: {
+  f: Filtres; comptes: Compteurs; total: number; actifs: number; change: Maj
 }) {
+  const [rechercheChoix, setRechercheChoix] = useState('')
+  const [ouverts, setOuverts] = useState<Record<string, boolean>>({ villes: true, contrats: true })
+  const prefixe = useId()
+  const cherche = (nom: string) => plat(nom).includes(plat(rechercheChoix.trim()))
   const ligne = (cle: string, coche: boolean, nom: string, n: number, agir: () => void) => (
-    <label key={cle} className={`pf-ligne${!coche && n === 0 ? ' vide' : ''}`}>
+    <label key={cle} className={`pf-ligne${!coche && n === 0 ? ' indisponible' : ''}`}>
       <input type="checkbox" checked={coche} disabled={!coche && n === 0} onChange={agir} />
       <span className="pf-nom">{nom}</span>
-      <span className="pf-n">{n}</span>
+      <span className="pf-n" aria-label={`${n} offre${n !== 1 ? 's' : ''}`}>{n}</span>
     </label>
   )
-  return (
-    <div className="pf">
-      <div className="pf-tete">
-        <h2>Filtres</h2>
-        <p>{total} offre{total > 1 ? 's' : ''} correspond{total > 1 ? 'ent' : ''}</p>
-      </div>
-
-      <div className="pf-jeu" role="radiogroup" aria-label="Offres à afficher">
-        <button role="radio" aria-checked={!f.clos} className={!f.clos ? 'on' : ''}
-          onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: undefined }))}>Ouvertes</button>
-        <button role="radio" aria-checked={Boolean(f.clos)} className={f.clos ? 'on' : ''}
-          onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: true }))}>Archives (lecture seule)</button>
-      </div>
-
-      {CATEGORIES.map(({ cle, titre }) => {
-        const valeurs = comptes.categories[cle]
-        if (valeurs.length < 2 && !f[cle]?.length) return null       // une seule valeur ne filtre rien
-        return (
-          <section key={cle} className="pf-section">
-            <h3>{titre}{f[cle]?.length ? <span className="pf-choix">{f[cle]!.length} choisi{f[cle]!.length > 1 ? 's' : ''}</span> : null}</h3>
-            <div className="pf-lignes">
-              {valeurs.map((x) => ligne(`${cle}:${x.valeur}`, Boolean(f[cle]?.includes(x.valeur)),
-                libelleValeur(cle, x.valeur), x.n, () => change((g) => basculeValeur(g, cle, x.valeur))))}
-            </div>
-          </section>
-        )
-      })}
-
-      <section className="pf-section">
-        <h3>Options</h3>
-        <div className="pf-lignes">
-          {OPTIONS.map(({ cle, titre }) => ligne(`o:${cle}`, Boolean(f[cle]), titre, comptes.options[cle],
-            () => change((g) => basculeOption(g, cle))))}
-        </div>
-      </section>
-
-      <div className="pf-pied">
-        <button className="btn" disabled={actifs === 0} onClick={toutEffacer}>Tout effacer</button>
-        <button className="btn primaire" onClick={fermer}>Voir {total} offre{total > 1 ? 's' : ''}</button>
-      </div>
+  const groupes = CATEGORIES.map((c) => ({ ...c, valeurs: comptes.categories[c.cle].filter((x) => cherche(c.titre) || cherche(libelleValeur(c.cle, x.valeur))) })).filter((c) => c.valeurs.length)
+  const options = OPTIONS.filter((o) => cherche(o.titre) || cherche('Options'))
+  return <div className="pf pf-refonte">
+    <div className="pf-bilan"><div><b aria-live="polite">{total} offre{total !== 1 ? 's' : ''}</b><span> dans cette sélection</span></div><span>{actifs ? `${actifs} critère${actifs > 1 ? 's' : ''} actif${actifs > 1 ? 's' : ''}` : 'Aucun critère actif'}</span></div>
+    <div className="pf-jeu" role="group" aria-label="Offres à afficher">
+      <button type="button" aria-pressed={!f.clos} className={!f.clos ? 'on' : ''} onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: undefined }))}>Offres ouvertes</button>
+      <button type="button" aria-pressed={Boolean(f.clos)} className={f.clos ? 'on' : ''} onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: true }))}>Archives (lecture seule)</button>
     </div>
-  )
+    <p className="pf-explication">Les filtres s’appliquent immédiatement. Plusieurs choix d’une même catégorie s’ajoutent ; les catégories se combinent.</p>
+    {actifs > 0 && <section className="pf-selection" aria-label="Critères actifs"><h3>Ta sélection</h3>
+      <div className="pf-puces">
+        {f.q && <span className="pf-recherche-active">Recherche de poste : {f.q}</span>}
+        {CATEGORIES.flatMap(({ cle, titre }) => (f[cle] ?? []).map((v) => <button type="button" key={`${cle}:${v}`} className="chip actif" aria-label={`Retirer le filtre ${titre} : ${libelleValeur(cle, v)}`} onClick={() => change((g) => basculeValeur(g, cle, v))}>{libelleValeur(cle, v)} <span aria-hidden="true">×</span></button>))}
+        {OPTIONS.filter(({ cle }) => f[cle]).map(({ cle, titre }) => <button type="button" key={cle} className="chip actif" aria-label={`Retirer le filtre ${titre}`} onClick={() => change((g) => basculeOption(g, cle))}>{titre} <span aria-hidden="true">×</span></button>)}
+      </div>
+    </section>}
+    <label className="pf-cherche"><span>Rechercher un critère</span><input type="search" value={rechercheChoix} onChange={(e) => setRechercheChoix(e.target.value)} placeholder="Un lieu, un métier, un contrat…" /><small>Cette recherche retrouve les choix ci-dessous ; elle ne change pas les résultats.</small></label>
+    {!groupes.length && !options.length && <p role="status" className="pf-sans-choix">Aucun critère ne correspond à cette recherche. <button type="button" className="btn-mini" onClick={() => setRechercheChoix('')}>Effacer la recherche de critères</button></p>}
+    {groupes.map(({ cle, titre, valeurs }) => {
+      const nombre = f[cle]?.length ?? 0
+      const ouvert = Boolean(rechercheChoix.trim()) || Boolean(ouverts[cle] ?? nombre)
+      const id = `${prefixe}-${cle}`
+      return <section key={cle} className="pf-categorie">
+        <div className="pf-categorie-entete"><button type="button" className="pf-categorie-bouton" aria-expanded={ouvert} aria-controls={id} onClick={() => setOuverts({ ...ouverts, [cle]: !ouvert })}><span>{titre}</span><small>{nombre ? `${nombre} choisi${nombre > 1 ? 's' : ''}` : `${valeurs.length} choix`}</small><span aria-hidden="true">{ouvert ? '−' : '+'}</span></button>
+          {nombre > 0 && <button type="button" className="pf-retire-categorie" aria-label={`Effacer le filtre ${titre}`} onClick={() => change((g) => ({ ...g, [cle]: undefined }))}>Effacer</button>}
+        </div>
+        <div id={id} className="pf-lignes" hidden={!ouvert}>{valeurs.map((x) => ligne(`${cle}:${x.valeur}`, Boolean(f[cle]?.includes(x.valeur)), libelleValeur(cle, x.valeur), x.n, () => change((g) => basculeValeur(g, cle, x.valeur))))}</div>
+      </section>
+    })}
+    {options.length > 0 && <section className="pf-categorie"><h3 className="pf-options-titre">Options</h3><div className="pf-lignes">{options.map(({ cle, titre }) => ligne(`o:${cle}`, Boolean(f[cle]), titre, comptes.options[cle], () => change((g) => basculeOption(g, cle))))}</div></section>}
+  </div>
 }
 
 /* ------------------------------------------------------------------ la carte */
@@ -611,11 +611,12 @@ function employeur(o: Offre): string {
 
 const SEUIL = 90          // pixels au-delà desquels le glissé vaut décision
 
-function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequation }: {
+function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequation, actions }: {
   offre: Offre
   profondeur: number
   profil: Profil
   adequation?: Adequation
+  actions?: React.ReactNode
   occupe?: boolean
   onDetail?: () => void
   onDecide?: (d: Decision) => void
@@ -664,9 +665,9 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
   const jouable = profondeur === 0 && !occupe && Boolean(onDecide)
 
   const debut = (e: React.PointerEvent) => {
-    if (!jouable || (e.target instanceof Element && e.target.closest('button, a, input, select, textarea'))) return
+    if (!jouable || !e.isPrimary || e.button !== 0 || (e.target instanceof Element && e.target.closest('button, a, input, select, textarea'))) return
     depart.current = { x: e.clientX, y: e.clientY }
-    glisseVersHaut.current = e.target instanceof Element && Boolean(e.target.closest('.carte-poignee'))
+    glisseVersHaut.current = e.pointerType === 'mouse' || (e.target instanceof Element && Boolean(e.target.closest('.carte-poignee')))
     axe.current = null
     capture.current = false
     setLache(false)
@@ -694,6 +695,7 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
     const aGlisse = capture.current
     const vertical = axe.current === 'y'
     const versHaut = e.clientY - depart.current.y < -SEUIL
+    const horizontal = e.clientX - depart.current.x
     const boite = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const aGauche = e.clientX - boite.left < boite.width / 3
     depart.current = null
@@ -701,8 +703,8 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
     setLache(true)
     setDy(0)
     if (aGlisse && vertical) { setDx(0); if (versHaut) onDecide?.('plus_tard'); return }
-    if (aGlisse && Math.abs(dx) > SEUIL) {
-      const sens = dx > 0 ? 1 : -1
+    if (aGlisse && Math.abs(horizontal) > SEUIL) {
+      const sens = horizontal > 0 ? 1 : -1
       setDx(0)
       onDecide?.(sens > 0 ? 'oui' : 'non')
       return
@@ -719,7 +721,7 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
 
   return (
     <article
-      className={`card${page ? ' turned' : ''}${close ? ' close' : ''}`}
+      className={`card${jouable ? ' glissable' : ''}${page ? ' turned' : ''}${close ? ' close' : ''}`}
       aria-hidden={profondeur > 0 || undefined}
       inert={profondeur > 0}
       style={{
@@ -729,6 +731,7 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
         touchAction: 'pan-y',
         pointerEvents: profondeur > 0 ? 'none' : undefined,
       }}
+      onDragStart={(e) => e.preventDefault()}
       onPointerDown={debut}
       onPointerMove={bouge}
       onPointerUp={fin}
@@ -790,8 +793,6 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
           )}
           <div ref={corps} className={`page-body${deborde ? ' deborde' : ''}`}>{courante.corps}</div>
         </div>
-      </div>
-
       <div className="facts">
         <div className="line">
           {o.province && <span>{o.province}</span>}
@@ -802,7 +803,9 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
           {o.salaire?.[0] ? <em>{kf(o.salaire[0])}{o.salaire[1] ? ` – ${kf(o.salaire[1])}` : ''} XPF</em> : null}
         </div>
       </div>
+      </div>
 
+      {actions}
 
     </article>
   )

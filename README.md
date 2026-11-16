@@ -11,12 +11,12 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
-**0.3.0 publiée le 16 novembre 2026**, commit applicatif `36731ef`.
-[Contrôles de publication](docs/DEPLOIEMENT-0.3.0-2026-11-16.md).
-
-La version **0.3.0** refond l’interface : navigation, disposition des écrans, actions visibles,
-fenêtres de détail, guide par page et favoris par glissement vers le haut de la poignée.
-[Description et recette de la refonte](docs/REFONTE-UI-0.3.0.md).
+La version **0.3.1** intègre les actions dans la carte de droite, améliore les filtres,
+permet le glissé à la souris dans les trois directions et présente le guide en petit pop-up.
+Le tutoriel se lance automatiquement à la première connexion par compte et navigateur.
+Les candidatures se mettent à jour automatiquement, sans bouton Actualiser.
+[Description et recette des ajustements](docs/AJUSTEMENTS-UI-0.3.1.md).
+[Refonte initiale 0.3.0](docs/REFONTE-UI-0.3.0.md).
 
 Les offres et les liens partagés nécessitent une connexion. Le mode fictif reste retiré.
 Historique des publications : [0.2.0 le 2 novembre](docs/DEPLOIEMENT-2026-11-02.md),
@@ -127,10 +127,10 @@ npm run build      # dist/ : à déposer tel quel sous /avp/
 
 ## L'interface en bref
 
-- **Guide** : depuis l’en-tête, tutoriel de la page avec progression, Précédent, Suivant, Arrêter et Terminer.
+- **Guide** : pop-up avec projecteur et arrière-plan grisé, lancement initial automatique par compte et navigateur ; Précédent, Suivant, Arrêter et Terminer. Relance depuis l’en-tête.
 - **Accueil** : inscription (avec « Es-tu déjà agent de l'OPT-NC ? », transmis à leur API), connexion, mot de passe oublié, nombre de postes ouverts en ce moment.
 - **Consultation après rendu** : cartes, liste ou tableau ; tris, recherches mémorisées, comparaison, liens et notes locales. Connexion requise pour consulter les offres, y compris via un lien partagé.
-- **Offres** : recherche et filtres regroupés ; détail à gauche et carte à droite sur grand écran. Barre cœur/croix/étoile/retour séparée du contenu défilant. Glisser à gauche pour passer, à droite pour candidater ; glisser la poignée vers le haut pour garder en favori. Les archives restent en lecture seule.
+- **Offres** : recherche et filtres regroupés ; détail à gauche et carte à droite sur grand écran. Boutons cœur/croix/étoile/retour intégrés à la carte, sous son contenu défilant. Glisser à gauche pour passer, à droite pour candidater ; glisser vers le haut à la souris (poignée au tactile) pour garder en favori. Les archives restent en lecture seule.
 - **Adéquation** : pastille « Bonne adéquation · 42 % » sur la carte, et dans le détail (aussi sur téléphone) un tableau de bord : jauge, compétences couvertes, rang de l'offre parmi toutes, savoir-être, prérequis, et la note de chaque compétence ; une info-bulle claire donne la preuve tirée du profil ou ce que la compétence pèse dans le score.
 - **Couleurs de l'adéquation** : le niveau donné par CV-Matching colore la pastille, la jauge et le liseré — vert pour *excellente* (≥ 75 %) et *très bonne* (≥ 50 %), bleu pour *bonne* (≥ 33 %), ambre pour *partielle* (≥ 20 %), rouge pour *faible*. Indicateurs teintés (couvertes vert, rang bleu, savoir-être orange, prérequis ambre), barres vertes (couverte) ou orange (à travailler), savoir-être en pastilles orangées, statut des prérequis en couleur. Tout passe par les jetons du thème : la nuit suit.
 - **Filtres** : une barre (recherche, bouton Filtres, filtres actifs retirables, nombre d'offres) et un panneau par sections, avec cases à cocher et bascule offres ouvertes / archives en lecture seule.

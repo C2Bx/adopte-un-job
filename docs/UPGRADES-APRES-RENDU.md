@@ -1,6 +1,8 @@
 # Upgrades et améliorations après rendu — MS3
 
-Version applicative actuelle : **0.3.0**, évolution du **16 novembre 2026**, après la fin du rendu.
+Version applicative actuelle : **0.3.1**, évolution du **16 novembre 2026**, après la fin du rendu.
+
+La [0.3.1](AJUSTEMENTS-UI-0.3.1.md) intègre les actions à la carte, refait les filtres, présente un guide pop-up automatique au premier usage et actualise les candidatures automatiquement.
 
 La 0.3.0 ajoute la [refonte UI, le tutoriel par page et le swipe haut pour les favoris](REFONTE-UI-0.3.0.md).
 Les limites de stockage et la séparation avec le rendu restent applicables.
@@ -59,8 +61,8 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
 | Candidatures organisées | Recherche dans titre/référence/notes/étiquettes, filtre sur statut réellement reçu et tri par date/titre/statut/étiquettes. |
 | Notes personnelles | Texte par offre, limité à 3 000 caractères, non transmis au serveur. |
 | Offres mises de côté | Étiquettes personnelles, recherche et classement dans l'écran des candidatures. |
-| Guide par page | Tutoriel avec progression, Précédent, Suivant, Arrêter et Terminer, sans recouvrement des commandes (0.3.0). |
-| Favoris et gestes | Étoile ou glissement de la poignée vers le haut ; actions visibles et archives désactivées (0.3.0). |
+| Guide par page | Pop-up avec projecteur, Précédent/Suivant/Arrêter/Terminer et lancement initial automatique par compte et navigateur (0.3.1). |
+| Favoris et gestes | Étoile ou glissement haut (corps de la carte à la souris, poignée au tactile) ; actions dans la carte et archives désactivées (0.3.1). |
 | Mobile | Commandes qui se replient, alternatives aux gestes et tableaux à défilement horizontal. |
 | Accessibilité | Boutons explicites, labels, lien d'évitement, focus visible et dialogues accessibles conservés. |
 | Confort de lecture | Trois tailles de texte et densité confortable/compacte, conservées localement. |
