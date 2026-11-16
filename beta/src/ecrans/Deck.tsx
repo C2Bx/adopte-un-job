@@ -367,6 +367,8 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
               onDetail={() => { setDetail(courante); void api.vue(courante.id, 'detail') }}
               onDecide={courante.statut === 'close' ? undefined : (d) => void decide(courante, d)}
               adequation={adequationDe(courante)}
+              ouvrirOutils={() => setPanneauFiltres(true)}
+              nbFiltres={actifs}
               comparer={() => setSelection(limiteComparaison(selection, courante.id))}
               comparee={selection.includes(courante.id)}
               comparaisonPleine={selection.length >= 3}
@@ -402,10 +404,14 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
       )}
 
       {panneauFiltres && comptes && (
-        <Feuille titre="Filtrer les offres" onFermer={() => setPanneauFiltres(false)} pied={<div className="pf-pied">
+        <Feuille titre="Recherche et filtres" onFermer={() => setPanneauFiltres(false)} pied={<div className="pf-pied">
           <button className="btn" disabled={actifs === 0} onClick={toutEffacer}>Tout effacer</button>
           <button className="btn primaire" onClick={() => setPanneauFiltres(false)}>Voir {offres?.length ?? 0} offre{offres?.length !== 1 ? 's' : ''}</button>
         </div>}>
+          <div className="outils-pleine-hauteur">
+            <label>Rechercher un poste<input type="search" className="recherche-popup" aria-label="Rechercher un poste dans les filtres" value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Titre, métier, service…" /></label>
+            <button type="button" className="btn-mini" onClick={() => { setPanneauFiltres(false); setPresentationOuverte(true) }}>Affichage et tri</button>
+          </div>
           <PanneauFiltres f={filtres} comptes={comptes} total={offres?.length ?? 0} actifs={actifs}
             change={setFiltres} />
         </Feuille>
@@ -622,12 +628,14 @@ function employeur(o: Offre): string {
 
 const SEUIL = 90          // pixels au-delà desquels le glissé vaut décision
 
-function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequation, actions, comparer, comparee, comparaisonPleine }: {
+function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequation, actions, comparer, comparee, comparaisonPleine, ouvrirOutils, nbFiltres }: {
   offre: Offre
   profondeur: number
   profil: Profil
   adequation?: Adequation
   actions?: React.ReactNode
+  ouvrirOutils?: () => void
+  nbFiltres?: number
   comparer?: () => void
   comparee?: boolean
   comparaisonPleine?: boolean
@@ -779,6 +787,7 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
               Voir l’offre
             </button>
             <button type="button" className="score ui-comparer-carte" aria-pressed={comparee} disabled={comparaisonPleine && !comparee} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); comparer?.() }}>{comparee ? 'Retirer' : 'Comparer'}</button>
+            <button type="button" className="score ui-outils-carte" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); ouvrirOutils?.() }} aria-haspopup="dialog">Filtres{nbFiltres ? ` (${nbFiltres})` : ''}</button>
             {close && <span className="badge-pass close">Offre expirée · lecture seule</span>}
           </div>
           <h2 className="role">{o.titre}</h2>

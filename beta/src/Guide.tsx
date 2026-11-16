@@ -5,17 +5,17 @@ import type { Onglet } from './App'
 type Etape = { titre: string; texte: string; cible: string }
 const ETAPES: Record<Onglet, Etape[]> = {
   swipe: [
-    { titre: 'Choisir ton affichage', texte: '', cible: '.ui-presentation' },
-    { titre: 'Rechercher un poste', texte: '', cible: '.filtres-avp .recherche' },
-    { titre: 'Affiner les résultats', texte: '', cible: '.filtres-rapides' },
+    { titre: 'Choisir ton affichage', texte: '', cible: '.ui-presentation, .ui-outils-carte' },
+    { titre: 'Rechercher un poste', texte: '', cible: '.filtres-avp .recherche, .ui-outils-carte' },
+    { titre: 'Affiner les résultats', texte: '', cible: '.filtres-rapides, .ui-outils-carte' },
     { titre: 'Lire toute l’offre', texte: '', cible: '.card .score-btn, .upgrade-liste, .upgrade-tableau' },
     { titre: 'Comprendre l’adéquation', texte: '', cible: '.card .cles, .upgrade-liste, .upgrade-tableau' },
     { titre: 'Comparer les offres', texte: '', cible: '[data-onglet=comparaison]' },
     { titre: 'Passer, garder ou candidater', texte: '', cible: '.deck-actions, .upgrade-liste, .upgrade-tableau' },
-    { titre: 'Relire avant d’envoyer', texte: '', cible: '.ui-presentation' },
+    { titre: 'Relire avant d’envoyer', texte: '', cible: '.ui-presentation, .ui-outils-carte' },
     { titre: 'Notes et étiquettes', texte: '', cible: '.card .score-btn, .upgrade-liste, .upgrade-tableau' },
     { titre: 'Partager une offre', texte: '', cible: '.card .score-btn, .upgrade-liste, .upgrade-tableau' },
-    { titre: 'Retrouver une recherche', texte: '', cible: '.ui-presentation' },
+    { titre: 'Retrouver une recherche', texte: '', cible: '.ui-presentation, .ui-outils-carte' },
     { titre: 'Adapter la lecture', texte: '', cible: '.ui-aide-bouton' },
   ],
   comparaison: [
@@ -46,8 +46,8 @@ const ETAPES: Record<Onglet, Etape[]> = {
   ],
 }
 const CONSIGNES: Record<string, [string, string][]> = {
-  'Choisir ton affichage': [['Affichage et tri', 'Ouvre ce bouton pour choisir la présentation.'], ['Cartes, liste ou tableau', 'Garde la vue la plus confortable pour toi.'], ['Tri', 'Classe par clôture, publication, titre ou adéquation disponible.']],
-  'Rechercher un poste': [['Rechercher', 'Saisis un titre, un métier ou un mot.'], ['Expression exacte', 'Place plusieurs mots entre guillemets.'], ['Élargir', 'Efface la recherche pour retrouver toutes les offres.']],
+  'Choisir ton affichage': [['Affichage et tri', 'Sur petit écran, ouvre Filtres sur la carte, puis Affichage et tri.'], ['Cartes, liste ou tableau', 'Garde la vue la plus confortable pour toi.'], ['Tri', 'Classe par clôture, publication, titre ou adéquation disponible.']],
+  'Rechercher un poste': [['Rechercher', 'Saisis un titre ou un métier. Sur petit écran, ouvre Filtres sur la carte.'], ['Expression exacte', 'Place plusieurs mots entre guillemets.'], ['Élargir', 'Efface la recherche pour retrouver toutes les offres.']],
   'Affiner les résultats': [['Lieu et contrat', 'Choisis-les directement dans la barre des offres.'], ['Filtres', 'Ouvre les autres critères et coche tes choix.'], ['Retirer', 'Utilise la croix d’un critère ou Tout effacer.']],
   'Passer, garder ou candidater': [['Croix · gauche', 'Maintiens le clic gauche et glisse à gauche, ou utilise le bouton.'], ['Étoile jaune · haut', 'Glisse vers le haut à la souris ; au tactile, utilise la poignée. Le bouton fait la même chose.'], ['Cœur · droite', 'Bouton ou glissement à droite : relis le dossier avant confirmation.']],
   'Relire avant d’envoyer': [['Relecture', 'Elle est activée par défaut.'], ['Confirmer', 'Ce bouton envoie réellement la candidature.'], ['Annuler', 'Retrouve ta carte sans envoyer le dossier.']],
@@ -116,7 +116,7 @@ export function Guide({ onglet, onFermer }: { onglet: Onglet; onFermer: () => vo
     }
     const tailles = new ResizeObserver(mesure)
     const actualise = () => {
-      const suivant = document.querySelector<HTMLElement>(etape.cible) ?? document.querySelector<HTMLElement>('.screen')
+      const suivant = Array.from(document.querySelectorAll<HTMLElement>(etape.cible)).find((el) => el.getClientRects().length > 0) ?? document.querySelector<HTMLElement>('.screen')
       if (suivant !== cible) {
         if (cible) tailles.unobserve(cible)
         cible = suivant

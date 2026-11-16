@@ -511,3 +511,26 @@ button,.btn-fichier,.btn-mini { overflow-wrap:anywhere; }
  #ec-swipe .card .deck-actions .coin span { margin:0; }
  #ec-swipe .card .deck-actions .coins { gap:16px; }
 }
+
+/* 0.4.1 : la carte occupe toute la hauteur utile ; les outils restent à côté. */
+.ui-outils-carte { display:none; }
+.outils-pleine-hauteur { display:flex; align-items:end; flex-wrap:wrap; gap:12px; margin-bottom:18px; }
+.outils-pleine-hauteur label { display:grid; flex:1 1 220px; gap:6px; font-size:var(--t-sm); }
+.outils-pleine-hauteur .recherche-popup { margin:0; min-height:40px; }
+@media(min-width:1100px) {
+ #ec-swipe.upgrade-deck:not(.upgrade-vue-liste):not(.deck-vide) > .deck-contenu { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(320px,1fr); grid-template-rows:auto auto minmax(0,1fr); grid-template-areas:'entete deck' 'filtres deck' 'panneau deck'; padding:10px 18px; gap:10px 14px; }
+ #ec-swipe.upgrade-deck:not(.upgrade-vue-liste):not(.deck-vide) > .deck-contenu > .stack { display:contents; }
+ #ec-swipe.upgrade-deck:not(.upgrade-vue-liste):not(.deck-vide) .upgrade-haut { grid-area:entete; padding:0; overflow:auto; }
+ #ec-swipe.upgrade-deck:not(.upgrade-vue-liste):not(.deck-vide) .filters { grid-area:filtres; }
+ #ec-swipe.upgrade-deck:not(.upgrade-vue-liste):not(.deck-vide) .zone-deck { grid-area:deck; width:100%; max-width:none; height:100%; align-self:stretch; }
+ #ec-swipe.upgrade-deck:not(.upgrade-vue-liste):not(.deck-vide) .side { grid-area:panneau; min-height:0; overflow:auto; }
+}
+@media(max-width:1099px) {
+ #ec-swipe .ui-outils-carte { display:inline-flex; }
+ #ec-swipe.upgrade-deck:not(.upgrade-vue-liste):has(.card):not(:has(.upgrade-haut [role=alert])) .upgrade-haut { display:none; }
+ #ec-swipe.upgrade-deck:not(.upgrade-vue-liste):has(.card):not(:has(.upgrade-haut [role=alert])) .filters { display:none; }
+ #ec-swipe.upgrade-deck:not(.upgrade-vue-liste):has(.card):not(:has(.upgrade-haut [role=alert])) > .deck-contenu > .stack { grid-template-rows:minmax(0,1fr); grid-template-areas:'deck'; height:100%; padding:8px 12px; gap:0; }
+ #ec-swipe.upgrade-deck:not(.upgrade-vue-liste):has(.card) .zone-deck { max-width:700px; }
+ #ec-swipe .card .hero-top { gap:6px; }
+ #ec-swipe .card .hero-top button { padding:5px 8px; font-size:11px; min-height:30px; }
+}

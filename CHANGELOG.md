@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.4.1 — Offre pleine hauteur — 17 novembre 2026
+
+- Carte sur toute la hauteur utile : commandes à gauche sur ordinateur, accès Filtres depuis la carte sur petit écran.
+- Actions conservées dans la carte ; vues liste/tableau et cibles du guide adaptées.
+- 36 contrôles applicatifs/PHP et recette sur sept formats. [Détails](docs/PLEINE-HAUTEUR-0.4.1.md).
+
+
 ## 0.4.0 — Parcours et interface après rendu — 16 novembre 2026
 
 - Menu Comparaison permanent et page dédiée, sélection conservée par compte dans le navigateur.
