@@ -1,5 +1,8 @@
 # Parcours et interface MS3 — version 0.4.0 — 16 novembre 2026
 
+**En production depuis le 16 novembre 2026**, commit applicatif `bb88254`.
+[Contrôles de publication](DEPLOIEMENT-0.4.0-2026-11-16.md).
+
 Amélioration après rendu : la référence du 20 octobre (`b823f58`) et les publications précédentes restent conservées.
 Ce lot reprend les parcours complets plutôt que d’ajouter des commandes dans les zones de lecture.
 

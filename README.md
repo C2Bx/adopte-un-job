@@ -11,6 +11,9 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
+**0.4.0 publiée le 16 novembre 2026**, commit applicatif `bb88254`.
+[Contrôles de publication](docs/DEPLOIEMENT-0.4.0-2026-11-16.md).
+
 La version **0.4.0** organise les parcours autour de **Offres, Comparaison, Candidatures et Profil**.
 Comparaison dispose de sa propre page ; filtres directs, commandes compactes, étoile jaune, conseils vers
 les champs exacts et guides structurés complètent l’agencement.
