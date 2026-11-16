@@ -4,7 +4,6 @@ import type { Adequation } from './api'
 export type VueOffres = 'cartes' | 'liste' | 'tableau'
 export type TriOffres = 'cloture' | 'publication' | 'titre' | 'adequation'
 export function compteLocal(): string {
-  if (new URLSearchParams(location.search).get('demo') === '1') return 'demo'
   try { const s = JSON.parse(sessionStorage.getItem('aj.session') ?? 'null'); return s?.id ? String(s.id) : 'visiteur' } catch { return 'visiteur' }
 }
 export function litLocal<T>(cle: string, defaut: T): T {
@@ -23,7 +22,7 @@ export function trieOffres<T extends Offre>(offres: T[], tri: TriOffres, scores:
   })
 }
 export function lienOffre(id: number): string {
-  const u = new URL(location.href); const demo = u.searchParams.get('demo') === '1'; u.search = ''; if (demo) u.searchParams.set('demo', '1'); u.searchParams.set('offre', String(id)); u.hash = 'swipe'; return u.toString()
+  const u = new URL(location.href); u.search = ''; u.searchParams.set('offre', String(id)); u.hash = 'swipe'; return u.toString()
 }
 export function idOffrePartagee(): number | null {
   const v = new URLSearchParams(location.search).get('offre'); return v && /^\d+$/.test(v) && Number.isSafeInteger(Number(v)) ? Number(v) : null

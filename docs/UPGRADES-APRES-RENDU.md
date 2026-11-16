@@ -1,8 +1,13 @@
 # Upgrades et améliorations après rendu — MS3
 
-Version applicative : **0.2.0**, développée le **27 octobre 2026**, après la fin du rendu.
+Version applicative actuelle : **0.2.1**, évolution du **16 novembre 2026**, après la fin du rendu.
 
-**Publiée en production le 2 novembre 2026**, commit applicatif `8abffd7`.
+La consultation sans compte et le mode fictif intégré de la 0.2.0 sont retirés à la demande de Bastian.
+L’accueil et l’aide ne les proposent plus. Un lien d’offre nécessite une connexion ;
+`?demo=1` n’active plus aucun scénario fictif. Le prototype historique `demo/` reste une archive locale,
+exclue du déploiement. Les documents du 2 novembre décrivent l’état historique de la 0.2.0.
+
+**Version 0.2.0 publiée en production le 2 novembre 2026**, commit applicatif `8abffd7`.
 Voir [les contrôles de publication](DEPLOIEMENT-2026-11-02.md).
 
 ## Repères de version
@@ -35,7 +40,7 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
 | Repères d'offre | Publication récente, clôture proche/aujourd'hui, consultation et présence d'une note. |
 | Recherche pratique | Accents ignorés, mots combinés, expression entre guillemets et exclusion `-mot`. |
 | Résultats vides | Filtres actifs retirables, effacement global et distinction entre liste vide et erreur de chargement. |
-| Consultation sans compte | Liste publique existante des offres ; connexion nécessaire pour candidater. |
+| Consultation des offres | Connexion obligatoire depuis la 0.2.1, y compris pour les liens partagés. |
 | Détail organisé | Sommaire local, section missions/compétences dépliable, conditions et contact accessibles. |
 | Partage | Lien direct avec identifiant d'offre, sans note ni autre paramètre confidentiel de l'adresse courante. |
 | Adéquation lisible | Explication du score de compétences, des écarts, des prérequis et des avertissements disponibles. |
@@ -52,9 +57,9 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
 | Accessibilité | Boutons explicites, labels, lien d'évitement, focus visible et dialogues accessibles conservés. |
 | Confort de lecture | Trois tailles de texte et densité confortable/compacte, conservées localement. |
 | Aide | Parcours, sens des statuts, fonctionnement du score, raccourcis et limites de stockage. |
-| Démonstration | `?demo=1` : cinq offres fictives, profil fictif modifiable et décisions simulées, avec blocage des appels métier. |
+| Démonstration intégrée | Retirée en 0.2.1 : aucun scénario fictif activable dans l’application. |
 | Chargements et erreurs | Reprises de chargement et protection contre un écran blanc en cas d'erreur d'affichage. |
-| Performance | Catalogue public et démo chargés à la demande ; cache de détail de matching pendant cinq minutes, limité à 50 entrées et vidé au changement de compte. |
+| Performance | Cache de détail de matching pendant cinq minutes, limité à 50 entrées et vidé au changement de compte. |
 | Tests et documentation | Régressions complétées, pipeline de vérification conservé et séparation explicite rendu/stabilisation/upgrades. |
 
 ## Données et comportements à connaître
@@ -73,8 +78,6 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
   une copie du CV chez le recruteur ou une protection atomique entre appareils.
 - L'extraction comble les absences après sélection. Une extraction modifiée entre aperçu et
   validation est refusée : elle doit être relue. Le moteur CVForge et ses formats ne changent pas. L’aperçu peut aussi rouvrir la dernière extraction enregistrée ; l’écran demande de vérifier qu’elle correspond au document actuel.
-- Le mode démo n'a pas de score MS5 fictivement présenté comme réel. Les décisions y sont en
-  mémoire et repartent au chargement ; son profil fictif reste dans l'onglet de démonstration.
 - Les fonctions de compte, notifications, messagerie, calendrier, nouveaux statuts, génération
   de documents, nouveaux scores et tableaux de bord des autres groupes ne sont pas ajoutées.
 
@@ -85,7 +88,7 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
 Les tests sont locaux et utilisent des réponses simulées. Ils couvrent les tris, la sélection
 du comparateur, le stockage par compte, les liens sans paramètres confidentiels, la recherche,
 la sélection de l'extraction et le refus d'une extraction changée, la conservation des champs
-du profil, le cache du matching et l'isolation réseau de la démo. Les contrôles PHP précédents
+du profil, le cache du matching et la connexion normale avec un ancien lien de démonstration. Les contrôles PHP précédents
 restent inchangés. Exécution depuis `beta/` :
 
 ```sh
@@ -96,7 +99,7 @@ npm run build
 npm audit
 ```
 
-Les vérifications dans le navigateur portent sur les parcours fictifs locaux : liste persistée, comparateur, récapitulatif et annulation, lien public sans compte, mise en page de bureau et cadre mobile de 390 pixels. Aucun appel métier n’a été observé pendant la navigation dans la démo (compteur du serveur de test à zéro). Elles ne sont
+Lors de la livraison 0.2.0, les vérifications dans le navigateur ont porté sur les parcours fictifs locaux : liste persistée, comparateur, récapitulatif et annulation, lien public sans compte, mise en page de bureau et cadre mobile de 390 pixels. Aucun appel métier n’a été observé pendant la navigation dans la démo (compteur du serveur de test à zéro). Elles ne sont
 pas une certification RGAA, une validation de tous les appareils ou une recette des autres modules.
 Les nouveaux écrans utilisent les champs réellement disponibles ; aucune évolution de leur API
 n'est attendue pour activer ce lot.

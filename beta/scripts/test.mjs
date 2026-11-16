@@ -10,7 +10,7 @@ const temporaire = mkdtempSync(join(tmpdir(), 'aj-regression-'))
 let nombre = 0
 const test = async (nom, action) => { await action(); console.log(`OK ${++nombre} — ${nom}`) }
 try {
-  for (const nom of ['types', 'regles', 'jsonResume', 'sauvegarde', 'api', 'filtres', 'dates', 'upgrade', 'modeDemo']) {
+  for (const nom of ['types', 'regles', 'jsonResume', 'sauvegarde', 'api', 'filtres', 'dates', 'upgrade']) {
     let texte = readFileSync(join(racine, 'src', `${nom}.ts`), 'utf8').replace('import.meta.env.BASE_URL', "'/avp/'")
 
     const js = ts.transpileModule(texte, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText
@@ -153,8 +153,8 @@ try {
     assert.deepEqual(choixPersistes({ vue: 'invalide', tri: 'invalide' }), { vue: 'cartes', tri: 'cloture' })
     assert.equal(litLocal('absent', 'défaut'), 'défaut')
   })
-  await test('le lien partagé contient seulement l’identifiant de l’offre et conserve le mode démo', () => {
-    location.href = 'https://local/avp/?demo=1&token=confidentiel&email=prive'; const url = new URL(lienOffre(42)); assert.equal(url.searchParams.get('offre'), '42'); assert.equal(url.searchParams.get('demo'), '1'); assert.equal(url.searchParams.get('token'), null); assert.equal(url.searchParams.get('email'), null)
+  await test('le lien partagé contient seulement l’identifiant de l’offre sans paramètre de démonstration', () => {
+    location.href = 'https://local/avp/?demo=1&token=confidentiel&email=prive'; const url = new URL(lienOffre(42)); assert.equal(url.searchParams.get('offre'), '42'); assert.equal(url.searchParams.get('demo'), null); assert.equal(url.searchParams.get('token'), null); assert.equal(url.searchParams.get('email'), null)
     location.search = '?offre=42'; assert.equal(idOffrePartagee(), 42); location.search = '?offre=abc'; assert.equal(idOffrePartagee(), null); location.search = ''
   })
   await test('la recherche gère accents, expression exacte et exclusion', () => {
@@ -175,14 +175,13 @@ try {
     await api.enregistreComplements({ basics: { label: 'Titre', summary: 'Résumé' }, work: [{ name: 'Entreprise', position: 'Conseil', highlights: ['Résultat'] }], projects: [{ name: 'Projet' }] })
     assert.equal(doc.basics.name, 'Identité conservée'); assert.equal(doc.basics.label, 'Titre'); assert.equal(doc.work[0].startDate, '2020'); assert.deepEqual(doc.meta.criteres.zones, ['Nord'])
   })
-  await test('la démonstration ne contacte aucun service métier et sépare ses données', async () => {
+  await test('un ancien lien de démonstration utilise désormais la connexion normale', async () => {
     location.search = '?demo=1'; location.href = 'https://local/avp/?demo=1'
-    let appels = []
-    globalThis.fetch = async (url) => { appels.push(url); if (String(url).endsWith('referentiel.json')) return Response.json(ref); throw Error('Appel métier interdit en démo') }
-    const { activeDemo } = await charge('modeDemo'); activeDemo()
-    assert.equal((await api.moi()).id, 9900); const l = await api.deck(); assert.equal(l.length, 4)
-    await api.swipe(l[0].id, 'oui'); assert.equal((await api.interets()).length, 1); await api.profil()
-    await assert.rejects(api.oubli('fictif@example.invalid')); assert(appels.every((x) => String(x).endsWith('referentiel.json')))
+    requetes = []
+    const u = await api.connexion('test@example.invalid', 'fictif')
+    assert.equal(u.id, utilisateur)
+    assert(requetes.some((r) => r.p === '/auth/login'))
+    location.search = ''; location.href = 'https://local/avp/'
   })
   console.log(`${nombre} tests de régression réussis.`)
 } finally { rmSync(temporaire, { recursive: true, force: true }) }

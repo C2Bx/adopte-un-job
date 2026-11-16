@@ -225,7 +225,6 @@ export function App() {
   return (
     <div className="app">
       <a href="#ec-swipe" className="upgrade-evitement" onClick={(e) => { const cible = document.querySelector<HTMLElement>('.screen'); if (cible) { e.preventDefault(); cible.tabIndex = -1; cible.focus() } }}>Aller au contenu</a>
-      {new URLSearchParams(location.search).get('demo') === '1' && <div className="upgrade-demo" role="status">Démonstration fictive — aucune candidature ni donnée envoyée aux services de l’équipe. <a href={import.meta.env.BASE_URL}>Quitter la démo</a></div>}
       <header className="topbar">
         {/* Le logo porte déjà le nom : l'écrire une seconde fois à côté ferait
             doublon. L'alt le rend au lecteur d'écran. */}

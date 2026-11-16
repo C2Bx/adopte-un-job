@@ -150,7 +150,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
     const id = idOffrePartagee()
     if (id === null) return
     let actif = true
-    void api.offresPubliques().then((l) => {
+    void api.offresDisponibles().then((l) => {
       if (!actif) return
       const offre = l.find((o) => o.id === id)
       if (offre) setDetail(offre)
@@ -412,12 +412,10 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
       </Feuille>}
       {envoyee && (
         <Feuille onFermer={() => setEnvoyee(null)}>
-          <div className="eyebrow">{new URLSearchParams(location.search).get('demo') === '1' ? 'Candidature simulée' : 'Candidature envoyée'}</div>
+          <div className="eyebrow">Candidature envoyée</div>
           <h2>C’est parti</h2>
           <p className="qui">
-            {new URLSearchParams(location.search).get('demo') === '1'
-              ? <>Simulation pour <b>{envoyee.titre}</b> : aucun dossier n’a été envoyé. Le résultat reste dans cette démonstration.</>
-              : <>Ta candidature pour <b>{envoyee.titre}</b> est chez le recruteur : il lit ton profil et ton CV. Tu suis sa réponse dans « Candidatures ».</>}
+            Ta candidature pour <b>{envoyee.titre}</b> est chez le recruteur : il lit ton profil et ton CV. Tu suis sa réponse dans « Candidatures ».
           </p>
           <div className="btns" style={{ marginTop: 'var(--s5)' }}>
             <button className="btn primaire" onClick={() => setEnvoyee(null)}>Continuer</button>

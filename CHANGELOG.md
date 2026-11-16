@@ -1,5 +1,14 @@
 # Historique des versions
 
+## 0.2.1 — Retrait de deux accès après rendu — 16 novembre 2026
+
+- Suppression de la consultation des offres sans compte et de son écran.
+- Suppression du mode fictif intégré, de ses données et de ses liens dans l’accueil et l’aide.
+- Les anciens liens `?demo=1` suivent la connexion normale ; les offres partagées demandent une connexion.
+- Les autres améliorations MS3 et les références historiques du rendu sont conservées.
+- 27 tests applicatifs et 8 contrôles PHP réussis ; compilation TypeScript/Vite validée.
+
+
 ## Référence avant la fin du rendu — 20 octobre 2026
 
 Référence Git : `b823f58` — dernier état versionné du dépôt avant l'échéance du 21 octobre.

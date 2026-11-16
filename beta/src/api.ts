@@ -92,7 +92,6 @@ interface Options {
 }
 
 async function brut(methode: string, chemin: string, o: Options = {}): Promise<Response> {
-  if (new URLSearchParams(location.search).get('demo') === '1') throw new Error('Cette action est indisponible dans la démo fictive.')
   const entetes: Record<string, string> = { Accept: 'application/json' }
   const sessionAppel = o.anonyme ? null : moiSession()
   if (sessionAppel) entetes['Authorization'] = `Bearer ${sessionAppel.jeton}`
@@ -682,7 +681,7 @@ const NON_DISPONIBLE = (quoi: string) =>
   Promise.reject(new ErreurApi('non_disponible', `${quoi} n’existe pas dans l’API de l’équipe.`, 501))
 
 export const api = {
-  async offresPubliques(): Promise<Offre[]> { return offres() },
+  async offresDisponibles(): Promise<Offre[]> { return offres() },
   async apercuLectureCV(): Promise<{ courant: Json; extrait: Json }> {
     const courant = await lisProfilEquipe()
     return { courant, extrait: dernierGenere }

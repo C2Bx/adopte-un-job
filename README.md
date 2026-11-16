@@ -9,10 +9,12 @@ l'Université de la Nouvelle-Calédonie.
 
 📰 **L'article de présentation** (dev.to, track *SaaS no limit*) : https://dev.to/c2b/adopte-un-job-on-swipe-les-vrais-postes-de-lopt-nc-et-on-voit-pourquoi-ils-nous-correspondent-48pc
 
-## En production depuis le 2 novembre 2026
+## Production
 
-La version **0.2.0** est publiée sur [zako.nc/avp](https://zako.nc/avp/), commit applicatif
-**`8abffd7`**. [Contrôles de publication](docs/DEPLOIEMENT-2026-11-02.md).
+La version **0.2.1** retire la consultation sans compte et le mode de démonstration intégré.
+Les offres et les liens partagés nécessitent une connexion. Le paramètre historique `?demo=1`
+n’active plus de données fictives. [Suivi de cette évolution](docs/UPGRADES-APRES-RENDU.md).
+Publication initiale de la 0.2.0 : [contrôles du 2 novembre](docs/DEPLOIEMENT-2026-11-02.md).
 Le rendu d'octobre reste une référence distincte de ces évolutions.
 
 ## Upgrades et améliorations après rendu — version 0.2.0
@@ -119,7 +121,7 @@ npm run build      # dist/ : à déposer tel quel sous /avp/
 ## L'interface en bref
 
 - **Accueil** : inscription (avec « Es-tu déjà agent de l'OPT-NC ? », transmis à leur API), connexion, mot de passe oublié, nombre de postes ouverts en ce moment.
-- **Consultation après rendu** : cartes, liste ou tableau ; tris, recherches mémorisées, comparaison, liens et notes locales. Consultation des offres sans compte depuis l’accueil.
+- **Consultation après rendu** : cartes, liste ou tableau ; tris, recherches mémorisées, comparaison, liens et notes locales. Connexion requise pour consulter les offres, y compris via un lien partagé.
 - **Swipe** : sur grand écran, filtres et détail de l'offre à gauche (65 %), carte à droite (35 %) sur toute la hauteur ; on glisse depuis n'importe quel point de la carte. Sur téléphone, recherche et filtres dans la barre du haut. Carte claire, bordure et détails bleu sombre, touches orange (direction artistique « a » de la maquette).
 - **Adéquation** : pastille « Bonne adéquation · 42 % » sur la carte, et dans le détail (aussi sur téléphone) un tableau de bord : jauge, compétences couvertes, rang de l'offre parmi toutes, savoir-être, prérequis, et la note de chaque compétence ; une info-bulle claire donne la preuve tirée du profil ou ce que la compétence pèse dans le score.
 - **Couleurs de l'adéquation** : le niveau donné par CV-Matching colore la pastille, la jauge et le liseré — vert pour *excellente* (≥ 75 %) et *très bonne* (≥ 50 %), bleu pour *bonne* (≥ 33 %), ambre pour *partielle* (≥ 20 %), rouge pour *faible*. Indicateurs teintés (couvertes vert, rang bleu, savoir-être orange, prérequis ambre), barres vertes (couverte) ou orange (à travailler), savoir-être en pastilles orangées, statut des prérequis en couleur. Tout passe par les jetons du thème : la nuit suit.

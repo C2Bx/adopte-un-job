@@ -1,5 +1,7 @@
 # Mise en production — Adopte un Job 0.2.0
 
+> Historique du 2 novembre : les accès sans compte et la démonstration intégrée décrits ci-dessous sont retirés en 0.2.1 (16 novembre).
+
 Publication effectuée le **2 novembre 2026**, vers **17 h 31 à Nouméa**.
 
 - Application : https://zako.nc/avp/

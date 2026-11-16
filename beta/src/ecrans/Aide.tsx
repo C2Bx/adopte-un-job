@@ -20,6 +20,5 @@ export function Aide() {
     <p>« En attente » n’indique pas que le dossier a été lu. « Retenue » et « Non retenue » sont les décisions reçues. « Entretien à programmer » s’affiche uniquement si le recruteur le signale.</p>
     <p>Notes, étiquettes et recherches sont locales à ce navigateur. Les brouillons de profil et la copie avant import restent dans cet onglet. Ces données ne sont pas synchronisées.</p>
     <p>Les archives sont en lecture seule. Une erreur de réseau n’est jamais une confirmation d’envoi : vérifie tes candidatures avant de réessayer.</p>
-    <a href={`${import.meta.env.BASE_URL}?demo=1`}>Ouvrir la démonstration fictive sans compte</a>
   </details>
 }
