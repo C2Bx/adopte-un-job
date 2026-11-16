@@ -1,5 +1,8 @@
 # Refonte de l’interface MS3 — version 0.3.0 — 16 novembre 2026
 
+**En production depuis le 16 novembre 2026**, commit applicatif `36731ef`.
+[Contrôles de publication](DEPLOIEMENT-0.3.0-2026-11-16.md).
+
 Cette version est une amélioration **après rendu**. La référence `b823f58` du 20 octobre reste inchangée.
 Elle prolonge les upgrades 0.2.0 et le retrait des accès sans compte et du mode fictif en 0.2.1.
 

@@ -11,6 +11,9 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
+**0.3.0 publiée le 16 novembre 2026**, commit applicatif `36731ef`.
+[Contrôles de publication](docs/DEPLOIEMENT-0.3.0-2026-11-16.md).
+
 La version **0.3.0** refond l’interface : navigation, disposition des écrans, actions visibles,
 fenêtres de détail, guide par page et favoris par glissement vers le haut de la poignée.
 [Description et recette de la refonte](docs/REFONTE-UI-0.3.0.md).
