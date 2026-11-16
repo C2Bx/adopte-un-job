@@ -1,5 +1,8 @@
 # Ajustements UI — 0.3.1 — 16 novembre 2026
 
+**En production depuis le 16 novembre 2026**, commit applicatif `199fe42`.
+[Contrôles de publication](DEPLOIEMENT-0.3.1-2026-11-16.md).
+
 Évolution après rendu de la refonte 0.3.0. Le rendu du 20 octobre et les versions précédentes restent des références historiques.
 
 ## Disposition et gestes

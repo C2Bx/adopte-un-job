@@ -11,6 +11,9 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
+**0.3.1 en production depuis le 16 novembre 2026**, commit applicatif `199fe42`.
+[Contrôles de publication](docs/DEPLOIEMENT-0.3.1-2026-11-16.md).
+
 La version **0.3.1** intègre les actions dans la carte de droite, améliore les filtres,
 permet le glissé à la souris dans les trois directions et présente le guide en petit pop-up.
 Le tutoriel se lance automatiquement à la première connexion par compte et navigateur.
