@@ -11,15 +11,11 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
-**0.3.1 en production depuis le 16 novembre 2026**, commit applicatif `199fe42`.
-[Contrôles de publication](docs/DEPLOIEMENT-0.3.1-2026-11-16.md).
-
-La version **0.3.1** intègre les actions dans la carte de droite, améliore les filtres,
-permet le glissé à la souris dans les trois directions et présente le guide en petit pop-up.
-Le tutoriel se lance automatiquement à la première connexion par compte et navigateur.
-Les candidatures se mettent à jour automatiquement, sans bouton Actualiser.
-[Description et recette des ajustements](docs/AJUSTEMENTS-UI-0.3.1.md).
-[Refonte initiale 0.3.0](docs/REFONTE-UI-0.3.0.md).
+La version **0.4.0** organise les parcours autour de **Offres, Comparaison, Candidatures et Profil**.
+Comparaison dispose de sa propre page ; filtres directs, commandes compactes, étoile jaune, conseils vers
+les champs exacts et guides structurés complètent l’agencement.
+[Description, couverture des guides et recette](docs/PARCOURS-UI-0.4.0.md).
+Les publications 0.3.0 et 0.3.1 restent décrites dans leurs rapports historiques.
 
 Les offres et les liens partagés nécessitent une connexion. Le mode fictif reste retiré.
 Historique des publications : [0.2.0 le 2 novembre](docs/DEPLOIEMENT-2026-11-02.md),
@@ -131,6 +127,7 @@ npm run build      # dist/ : à déposer tel quel sous /avp/
 ## L'interface en bref
 
 - **Guide** : pop-up avec projecteur et arrière-plan grisé, lancement initial automatique par compte et navigateur ; Précédent, Suivant, Arrêter et Terminer. Relance depuis l’en-tête.
+- **Comparaison** : menu dédié avec sélection de trois offres maximum, tableau large sur ordinateur et lecture par critère au mobile.
 - **Accueil** : inscription (avec « Es-tu déjà agent de l'OPT-NC ? », transmis à leur API), connexion, mot de passe oublié, nombre de postes ouverts en ce moment.
 - **Consultation après rendu** : cartes, liste ou tableau ; tris, recherches mémorisées, comparaison, liens et notes locales. Connexion requise pour consulter les offres, y compris via un lien partagé.
 - **Offres** : recherche et filtres regroupés ; détail à gauche et carte à droite sur grand écran. Boutons cœur/croix/étoile/retour intégrés à la carte, sous son contenu défilant. Glisser à gauche pour passer, à droite pour candidater ; glisser vers le haut à la souris (poignée au tactile) pour garder en favori. Les archives restent en lecture seule.

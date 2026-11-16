@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Offre } from '../types'
 import type { Adequation } from '../api'
 import type { Filtres } from '../filtres'
-import { choixPersistes, ecritLocal, lienOffre, litLocal, limiteComparaison } from '../upgrade'
+import { choixPersistes, ecritLocal, lienOffre, litLocal } from '../upgrade'
 import type { RepereOffre, VueOffres, TriOffres } from '../upgrade'
 
 export function useLocal<T>(cle: string, initial: T) {
@@ -76,14 +76,4 @@ export function ListeOffres({ offres, scores, tableau, ouvrir, comparer, selecti
   if (tableau) return <div className="upgrade-tableau" tabIndex={0} role="region" aria-label="Tableau des offres, défilement horizontal possible"><table><caption>Offres correspondant aux filtres</caption><thead><tr><th scope="col">Poste</th><th scope="col">Lieu</th><th scope="col">Contrat</th><th scope="col">Clôture</th><th scope="col">Adéquation</th><th scope="col">Actions</th></tr></thead>
     <tbody>{offres.map((o) => <tr key={o.id}><th scope="row">{o.titre}<ReperesOffre offre={o} /></th><td>{o.ville ?? 'Non renseigné'}</td><td>{o.contrat}</td><td>{o.expire?.slice(0, 10) ?? 'Non renseignée'}</td><td>{scores.get(o.reference ?? '')?.pourcentage !== undefined ? `${scores.get(o.reference ?? '')!.pourcentage} %` : 'Indisponible'}</td><td>{contenu(o)}</td></tr>)}</tbody></table></div>
   return <div className="upgrade-liste">{offres.map((o) => <article key={o.id}><h3>{o.titre}</h3><p>{o.ville ?? o.zone} · {o.contrat} · {o.reference}</p><ReperesOffre offre={o} /><p>{o.description?.slice(0, 220)}</p><div className="upgrade-rangee">{contenu(o)}</div></article>)}</div>
-}
-
-export function Comparateur({ offres, scores, selection, change }: { offres: Offre[]; scores: Map<string, Adequation>; selection: number[]; change: (s: number[]) => void }) {
-  const choisies = selection.map((id) => offres.find((o) => o.id === id)).filter((o): o is Offre => Boolean(o))
-  if (!choisies.length) return null
-  return <details className="upgrade-comparateur" open><summary>Comparer {choisies.length} offre(s), maximum 3</summary>
-    <div className="upgrade-tableau" tabIndex={0} role="region" aria-label="Comparaison des offres"><table><caption>Comparaison à partir des données disponibles</caption><thead><tr><th scope="col">Critère</th>{choisies.map((o) => <th scope="col" key={o.id}>{o.titre}<button className="btn-mini" onClick={() => change(limiteComparaison(selection, o.id))}>Retirer</button></th>)}</tr></thead><tbody>
-      {(['Lieu', 'Contrat', 'Clôture', 'Missions', 'Compétences', 'Qualifications', 'Adéquation'] as const).map((critere) => <tr key={critere}><th scope="row">{critere}</th>{choisies.map((o) => <td key={o.id}>{critere === 'Lieu' ? o.ville ?? 'Non renseigné' : critere === 'Contrat' ? o.contrat : critere === 'Clôture' ? o.expire?.slice(0, 10) ?? 'Non renseignée' : critere === 'Missions' ? o.responsabilites.join(' · ') || 'Non renseignées' : critere === 'Compétences' ? o.competencesTexte.map((c) => c.texte).join(' · ') || 'Non renseignées' : critere === 'Qualifications' ? o.qualifications ?? 'Non renseignées' : scores.has(o.reference ?? '') ? `${scores.get(o.reference!)!.pourcentage} %` : 'Indisponible'}</td>)}</tr>)}
-    </tbody></table></div><p className="pa">Le comparateur affiche les résultats existants ; il ne calcule aucun score.</p>
-  </details>
 }

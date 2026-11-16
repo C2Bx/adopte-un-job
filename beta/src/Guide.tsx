@@ -5,28 +5,85 @@ import type { Onglet } from './App'
 type Etape = { titre: string; texte: string; cible: string }
 const ETAPES: Record<Onglet, Etape[]> = {
   swipe: [
-    { titre: 'Choisir ton affichage', texte: 'Ouvre « Affichage et recherches » pour passer des cartes à la liste ou au tableau, puis choisis le tri qui t’aide à lire les offres.', cible: '.ui-presentation' },
-    { titre: 'Rechercher un poste', texte: 'Saisis un titre, un métier ou un mot. Les résultats suivent ta recherche ; efface le texte pour élargir la sélection.', cible: '.filtres-avp .recherche' },
-    { titre: 'Affiner les résultats', texte: 'Ouvre les filtres pour choisir tes critères ou consulter les archives. Les offres expirées restent en lecture seule.', cible: '.ouvre-filtres' },
-    { titre: 'Passer, garder ou candidater', texte: 'Sur les cartes : croix pour passer, étoile pour les favoris, cœur pour candidater. À la souris, maintiens le clic gauche et glisse à gauche, à droite ou vers le haut. Au tactile, glisse la poignée vers le haut pour les favoris. Les commandes restent grisées sans offre ouverte.', cible: '.deck-actions, .upgrade-liste, .upgrade-tableau' },
-    { titre: 'Relire avant d’envoyer', texte: 'La relecture est activée par défaut. Le cœur ouvre ton récapitulatif : seule la confirmation envoie la candidature. Tu peux annuler et retrouver ta carte.', cible: '.ui-presentation' },
-    { titre: 'Retrouver une recherche', texte: 'Donne un nom à tes critères pour les mémoriser dans ce navigateur. Pour suivre tes décisions et tes réponses, ouvre ensuite Candidatures.', cible: '.ui-presentation' },
+    { titre: 'Choisir ton affichage', texte: '', cible: '.ui-presentation' },
+    { titre: 'Rechercher un poste', texte: '', cible: '.filtres-avp .recherche' },
+    { titre: 'Affiner les résultats', texte: '', cible: '.filtres-rapides' },
+    { titre: 'Lire toute l’offre', texte: '', cible: '.card .score-btn, .upgrade-liste, .upgrade-tableau' },
+    { titre: 'Comprendre l’adéquation', texte: '', cible: '.card .cles, .upgrade-liste, .upgrade-tableau' },
+    { titre: 'Comparer les offres', texte: '', cible: '[data-onglet=comparaison]' },
+    { titre: 'Passer, garder ou candidater', texte: '', cible: '.deck-actions, .upgrade-liste, .upgrade-tableau' },
+    { titre: 'Relire avant d’envoyer', texte: '', cible: '.ui-presentation' },
+    { titre: 'Notes et étiquettes', texte: '', cible: '.card .score-btn, .upgrade-liste, .upgrade-tableau' },
+    { titre: 'Partager une offre', texte: '', cible: '.card .score-btn, .upgrade-liste, .upgrade-tableau' },
+    { titre: 'Retrouver une recherche', texte: '', cible: '.ui-presentation' },
+    { titre: 'Adapter la lecture', texte: '', cible: '.ui-aide-bouton' },
+  ],
+  comparaison: [
+    { titre: 'Choisir des offres à comparer', texte: '', cible: '.comparaison-outils' },
+    { titre: 'Lire côte à côte', texte: '', cible: '.comparaison-table, .comparaison-vide' },
+    { titre: 'Changer la sélection', texte: '', cible: '.comparaison-outils' },
+    { titre: 'Données du comparateur', texte: '', cible: '.comparaison-note, .comparaison-vide' },
   ],
   interets: [
-    { titre: 'Retrouver tes décisions', texte: 'Les candidatures, les favoris et les offres écartées ont chacune leur onglet.', cible: '#ec-interets .seg' },
-    { titre: 'Rechercher et classer', texte: 'Cherche dans les offres et tes notes, filtre sur la réponse reçue et choisis l’ordre d’affichage. La liste se met à jour automatiquement lorsque la page est visible.', cible: '.ui-suivi-filtres' },
-    { titre: 'Lire un dossier', texte: 'Sélectionne une offre pour ouvrir son détail. Sur grand écran, il apparaît à côté de la liste ; sur mobile, une fenêtre s’ouvre.', cible: '#ec-interets .item, #ec-interets .vide' },
-    { titre: 'Revoir une décision', texte: 'Les actions d’une offre permettent de la remettre dans les cartes ou de changer ton choix lorsque son statut le permet. Une réponse du recruteur peut empêcher la modification.', cible: '#ec-interets .actes, #ec-interets .col-liste' },
+    { titre: 'Retrouver tes décisions', texte: '', cible: '#ec-interets .seg' },
+    { titre: 'Rechercher et classer', texte: '', cible: '.ui-suivi-filtres' },
+    { titre: 'Lire un dossier', texte: '', cible: '#ec-interets .item, #ec-interets .vide' },
+    { titre: 'Comprendre les réponses', texte: '', cible: '#ec-interets .ui-suivi-filtres' },
+    { titre: 'Revoir une décision', texte: '', cible: '#ec-interets .actes, #ec-interets .col-liste' },
+    { titre: 'Notes et étiquettes', texte: '', cible: '#ec-interets .item, #ec-interets .vide' },
+    { titre: 'Suivre les mises à jour', texte: '', cible: '.ui-synchro-auto' },
   ],
   profil: [
-    { titre: 'Comprendre l’état de ton profil', texte: 'La progression indique les informations requises. « Enregistré » confirme la sauvegarde ; un message d’erreur demande de réessayer.', cible: '.pentete' },
-    { titre: 'Utiliser ton CV', texte: 'Ouvre la rubrique du CV pour déposer ton fichier et relire son extraction. Tu choisis les données à intégrer ; ta saisie existante reste prioritaire.', cible: '.ui-cv, .mescv-carte' },
-    { titre: 'Compléter ton parcours', texte: 'Utilise les cinq étapes du formulaire. Si ton profil est vide, choisis d’abord le formulaire ou les questions guidées.', cible: '.petapes, .qzdepart' },
-    { titre: 'Relire et enrichir', texte: 'L’étape Relecture rassemble ton profil et les rubriques détaillées : projets, réalisations, certifications et liens. Les rubriques détaillées ont leur bouton d’enregistrement.', cible: '.petapes, .qzdepart' },
-    { titre: 'Gérer tes outils', texte: 'Import, export et informations du compte sont regroupés ici. Avant de remplacer le profil, vérifie l’aperçu de l’import.', cible: '.ui-profil-outils' },
+    { titre: 'Comprendre l’état de ton profil', texte: '', cible: '.pentete' },
+    { titre: 'Utiliser ton CV', texte: '', cible: '.ui-cv, .mescv-carte' },
+    { titre: 'Compléter ton parcours', texte: '', cible: '.petapes, .qzdepart' },
+    { titre: 'Corriger au bon endroit', texte: '', cible: '.pguide' },
+    { titre: 'Relire et enrichir', texte: '', cible: '.petapes, .qzdepart' },
+    { titre: 'Répondre aux questions', texte: '', cible: '.ui-assistant, .qzdepart' },
+    { titre: 'Importer ou exporter', texte: '', cible: '.ui-profil-outils' },
+    { titre: 'Rétablir et effacer', texte: '', cible: '.ui-profil-outils' },
+    { titre: 'Compte et confort', texte: '', cible: '.ui-profil-outils' },
   ],
 }
-const NOMS: Record<Onglet, string> = { swipe: 'Offres', interets: 'Candidatures', profil: 'Profil' }
+const CONSIGNES: Record<string, [string, string][]> = {
+  'Choisir ton affichage': [['Affichage et tri', 'Ouvre ce bouton pour choisir la présentation.'], ['Cartes, liste ou tableau', 'Garde la vue la plus confortable pour toi.'], ['Tri', 'Classe par clôture, publication, titre ou adéquation disponible.']],
+  'Rechercher un poste': [['Rechercher', 'Saisis un titre, un métier ou un mot.'], ['Expression exacte', 'Place plusieurs mots entre guillemets.'], ['Élargir', 'Efface la recherche pour retrouver toutes les offres.']],
+  'Affiner les résultats': [['Lieu et contrat', 'Choisis-les directement dans la barre des offres.'], ['Filtres', 'Ouvre les autres critères et coche tes choix.'], ['Retirer', 'Utilise la croix d’un critère ou Tout effacer.']],
+  'Passer, garder ou candidater': [['Croix · gauche', 'Maintiens le clic gauche et glisse à gauche, ou utilise le bouton.'], ['Étoile jaune · haut', 'Glisse vers le haut à la souris ; au tactile, utilise la poignée. Le bouton fait la même chose.'], ['Cœur · droite', 'Bouton ou glissement à droite : relis le dossier avant confirmation.']],
+  'Relire avant d’envoyer': [['Relecture', 'Elle est activée par défaut.'], ['Confirmer', 'Ce bouton envoie réellement la candidature.'], ['Annuler', 'Retrouve ta carte sans envoyer le dossier.']],
+  'Retrouver une recherche': [['Affichage et tri', 'Ouvre Recherches enregistrées.'], ['Mémoriser', 'Nomme tes critères pour les retrouver dans ce navigateur.'], ['Candidatures', 'Ce menu rassemble tes décisions et les réponses reçues.']],
+  'Retrouver tes décisions': [['Candidatures', 'Retrouve les dossiers envoyés.'], ['Favoris', 'Reprends les offres gardées pour plus tard.'], ['Écartés', 'Consulte les offres que tu as passées.']],
+  'Rechercher et classer': [['Recherche', 'Retrouve une offre ou une note personnelle.'], ['Réponse et ordre', 'Choisis le statut et le classement utiles.'], ['Mise à jour automatique', 'Les réponses sont rechargées quand cette page est visible.']],
+  'Lire un dossier': [['Sélectionner', 'Clique sur le titre ou la ligne d’une offre.'], ['Lire', 'Le détail s’ouvre à côté ou dans une fenêtre selon la place.'], ['Fermer', 'Reviens à la liste sans perdre tes choix.']],
+  'Revoir une décision': [['Actions de l’offre', 'Retrouve les choix encore autorisés.'], ['Remettre dans les cartes', 'Reprends une offre lorsque son statut le permet.'], ['Réponse du recruteur', 'Elle peut empêcher une modification de candidature.']],
+  'Comprendre l’état de ton profil': [['Progression', 'Repère les informations requises encore manquantes.'], ['Enregistré', 'Ce statut confirme la sauvegarde.'], ['Erreur', 'Réessaie avant de quitter si la sauvegarde a échoué.']],
+  'Utiliser ton CV': [['Mon CV', 'Ouvre cette rubrique pour déposer ton fichier.'], ['Relire l’extraction', 'Vérifie les données reconnues avant de les intégrer.'], ['Choisir les champs', 'Ta saisie existante reste prioritaire.']],
+  'Compléter ton parcours': [['Choisir une étape', 'Identité, recherche, parcours, compétences ou relecture.'], ['Compléter', 'Renseigne les champs utiles dans le formulaire.'], ['Corriger un conseil', 'Le bouton amène directement au champ concerné.']],
+  'Relire et enrichir': [['Relecture', 'Vérifie le profil qui accompagne tes candidatures.'], ['Rubriques détaillées', 'Ajoute projets, réalisations, certifications et liens.'], ['Enregistrer', 'Valide les rubriques détaillées avec leur bouton dédié.']],
+  'Gérer tes outils': [['Mon compte', 'Retrouve les informations du compte.'], ['Exporter', 'Télécharge ton profil au format JSON Resume.'], ['Importer', 'Vérifie l’aperçu avant de remplacer tes données.']],
+}
+Object.assign(CONSIGNES, {
+  'Lire toute l’offre': [['Voir l’offre', 'Ouvre le détail complet, avec ses missions et prérequis.'], ['Sommaire', 'Passe directement au poste, aux conditions ou au contact.'], ['Archives', 'Tu peux les lire, mais aucune candidature n’est possible.']],
+  'Comprendre l’adéquation': [['Score disponible', 'Il vient de CV-Matching ; il n’est pas calculé par cette interface.'], ['Détail', 'Lis les compétences couvertes, écarts et avertissements.'], ['Indisponible', 'L’absence de score ne vaut pas une mauvaise adéquation.']],
+  'Comparer les offres': [['Comparer sur la carte', 'Sélectionne deux ou trois offres. En liste/tableau, le même bouton est disponible.'], ['Menu Comparaison', 'Ouvre la page dédiée, sur toute la largeur, depuis la navigation principale.'], ['Retirer', 'Retire une sélection pour changer les offres comparées.']],
+  'Notes et étiquettes': [['Ouvrir le détail', 'Déplie « Partager et ajouter mes repères ».'], ['Note et étiquettes', 'Écris tes repères puis retrouve-les dans la recherche des candidatures.'], ['Dans ce navigateur', 'Ces informations ne sont pas transmises au recruteur ni synchronisées.']],
+  'Partager une offre': [['Ouvrir le détail', 'Déplie « Partager et ajouter mes repères ».'], ['Copier le lien', 'Le destinataire devra se connecter pour lire l’offre.'], ['Tes notes restent privées', 'Le lien ne contient ni note ni étiquette personnelle.']],
+  'Adapter la lecture': [['Guide', 'Après la visite, ouvre ce bouton pour retrouver l’aide et les réglages.'], ['Taille et densité', 'Agrandis les textes ou choisis une présentation compacte.'], ['Lune / soleil', 'Le bouton de l’en-tête change le thème jour ou nuit.']],
+  'Comprendre les réponses': [['En attente', 'Ce statut ne confirme pas que le dossier a été lu.'], ['Réponse reçue', 'Retenue, non retenue ou entretien viennent du recruteur.'], ['Filtrer', 'Le champ Réponse reçue permet d’isoler un statut.']],
+  'Suivre les mises à jour': [['Automatique', 'Les réponses se rechargent toutes les 30 secondes si cette page est visible.'], ['Retour à la fenêtre', 'Un rechargement est également demandé quand tu reviens.'], ['Erreur réseau', 'La liste reste affichée et une tentative suivante reprend la mise à jour.']],
+  'Corriger au bon endroit': [['Améliorer mon profil', 'Déplie les conseils s’ils sont fermés.'], ['Corriger', 'Le bouton ouvre l’étape puis amène au champ précis.'], ['Champ mis en évidence', 'Le focus te permet de compléter directement la bonne information.']],
+  'Répondre aux questions': [['Assistant', 'Ouvre « Affiner mon profil par questions ».'], ['Parcours court', 'Réponds aux neuf questions pour renseigner tes préférences.'], ['Vérifier', 'Reviens ensuite au formulaire pour relire et compléter.']],
+  'Importer ou exporter': [['Mon compte, import et export', 'Ouvre cette rubrique en bas du profil.'], ['Exporter', 'Télécharge une copie JSON Resume.'], ['Importer', 'Compare l’aperçu avec ton profil avant de confirmer le remplacement.']],
+  'Rétablir et effacer': [['Après un import', 'La copie précédente reste récupérable dans cet onglet.'], ['Effacer le profil', 'Lis la confirmation : le fichier CV et son extraction sont conservés.'], ['Quitter l’onglet', 'Les brouillons et la copie avant import ne sont pas un stockage permanent.']],
+  'Compte et confort': [['Mon compte', 'Retrouve les informations et fonctions réellement disponibles.'], ['Guide et apparence', 'Ajuste la lecture dans Guide et le thème avec lune/soleil.'], ['Autres pages', 'Le bouton Guide présente aussi les outils des Offres et Candidatures.']],
+})
+Object.assign(CONSIGNES, {
+  'Choisir des offres à comparer': [['Choisir des offres', 'Retourne aux Offres pour sélectionner jusqu’à trois postes.'], ['Comparer', 'Le bouton de chaque carte ou ligne ajoute ou retire une offre.'], ['Menu dédié', 'La pastille indique combien d’offres sont sélectionnées.']],
+  'Lire côte à côte': [['Colonnes', 'Chaque offre garde son titre en tête.'], ['Critères', 'Lis lieu, contrat, clôture, missions, compétences et qualifications.'], ['Petit écran', 'Les offres sont regroupées par critère, avec leur titre, sans défilement horizontal.']],
+  'Changer la sélection': [['Retirer', 'Supprime une offre avec le bouton de sa colonne.'], ['Vider la sélection', 'Recommence une comparaison complète.'], ['Lire l’offre', 'Ouvre le détail sans quitter la comparaison.']],
+  'Données du comparateur': [['Données manquantes', 'Elles restent signalées plutôt que devinées.'], ['Adéquation', 'Le score disponible vient du service existant.'], ['Sélection locale', 'Elle est conservée par compte dans ce navigateur.']],
+})
+const NOMS: Record<Onglet, string> = { swipe: 'Offres', comparaison: 'Comparaison', interets: 'Candidatures', profil: 'Profil' }
 
 type Cadre = { x: number; y: number; w: number; h: number; vw: number; vh: number }
 export function Guide({ onglet, onFermer }: { onglet: Onglet; onFermer: () => void }) {
@@ -100,7 +157,7 @@ export function Guide({ onglet, onFermer }: { onglet: Onglet; onFermer: () => vo
       else if (!e.shiftKey && document.activeElement === dernier) { e.preventDefault(); premier?.focus() }
     }}>
       <div className="guide-entete"><strong>Guide · {NOMS[onglet]}</strong><span>{index + 1} / {etapes.length}</span><progress value={index + 1} max={etapes.length} aria-label="Progression du guide" /></div>
-      <div className="guide-texte" aria-live="polite" aria-atomic="true"><h2 id={titreId}>{etape.titre}</h2><p>{etape.texte}</p></div>
+      <div className="guide-texte" aria-live="polite" aria-atomic="true"><h2 id={titreId}>{etape.titre}</h2><ul className="guide-consignes">{(CONSIGNES[etape.titre] ?? [[etape.titre, etape.texte]]).map(([action, precision]) => <li key={action}><span className="guide-repere" aria-hidden="true">›</span><div><strong>{action}</strong><span>{precision}</span></div></li>)}</ul></div>
       <div className="guide-actions"><button type="button" className="btn-mini" disabled={index === 0} onClick={() => setIndex(index - 1)}>Précédent</button><button type="button" className="btn-mini guide-suivant" onClick={() => index === etapes.length - 1 ? onFermer() : setIndex(index + 1)}>{index === etapes.length - 1 ? 'Terminer' : 'Suivant'}</button><button type="button" className="btn-mini guide-arreter" onClick={onFermer}>Arrêter</button></div>
     </aside>
   </div>, document.body)

@@ -4,16 +4,17 @@
    touchant une puce, effet instantané. Le glissé gauche/droite reste le geste
    du produit ; un « oui » est une candidature. */
 
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Feuille } from '../Dialogue'
 export { Feuille } from '../Dialogue'
 
 import { api } from '../api'
+import { useSelectionComparaison } from '../comparaison'
 import type { Adequation, CompteurOffres } from '../api'
 import { useAdequations } from '../adequation'
 import { BlocAdequation, PastilleAdequation } from './Adequation'
 import { manques } from '../regles'
-import { CommandesOffres, ListeOffres, Comparateur, CarnetOffre, useLocal } from './OutilsOffres'
+import { CommandesOffres, ListeOffres, CarnetOffre, useLocal } from './OutilsOffres'
 import { choixPersistes, idOffrePartagee, limiteComparaison, trieOffres } from '../upgrade'
 import type { VueOffres, TriOffres } from '../upgrade'
 import { ApercuDocument } from './RelectureDocument'
@@ -44,6 +45,7 @@ export function libDirection(d: string): string {
 
 interface Props {
   profil: Profil
+  versComparaison: () => void
   versProfil: (etape: number) => void
   /** Prévient la coquille qu'une décision a changé, pour ses pastilles. */
   onDecision?: () => void
@@ -67,7 +69,7 @@ function useGlisseHorizontal<T extends HTMLElement>() {
 
     const bas = (ev: PointerEvent) => {
       if (ev.pointerType === 'touch') return                     // le doigt fait mieux
-      if ((ev.target as HTMLElement).closest('input, textarea')) return   // on saisit, on ne glisse pas
+      if ((ev.target as HTMLElement).closest('input, textarea, select, button, a')) return   // on saisit, on ne glisse pas
       if (barre.scrollWidth <= barre.clientWidth + 1) return     // barre à la ligne (souris) : rien à faire glisser
       tire = { x: ev.clientX, left: barre.scrollLeft, bouge: false, id: ev.pointerId }
     }
@@ -123,7 +125,7 @@ type Decision = 'oui' | 'non' | 'plus_tard'
 
 const kf = (n: number) => `${Math.round(n / 1000)} k`
 
-export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Props) {
+export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versComparaison }: Props) {
   const barreFiltres = useGlisseHorizontal<HTMLDivElement>()
   // toutes les offres du jeu courant (ouvertes ou closes) ; les filtres s'y appliquent sans réseau
   const [toutes, setToutes] = useState<Offre[] | null>(null)
@@ -144,7 +146,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
   const { vue, tri } = choixPersistes(presentation)
   const changeVue = (v: VueOffres) => setPresentation({ vue: v, tri })
   const changeTri = (t: TriOffres) => setPresentation({ vue, tri: t })
-  const [selection, setSelection] = useState<number[]>([])
+  const [selection, setSelection] = useSelectionComparaison()
   const [validation, setValidation] = useState<{ offre: Offre; doc: Record<string, unknown>; cv: string | null } | null>(null)
   const [preparation, setPreparation] = useState(false)
   const [confirmer, setConfirmer] = useLocal('confirmer-candidature', true)
@@ -288,7 +290,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
     else if (e.key === ' ') { e.preventDefault(); window.dispatchEvent(new Event('aj:page-suivante')) }
   }
 
-  const [presentationOuverte, setPresentationOuverte] = useState(() => window.matchMedia('(min-width: 720px)').matches)
+  const [presentationOuverte, setPresentationOuverte] = useState(false)
   const actifs = nbActifs(filtres)
   const toutEffacer = () => { setFiltres(efface); setRecherche('') }
 
@@ -296,14 +298,12 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
     <div className={`screen upgrade-deck ${vue !== 'cartes' ? 'upgrade-vue-liste' : ''} ${offres !== null && !courante ? 'deck-vide' : ''}`} id="ec-swipe">
       <div className="deck-contenu">
       <div className="upgrade-haut">
-        <div className="ui-titre-page"><div><p className="ui-surtitre">Les postes de l’OPT-NC</p><h1>Les offres</h1></div><span className="ui-badge">Cartes · liste · tableau</span></div>
-        <details className="ui-presentation" open={presentationOuverte} onToggle={(e) => setPresentationOuverte(e.currentTarget.open)}><summary>Affichage et recherches</summary>
-        <CommandesOffres vue={vue} tri={tri} changeVue={changeVue} changeTri={changeTri} filtres={filtres}
-          changeFiltres={(f) => { setFiltres(f); setRecherche(f.q ?? '') }} />
-        <details className="ui-options"><summary>Options de candidature</summary><label><input type="checkbox" checked={confirmer} onChange={(e) => setConfirmer(e.target.checked)} /> Relire mon dossier avant chaque candidature</label></details></details>
+        <div className="ui-titre-page"><div><p className="ui-surtitre">Les postes de l’OPT-NC</p><h1>Offres</h1></div><span className="ui-badge">Cartes · liste · tableau</span></div>
+        <button type="button" className="btn-mini ui-comparer-ouvrir" onClick={versComparaison}>Comparer{selection.length ? ` (${selection.length})` : ''}</button>
+        <button type="button" className="btn-mini ui-presentation" aria-haspopup="dialog" onClick={() => setPresentationOuverte(true)}>Affichage et tri</button>
         {aCombler.length > 0 && <p>Tu peux consulter les offres. <button className="btn-mini" onClick={() => versProfil(aCombler[0]!.etape)}>Compléter mon profil avant de candidater</button></p>}
         {(erreurStockage || partageErreur) && <p role="status">{partageErreur || 'Les filtres ne peuvent pas être conservés dans ce navigateur.'}</p>}
-        {toutes && <Comparateur offres={toutes} scores={adequations} selection={selection} change={setSelection} />}
+
         {erreur && <div role="alert" className="pal manque">{erreur}<button className="btn-mini" onClick={() => void charge(Boolean(filtres.clos))}>Réessayer le chargement</button></div>}
       </div>
       <div className="stack">
@@ -312,6 +312,13 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
             type="search" className="recherche" value={recherche} placeholder="Chercher un poste, un mot, un service…"
             onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher dans les offres"
           />
+          {comptes && <div className="filtres-rapides">
+            {(['villes', 'contrats'] as const).map((cle) => <label key={cle}><span>{cle === 'villes' ? 'Lieu' : 'Contrat'}</span><select aria-label={cle === 'villes' ? 'Filtrer par lieu' : 'Filtrer par contrat'} value={(filtres[cle]?.length ?? 0) > 1 ? '__plusieurs' : filtres[cle]?.[0] ?? ''} onChange={(e) => setFiltres((g) => ({ ...g, [cle]: e.target.value ? [e.target.value] : undefined }))}>
+              <option value="">{cle === 'villes' ? 'Tous les lieux' : 'Tous les contrats'}</option>
+              {(filtres[cle]?.length ?? 0) > 1 && <option value="__plusieurs" disabled>{filtres[cle]!.length} sélectionnés</option>}
+              {comptes.categories[cle].map((x) => <option key={x.valeur} value={x.valeur}>{libelleValeur(cle, x.valeur)} ({x.n})</option>)}
+            </select></label>)}
+          </div>}
           {comptes && (
             <BarreFiltres f={filtres} total={offres?.length ?? 0} actifs={actifs}
               ouvre={() => setPanneauFiltres(true)} change={setFiltres} toutEffacer={toutEffacer} />
@@ -360,6 +367,9 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
               onDetail={() => { setDetail(courante); void api.vue(courante.id, 'detail') }}
               onDecide={courante.statut === 'close' ? undefined : (d) => void decide(courante, d)}
               adequation={adequationDe(courante)}
+              comparer={() => setSelection(limiteComparaison(selection, courante.id))}
+              comparee={selection.includes(courante.id)}
+              comparaisonPleine={selection.length >= 3}
               actions={<ActionsOffre close={courante.statut === 'close'} vide={false} occupe={enCours || preparation} peutRevenir={Boolean(dernier)} onRetour={() => void reviens()} onDecide={(d) => void decide(courante, d)} />}
             />
           )}
@@ -371,6 +381,10 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision }: Pro
       </div>
 
 
+      {presentationOuverte && <Feuille titre="Affichage, tri et recherches" onFermer={() => setPresentationOuverte(false)}>
+        <CommandesOffres vue={vue} tri={tri} changeVue={changeVue} changeTri={changeTri} filtres={filtres} changeFiltres={(f) => { setFiltres(f); setRecherche(f.q ?? '') }} />
+        <div className="ui-options"><label><input type="checkbox" checked={confirmer} onChange={(e) => setConfirmer(e.target.checked)} /> Relire mon dossier avant chaque candidature</label></div>
+      </Feuille>}
       {detail && (
         <Feuille onFermer={() => setDetail(null)}>
           <Detail offre={detail} profil={profil} adequation={adequationDe(detail)} />
@@ -461,6 +475,7 @@ function BarreFiltres({ f, total, actifs, ouvre, change, toutEffacer }: {
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
         Filtres{nbFiltres > 0 && <span className="pastille">{nbFiltres}</span>}
       </button>
+      {(nbFiltres > 0 || f.clos) && <div className="filtres-selection"><div className="filtres-actifs">
       {f.clos && (
         <button className="chip actif" onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: undefined }))}>
           Offres closes <span className="croix" aria-hidden="true">✕</span>
@@ -478,7 +493,7 @@ function BarreFiltres({ f, total, actifs, ouvre, change, toutEffacer }: {
           {titre} <span className="croix" aria-hidden="true">✕</span>
         </button>
       ))}
-      {actifs > 0 && <button className="lien-efface" onClick={toutEffacer}>Tout effacer</button>}
+      </div><button className="lien-efface" onClick={toutEffacer}>Tout effacer</button></div>}
       <span className="filtres-total" aria-live="polite"><b>{total}</b> offre{total > 1 ? 's' : ''}</span>
     </>
   )
@@ -492,8 +507,6 @@ function PanneauFiltres({ f, comptes, total, actifs, change }: {
   f: Filtres; comptes: Compteurs; total: number; actifs: number; change: Maj
 }) {
   const [rechercheChoix, setRechercheChoix] = useState('')
-  const [ouverts, setOuverts] = useState<Record<string, boolean>>({ villes: true, contrats: true })
-  const prefixe = useId()
   const cherche = (nom: string) => plat(nom).includes(plat(rechercheChoix.trim()))
   const ligne = (cle: string, coche: boolean, nom: string, n: number, agir: () => void) => (
     <label key={cle} className={`pf-ligne${!coche && n === 0 ? ' indisponible' : ''}`}>
@@ -510,7 +523,7 @@ function PanneauFiltres({ f, comptes, total, actifs, change }: {
       <button type="button" aria-pressed={!f.clos} className={!f.clos ? 'on' : ''} onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: undefined }))}>Offres ouvertes</button>
       <button type="button" aria-pressed={Boolean(f.clos)} className={f.clos ? 'on' : ''} onClick={() => change((g) => ({ ...efface(g), q: g.q, clos: true }))}>Archives (lecture seule)</button>
     </div>
-    <p className="pf-explication">Les filtres s’appliquent immédiatement. Plusieurs choix d’une même catégorie s’ajoutent ; les catégories se combinent.</p>
+
     {actifs > 0 && <section className="pf-selection" aria-label="Critères actifs"><h3>Ta sélection</h3>
       <div className="pf-puces">
         {f.q && <span className="pf-recherche-active">Recherche de poste : {f.q}</span>}
@@ -518,17 +531,15 @@ function PanneauFiltres({ f, comptes, total, actifs, change }: {
         {OPTIONS.filter(({ cle }) => f[cle]).map(({ cle, titre }) => <button type="button" key={cle} className="chip actif" aria-label={`Retirer le filtre ${titre}`} onClick={() => change((g) => basculeOption(g, cle))}>{titre} <span aria-hidden="true">×</span></button>)}
       </div>
     </section>}
-    <label className="pf-cherche"><span>Rechercher un critère</span><input type="search" value={rechercheChoix} onChange={(e) => setRechercheChoix(e.target.value)} placeholder="Un lieu, un métier, un contrat…" /><small>Cette recherche retrouve les choix ci-dessous ; elle ne change pas les résultats.</small></label>
+    <label className="pf-cherche"><span>Rechercher un critère</span><input type="search" value={rechercheChoix} onChange={(e) => setRechercheChoix(e.target.value)} placeholder="Un lieu, un métier, un contrat…" /></label>
     {!groupes.length && !options.length && <p role="status" className="pf-sans-choix">Aucun critère ne correspond à cette recherche. <button type="button" className="btn-mini" onClick={() => setRechercheChoix('')}>Effacer la recherche de critères</button></p>}
     {groupes.map(({ cle, titre, valeurs }) => {
       const nombre = f[cle]?.length ?? 0
-      const ouvert = Boolean(rechercheChoix.trim()) || Boolean(ouverts[cle] ?? nombre)
-      const id = `${prefixe}-${cle}`
       return <section key={cle} className="pf-categorie">
-        <div className="pf-categorie-entete"><button type="button" className="pf-categorie-bouton" aria-expanded={ouvert} aria-controls={id} onClick={() => setOuverts({ ...ouverts, [cle]: !ouvert })}><span>{titre}</span><small>{nombre ? `${nombre} choisi${nombre > 1 ? 's' : ''}` : `${valeurs.length} choix`}</small><span aria-hidden="true">{ouvert ? '−' : '+'}</span></button>
+        <div className="pf-categorie-entete"><h3 className="pf-categorie-titre">{titre}<small>{nombre ? `${nombre} sélectionné${nombre > 1 ? 's' : ''}` : ''}</small></h3>
           {nombre > 0 && <button type="button" className="pf-retire-categorie" aria-label={`Effacer le filtre ${titre}`} onClick={() => change((g) => ({ ...g, [cle]: undefined }))}>Effacer</button>}
         </div>
-        <div id={id} className="pf-lignes" hidden={!ouvert}>{valeurs.map((x) => ligne(`${cle}:${x.valeur}`, Boolean(f[cle]?.includes(x.valeur)), libelleValeur(cle, x.valeur), x.n, () => change((g) => basculeValeur(g, cle, x.valeur))))}</div>
+        <div className="pf-lignes">{valeurs.map((x) => ligne(`${cle}:${x.valeur}`, Boolean(f[cle]?.includes(x.valeur)), libelleValeur(cle, x.valeur), x.n, () => change((g) => basculeValeur(g, cle, x.valeur))))}</div>
       </section>
     })}
     {options.length > 0 && <section className="pf-categorie"><h3 className="pf-options-titre">Options</h3><div className="pf-lignes">{options.map(({ cle, titre }) => ligne(`o:${cle}`, Boolean(f[cle]), titre, comptes.options[cle], () => change((g) => basculeOption(g, cle))))}</div></section>}
@@ -611,12 +622,15 @@ function employeur(o: Offre): string {
 
 const SEUIL = 90          // pixels au-delà desquels le glissé vaut décision
 
-function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequation, actions }: {
+function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequation, actions, comparer, comparee, comparaisonPleine }: {
   offre: Offre
   profondeur: number
   profil: Profil
   adequation?: Adequation
   actions?: React.ReactNode
+  comparer?: () => void
+  comparee?: boolean
+  comparaisonPleine?: boolean
   occupe?: boolean
   onDetail?: () => void
   onDecide?: (d: Decision) => void
@@ -754,7 +768,7 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
       )}
 
       <div className={`carte-poignee${jouable ? '' : ' inactive'}`} title="Glisser cette poignée vers le haut pour mettre en favori">
-        <svg aria-hidden="true"><use href="#i-star" /></svg><span>↑ Glisser ici vers le haut · Favori</span>
+        <svg aria-hidden="true"><use href="#i-star" fill="currentColor" /></svg><span>↑ Glisser ici vers le haut · Favori</span>
       </div>
       <div className="stage">
         <div className="hero">
@@ -764,6 +778,7 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
               onClick={(e) => { e.stopPropagation(); onDetail?.() }}>
               Voir l’offre
             </button>
+            <button type="button" className="score ui-comparer-carte" aria-pressed={comparee} disabled={comparaisonPleine && !comparee} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); comparer?.() }}>{comparee ? 'Retirer' : 'Comparer'}</button>
             {close && <span className="badge-pass close">Offre expirée · lecture seule</span>}
           </div>
           <h2 className="role">{o.titre}</h2>
@@ -815,11 +830,11 @@ function ActionsOffre({ close, vide, occupe, peutRevenir, onRetour, onDecide }: 
   close: boolean; vide: boolean; occupe: boolean; peutRevenir: boolean; onRetour: () => void; onDecide: (d: Decision) => void
 }) {
   return <footer className="deck-actions" aria-label="Actions sur l’offre">
-    <p className="deck-actions-info" role="status">{vide ? 'Aucune offre à traiter dans cette sélection.' : close ? 'Offre expirée : consultation uniquement, aucune candidature possible.' : occupe ? 'Traitement en cours…' : '← Passer · ↑ Favori depuis la poignée · Candidater →'}</p>
+    <p className="deck-actions-info" hidden={!vide && !close && !occupe} role="status">{vide ? 'Aucune offre à traiter dans cette sélection.' : close ? 'Offre expirée : consultation uniquement, aucune candidature possible.' : occupe ? 'Traitement en cours…' : '← Passer · ↑ Favori depuis la poignée · Candidater →'}</p>
     <div className="coins">
       <div className="coin"><button type="button" className="retour" disabled={!peutRevenir || close || occupe} onClick={onRetour} aria-label="Revenir sur la dernière décision"><svg aria-hidden="true"><use href="#i-undo" /></svg></button><span>Retour</span></div>
       <div className="coin"><button type="button" className="non" disabled={close || vide || occupe} onClick={() => onDecide('non')} aria-label="Passer"><svg aria-hidden="true"><use href="#i-x" /></svg></button><span>Passer</span></div>
-      <div className="coin"><button type="button" className="fav" disabled={close || vide || occupe} onClick={() => onDecide('plus_tard')} aria-label="Mettre en favori"><svg aria-hidden="true"><use href="#i-star" /></svg></button><span>Favori</span></div>
+      <div className="coin"><button type="button" className="fav" disabled={close || vide || occupe} onClick={() => onDecide('plus_tard')} aria-label="Mettre en favori"><svg aria-hidden="true"><use href="#i-star" fill="currentColor" /></svg></button><span>Favori</span></div>
       <div className="coin"><button type="button" className="oui" disabled={close || vide || occupe} onClick={() => onDecide('oui')} aria-label="Candidater"><svg aria-hidden="true"><use href="#i-heart" /></svg></button><span>Candidater</span></div>
     </div>
   </footer>

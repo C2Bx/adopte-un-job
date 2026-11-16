@@ -66,10 +66,10 @@ function depuis(quand: string): string {
    reste le seul moyen de montrer autant de contenu. */
 function useLarge(): boolean {
   const [large, setLarge] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1100px)').matches,
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1440px)').matches,
   )
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1100px)')
+    const mq = window.matchMedia('(min-width: 1440px)')
     const maj = () => setLarge(mq.matches)
     maj()                                   // l'état initial peut dater d'avant la mise en page
     mq.addEventListener('change', maj)
@@ -314,15 +314,7 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
         </div>
 
         {/* Le détail à côté de la liste, pas par-dessus. */}
-        <aside className="side panneau" id="side-i">
-          {choisi
-            ? (
-              <>
-                <Detail offre={choisi} adequation={adequationDe(choisi)} />
-              </>
-            )
-            : <p className="vide-p">Choisis une offre à gauche pour voir son détail.</p>}
-        </aside>
+        {large && choisi && <aside className="side panneau" id="side-i"><Detail offre={choisi} adequation={adequationDe(choisi)} /></aside>}
       </div>
 
       {detail && !large && (

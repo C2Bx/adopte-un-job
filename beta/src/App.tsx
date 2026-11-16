@@ -16,11 +16,14 @@ import { EcranMatchs } from './ecrans/Matchs'
 import { BoutonTheme } from './theme'
 import { Aide } from './ecrans/Aide'
 import { Guide } from './Guide'
+import { EcranComparaison } from './ecrans/Comparaison'
+import { useSelectionComparaison } from './comparaison'
 
-export type Onglet = 'swipe' | 'interets' | 'profil'
+export type Onglet = 'swipe' | 'comparaison' | 'interets' | 'profil'
 
 const ONGLETS: { cle: Onglet; icone: string; nom: string }[] = [
   { cle: 'swipe', icone: 'i-swipe', nom: 'Offres' },
+  { cle: 'comparaison', icone: 'i-compare', nom: 'Comparaison' },
   { cle: 'interets', icone: 'i-heart', nom: 'Candidatures' },
   { cle: 'profil', icone: 'i-user', nom: 'Profil' },
 ]
@@ -28,7 +31,7 @@ const ONGLETS: { cle: Onglet; icone: string; nom: string }[] = [
 /* L'onglet vit dans l'adresse (#swipe, #candidatures, #profil) : un F5 garde
    l'onglet où l'on est, et le bouton « retour » du téléphone revient à
    l'onglet précédent au lieu de quitter l'application. */
-const ANCRES: Record<Onglet, string> = { swipe: 'swipe', interets: 'candidatures', profil: 'profil' }
+const ANCRES: Record<Onglet, string> = { swipe: 'swipe', comparaison: 'comparaison', interets: 'candidatures', profil: 'profil' }
 
 function ongletDeLAdresse(): Onglet {
   const a = window.location.hash.replace(/^#/, '')
@@ -261,11 +264,13 @@ export function App() {
       {onglet === 'swipe' && (
         <EcranDeck
           profil={profil}
+          versComparaison={() => va('comparaison')}
           avantDecision={termineSauvegarde}
           versProfil={(e) => { setOnglet('profil'); viseEtape(e) }}
           onDecision={() => void rafraichisBadges(moi)}
         />
       )}
+      {onglet === 'comparaison' && <EcranComparaison versOffres={() => va('swipe')} />}
       {onglet === 'interets' && <EcranMatchs avantDecision={termineSauvegarde} />}
       {etatSauvegarde === 'erreur' && <div className="pal manque ui-alerte-sauvegarde" role="alert">
         <b>Ton profil n’a pas encore été enregistré.</b>
@@ -277,8 +282,9 @@ export function App() {
 
       <nav className={`nav n${ONGLETS.length}`} aria-label="Navigation principale">
         {ONGLETS.map((o) => (
-          <button key={o.cle} onClick={() => va(o.cle)} aria-current={onglet === o.cle ? 'page' : undefined}>
+          <button key={o.cle} data-onglet={o.cle} onClick={() => va(o.cle)} aria-current={onglet === o.cle ? 'page' : undefined}>
             <svg><use href={`#${o.icone}`} /></svg>
+            {o.cle === 'comparaison' && <NombreComparaisons key={moi.id} />}
             {o.cle === 'interets' && badges.interets > 0 && (
               <span className="badge" style={{ background: badges.interetsMatch ? 'var(--yes)' : 'var(--no)' }}>{badges.interets}</span>
             )}
@@ -296,4 +302,9 @@ function viseEtape(e: number): void {
   window.setTimeout(() => {
     document.dispatchEvent(new CustomEvent('aj:etape', { detail: e }))
   }, 0)
+}
+
+function NombreComparaisons() {
+  const [selection] = useSelectionComparaison()
+  return selection.length ? <span className="badge badge-comparaison">{selection.length}</span> : null
 }

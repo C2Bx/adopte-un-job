@@ -1,6 +1,8 @@
 # Upgrades et améliorations après rendu — MS3
 
-Version applicative actuelle : **0.3.1**, évolution du **16 novembre 2026**, après la fin du rendu.
+Version applicative actuelle : **0.4.0**, évolution du **16 novembre 2026**, après la fin du rendu.
+
+La [0.4.0](PARCOURS-UI-0.4.0.md) organise quatre menus dont une comparaison pleine page, compacte les commandes, réagence Profil/Candidatures et complète les guides.
 
 La [0.3.1](AJUSTEMENTS-UI-0.3.1.md) intègre les actions à la carte, refait les filtres, présente un guide pop-up automatique au premier usage et actualise les candidatures automatiquement.
 
@@ -80,7 +82,7 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
   Les rubriques détaillées possèdent un bouton d'enregistrement explicite.
 - En cas de stockage indisponible, l'interface garde les valeurs en mémoire et avertit lorsque
   nécessaire ; une conservation après fermeture n'est pas garantie.
-- Le comparateur et la sélection d'offres ne persistent pas au rechargement.
+- La sélection de comparaison persiste dans ce navigateur par compte depuis la 0.4.0 ; elle ne suit pas l’utilisateur sur un autre appareil.
 - Le lien partagé recherche l'offre dans les données actuelles. Une offre retirée du hub peut
   devenir indisponible. Les archives restent en lecture seule.
 - Les repères de publication reposent sur la date publiée, pas sur un historique de modifications.
@@ -93,7 +95,7 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
 
 ## Vérifications et exploitation
 
-**Vérification locale : 27 tests applicatifs et 8 contrôles PHP réussis (35 au total), compilation TypeScript/Vite réussie, zéro vulnérabilité signalée par npm.**
+**Vérification locale : 28 tests applicatifs et 8 contrôles PHP réussis (36 au total), compilation TypeScript/Vite réussie, zéro vulnérabilité signalée par npm.**
 
 Les tests sont locaux et utilisent des réponses simulées. Ils couvrent les tris, la sélection
 du comparateur, le stockage par compte, les liens sans paramètres confidentiels, la recherche,

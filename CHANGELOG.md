@@ -1,5 +1,16 @@
 # Historique des versions
 
+## 0.4.0 — Parcours et interface après rendu — 16 novembre 2026
+
+- Menu Comparaison permanent et page dédiée, sélection conservée par compte dans le navigateur.
+- Comparer directement depuis une carte ; tableau pleine largeur et présentation mobile par critère.
+- Commandes et actions compactes, filtres directs Lieu/Contrat et choix avancés visibles sans accordéons.
+- Étoile Favori jaune, davantage de place pour la lecture.
+- Profil et Candidatures réagencés ; Corriger amène au champ exact avec focus et mise en évidence.
+- Guides structurés : 12 étapes Offres, 4 Comparaison, 7 Candidatures et 9 Profil.
+- 36 contrôles applicatifs/PHP et recette de parcours sur sept formats. [Détails](docs/PARCOURS-UI-0.4.0.md).
+
+
 ## 0.3.1 — Ajustements UI après rendu — 16 novembre 2026
 
 - Actions intégrées à la carte de droite, sans barre occupant toute la page.

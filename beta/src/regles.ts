@@ -60,6 +60,7 @@ export function force(p: Profil): number {
 }
 
 export interface Conseil {
+  champ: string
   gain: number
   quoi: string
   pourquoi: string
@@ -69,21 +70,21 @@ export interface Conseil {
 /** Conseils de rédaction : aucun effet annoncé sur le classement des offres. */
 export function conseils(p: Profil): Conseil[] {
   const c: Conseil[] = []
-  const ajoute = (quoi: string, pourquoi: string, etape: number) => c.push({ gain: 0, quoi, pourquoi, etape })
+  const ajoute = (quoi: string, pourquoi: string, etape: number, champ: string) => c.push({ gain: 0, quoi, pourquoi, etape, champ })
   if (nombreCompetences(p) < 3) ajoute('Décris au moins trois compétences',
-    'Les compétences libres et celles du référentiel comptent. Précise ce que tu sais faire.', 3)
+    'Les compétences libres et celles du référentiel comptent. Précise ce que tu sais faire.', 3, '#f-comp')
   else if (nombreCompetences(p) < 6) ajoute('Précise tes compétences',
-    'Ajoute celles que tes expériences permettent d’illustrer ; la quantité seule ne garantit pas l’adéquation.', 3)
+    'Ajoute celles que tes expériences permettent d’illustrer ; la quantité seule ne garantit pas l’adéquation.', 3, '#f-comp')
   if (!p.experiences.length) ajoute('Décris une expérience',
-    'Un stage, une alternance, un bénévolat ou un emploi peuvent illustrer tes compétences.', 2)
+    'Un stage, une alternance, un bénévolat ou un emploi peuvent illustrer tes compétences.', 2, '#f-exp')
   else if (p.experiences.length === 1) ajoute('Complète ton parcours si nécessaire',
-    'Une autre expérience pertinente aide le recruteur à comprendre ton parcours.', 2)
-  if (!p.formations.length) ajoute('Renseigne ta formation', 'Précise ton diplôme ou ton domaine de formation.', 2)
-  if (!p.langues.length) ajoute('Déclare tes langues', 'Indique un niveau européen si tu le connais.', 3)
+    'Une autre expérience pertinente aide le recruteur à comprendre ton parcours.', 2, '#f-exp')
+  if (!p.formations.length) ajoute('Renseigne ta formation', 'Précise ton diplôme ou ton domaine de formation.', 2, '#f-for')
+  if (!p.langues.length) ajoute('Déclare tes langues', 'Indique un niveau européen si tu le connais.', 3, '#f-langues')
   if (p.salaireMin == null) ajoute('Précise tes attentes si tu le souhaites',
-    'Le salaire souhaité accompagne ton profil ; il ne filtre pas les offres et ne modifie pas l’adéquation.', 1)
+    'Le salaire souhaité accompagne ton profil ; il ne filtre pas les offres et ne modifie pas l’adéquation.', 1, '#f-salaire')
   if (p.permis === null) ajoute('Réponds sur le permis B si tu le souhaites',
-    'Cette indication accompagne ton profil. Vérifie les prérequis indiqués dans chaque avis.', 1)
+    'Cette indication accompagne ton profil. Vérifie les prérequis indiqués dans chaque avis.', 1, '#f-permis')
   return c
 }
 

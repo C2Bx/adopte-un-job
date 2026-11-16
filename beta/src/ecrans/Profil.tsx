@@ -36,6 +36,26 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
   // quand la lecture du CV a rempli le profil chez l'équipe, on le relit
   const cv = useMesCV(() => { void api.profil().then(onProfil).catch(() => undefined) }, avantOperation)
   const [mode, setMode] = useState<'choix' | 'form' | 'questions'>(() => (vierge(profil) ? 'choix' : 'form'))
+  const [champVise, setChampVise] = useState<string | null>(null)
+  const [conseilsOuverts, setConseilsOuverts] = useState(() => window.matchMedia('(min-width: 1100px)').matches)
+  useEffect(() => {
+    if (!champVise || mode !== 'form') return
+    const trame = requestAnimationFrame(() => {
+      const cible = document.querySelector<HTMLElement>(champVise)
+      if (!cible) return
+      const controle = cible.matches('input, select, textarea, button') ? cible : cible.querySelector<HTMLElement>('input, select, textarea, button')
+      cible.scrollIntoView({ block: 'center', behavior: 'instant' })
+      ;(controle ?? cible).focus({ preventScroll: true })
+      cible.classList.add('profil-champ-vise')
+      setChampVise(null)
+    })
+    return () => cancelAnimationFrame(trame)
+  }, [champVise, mode, etape])
+  const viseChamp = (etapeCible: number, champ: string) => {
+    document.querySelectorAll('.profil-champ-vise').forEach((el) => el.classList.remove('profil-champ-vise'))
+    setMode('form'); setEtape(etapeCible); setChampVise(champ)
+  }
+
   const [ref, setRef] = useState<Referentiels | null>(null)
   // « Effacer mon CV » : efface le profil saisi chez eux (garde le fichier
   // déposé et la lecture n8n). Confirmation en deux temps, pas de popup.
@@ -313,7 +333,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
             {c.length === 0
               ? <div className="pal ok"><b>Profil solide</b>Rien à améliorer côté structure.</div>
               : (
-                <details className="pguide" open>
+                <details className="pguide" open={conseilsOuverts} onToggle={(e) => setConseilsOuverts(e.currentTarget.open)}>
                   <summary>Améliorer mon profil <i>{c.length}</i></summary>
                   <p className="pa">
                     Richesse du profil : {force(profil)} %. Ce repère de rédaction est distinct
@@ -324,7 +344,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
                       <li key={x.quoi}>
                         <b className={x.gain ? 'g' : 'g z'}>{x.gain ? `+${x.gain}` : 'profil'}</b>
                         <span><b>{x.quoi}</b>{x.pourquoi}</span>
-                        <button type="button" className="btn-mini" onClick={() => { setMode('form'); setEtape(x.etape) }}>Corriger</button>
+                        <button type="button" className="btn-mini" onClick={() => viseChamp(x.etape, x.champ)}>Corriger</button>
                       </li>
                     ))}
                   </ol>
@@ -432,14 +452,14 @@ function CeQueTuCherches({ p, maj, ref_ }: { p: Profil; maj: (b: Partial<Profil>
           <span className="pl">Salaire mensuel minimum</span>
           <input
             type="number" step={10000} min={0} placeholder="non renseigné"
-            value={p.salaireMin ?? ''}
+            id="f-salaire" value={p.salaireMin ?? ''}
             onChange={(e) => maj({ salaireMin: e.target.value === '' ? null : Number(e.target.value) })}
           />
           <span className="pa">Cette attente est transmise avec ton profil. Elle ne filtre pas les offres et ne modifie pas l’adéquation.</span>
         </label>
         <label className="pf">
           <span className="pl">Permis B</span>
-          <select
+          <select id="f-permis"
             value={String(p.permis)}
             onChange={(e) => maj({ permis: e.target.value === 'null' ? null : e.target.value === 'true' })}
           >
@@ -568,7 +588,7 @@ function Competences({ p, maj, ref_ }: { p: Profil; maj: (b: Partial<Profil>) =>
         <div className="prep-t">
           <h3>Langues</h3>
           <button type="button" className="btn-mini"
-            onClick={() => maj({ langues: [...p.langues, { langue: '', niveau: 'B1' }] })}>+ Ajouter</button>
+            id="f-langues" onClick={() => maj({ langues: [...p.langues, { langue: '', niveau: 'B1' }] })}>+ Ajouter</button>
         </div>
         {p.langues.length === 0 && <p className="pvide">Aucune langue renseignée.</p>}
         {p.langues.map((l, i) => (
