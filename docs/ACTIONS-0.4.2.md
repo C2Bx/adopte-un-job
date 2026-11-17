@@ -1,5 +1,8 @@
 # Actions agrandies — 0.4.2 — 17 novembre 2026
 
+**En production depuis le 17 novembre 2026**, commit applicatif `42130ee`.
+[Contrôles de publication](DEPLOIEMENT-0.4.2-2026-11-17.md).
+
 Amélioration après rendu à la demande de Bastian : agrandir Retour, Passer, Favori et Candidater
 maintenant que la carte utilise toute la hauteur utile.
 
