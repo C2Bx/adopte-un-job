@@ -13,6 +13,11 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
+**0.4.4 publiée le 17 novembre 2026**, commit applicatif `8d89af8` : aide structurée, rubriques dépliables et réglages de lecture regroupés.
+[Détails](docs/AIDE-0.4.4.md) · [Publication](docs/DEPLOIEMENT-0.4.4-2026-11-17.md).
+
+Versions précédentes :
+
 **0.4.3 publiée le 17 novembre 2026**, commit applicatif `2938404` : confirmation et annulation toujours visibles dans la relecture de candidature.
 [Correctif et vérifications](docs/RELECTURE-0.4.3.md) · [Contrôles de publication](docs/DEPLOIEMENT-0.4.3-2026-11-17.md).
 
@@ -36,7 +41,7 @@ Le rendu d'octobre reste une référence distincte de ces évolutions.
 |---|---|
 | **V1 — référence du rendu** | `b823f58`, 20 octobre 2026, tag `reference-rendu-2026-10-20` ; package initial `0.1.0`. |
 | **Corrections après V1** | `16c3bb0`, 27 octobre : fiabilité et sécurité, postérieures au rendu. |
-| **Améliorations après V1 livrées** | Lots `0.2.0` à `0.4.3`, dont le correctif 0.4.3 publié le 17 novembre. |
+| **Améliorations après V1 livrées** | Lots `0.2.0` à `0.4.4`, dont l’aide améliorée 0.4.4 publiée le 17 novembre. |
 | **Pistes non livrées** | Registre distinct ; aucune idée n’est considérée comme réalisée ou commandée par sa seule inscription. |
 
 [Comparaison V1 / évolutions et statuts](docs/V1-ET-EVOLUTIONS.md) ·

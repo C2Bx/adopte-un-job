@@ -1,5 +1,8 @@
 # Aide et affichage — 0.4.4 — 17 novembre 2026
 
+**En production depuis le 17 novembre 2026**, commit applicatif `8d89af8`.
+[Contrôles de publication](DEPLOIEMENT-0.4.4-2026-11-17.md).
+
 Amélioration après V1 demandée par Bastian : remplacer l’aide présentée en longs paragraphes
 par une lecture hiérarchisée et des repères visuels.
 
