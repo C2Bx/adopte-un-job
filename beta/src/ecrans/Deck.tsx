@@ -455,14 +455,17 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
         </div>
       </Feuille>}
       {envoyee && (
-        <Feuille onFermer={() => setEnvoyee(null)}>
-          <div className="eyebrow">Candidature envoyée</div>
-          <h2>C’est parti</h2>
-          <p className="qui">
-            Ta candidature pour <b>{envoyee.titre}</b> est chez le recruteur : il lit ton profil et ton CV. Tu suis sa réponse dans « Candidatures ».
-          </p>
-          <div className="btns" style={{ marginTop: 'var(--s5)' }}>
-            <button className="btn primaire" onClick={() => setEnvoyee(null)}>Continuer</button>
+        <Feuille titre="Confirmation d’envoi" taille="compacte" onFermer={() => setEnvoyee(null)} pied={
+          <div className="confirmation-pied"><button type="button" className="btn primaire" onClick={() => setEnvoyee(null)}>Continuer</button></div>
+        }>
+          <div className="confirmation-envoi">
+            <div className="confirmation-entete">
+              <span className="confirmation-icone" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4 10-10" /></svg></span>
+              <h3>C’est parti !</h3>
+            </div>
+            <p>Ta candidature a bien été enregistrée pour cette offre :</p>
+            <div className="confirmation-offre"><span>Le poste</span><strong>{envoyee.titre}</strong></div>
+            <p>Retrouve son suivi et les réponses reçues dans le menu <strong>Candidatures</strong>.</p>
           </div>
         </Feuille>
       )}

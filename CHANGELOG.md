@@ -41,6 +41,13 @@ lecture seule, reprise sur profil indisponible et premières améliorations des 
 
 ## Améliorations après V1 — lots livrés
 
+### 0.4.6 — Confirmation d’envoi compacte — 17 novembre 2026
+
+- Fenêtre proportionnée, texte élargi et agrandi, poste mis en valeur et bouton adapté.
+- Autres fenêtres conservées ; sept formats, thème sombre, texte agrandi et envoi unique vérifiés.
+- [Détails](docs/CONFIRMATION-0.4.6.md).
+
+
 ### 0.4.4 — Aide et affichage structurés — 17 novembre 2026
 
 - Accès au tutoriel mis en avant, réglages regroupés, quatre fiches pour les menus.

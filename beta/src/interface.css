@@ -634,3 +634,19 @@ button,.btn-fichier,.btn-mini { overflow-wrap:anywhere; }
  .app #ec-interets .pad-i:has(#side-i) > .col-liste { padding-right:8px; }
  .app #ec-interets .pad-i:has(#side-i) #side-i { position:static; }
 }
+
+/* 0.4.6 : une confirmation proportionnée à son contenu. */
+dialog.sheet.sheet-compacte .sheet-box { width:min(100%,540px); }
+.confirmation-envoi { display:grid; gap:16px; }
+.confirmation-entete { display:flex; align-items:center; gap:14px; }
+.confirmation-envoi h3 { margin:0; color:var(--ink); font:700 clamp(22px,2vw,28px)/1.25 var(--font-ui); letter-spacing:-.02em; text-transform:none; }
+.confirmation-envoi h3::before { display:none; }
+.confirmation-icone { display:grid; place-items:center; flex:none; width:48px; height:48px; border-radius:50%; color:var(--yes); background:color-mix(in srgb,var(--yes) 12%,var(--surface)); }
+.confirmation-icone svg { width:27px; height:27px; }
+.confirmation-envoi p { margin:0; color:var(--ink-2); font-size:var(--t-md); line-height:1.6; }
+.confirmation-offre { display:grid; gap:6px; padding:16px; border:1px solid var(--line); border-radius:12px; background:var(--surface-2); overflow-wrap:anywhere; }
+.confirmation-offre>span { font-size:var(--t-xs); color:var(--ink-2); }
+.confirmation-offre strong { font-size:var(--t-md); line-height:1.5; color:var(--ink); }
+.confirmation-pied { display:flex; justify-content:flex-end; }
+.confirmation-pied .btn { min-width:160px; min-height:44px; padding:10px 24px; }
+@media(max-width:479px) { .confirmation-pied .btn { width:100%; } }
