@@ -13,11 +13,12 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
-**0.4.10 publiée le 17 novembre 2026**, commit applicatif `a3fa9c0` : popup compacte après candidature rétablie,
-à la place du message temporaire de cinq secondes. La relecture avant envoi reste inchangée.
-[Détails](docs/CONFIRMATION-0.4.10.md) · [Contrôles de publication](docs/DEPLOIEMENT-0.4.10-2026-11-17.md).
+**0.4.11 publiée le 17 novembre 2026**, commit applicatif `84cfb1b` : commandes et titres de comparaison compacts,
+tableau agrandi et explications repliables pour privilégier les informations.
+[Mesures et recette](docs/ESPACE-COMPARAISON-0.4.11.md) · [Contrôles de publication](docs/DEPLOIEMENT-0.4.11-2026-11-17.md).
 
-Les dernières évolutions comprennent aussi la [comparaison par critères et écarts](docs/COMPARAISON-0.4.8.md),
+Les dernières évolutions comprennent aussi la [popup après candidature](docs/CONFIRMATION-0.4.10.md),
+la [comparaison par critères et écarts](docs/COMPARAISON-0.4.8.md),
 le [profil réagencé](docs/PROFIL-0.4.9.md),
 le [défilement indépendant des candidatures](docs/DEFILEMENT-0.4.5.md), l’[aide structurée](docs/AIDE-0.4.4.md)
 et la [relecture avant envoi toujours accessible](docs/RELECTURE-0.4.3.md).
@@ -35,7 +36,7 @@ conservent les états précédents et les preuves de publication. Le rendu d’o
 |---|---|
 | **V1 — référence du rendu** | `b823f58`, 20 octobre 2026, tag `reference-rendu-2026-10-20` ; package initial `0.1.0`. |
 | **Corrections après V1** | `16c3bb0`, 27 octobre : fiabilité et sécurité, postérieures au rendu. |
-| **Améliorations après V1 livrées** | Lots `0.2.0` à `0.4.10`, dont la popup rétablie 0.4.10 publiée le 17 novembre. |
+| **Améliorations après V1 livrées** | Lots `0.2.0` à `0.4.11`, dont la comparaison agrandie 0.4.11 publiée le 17 novembre. |
 | **Pistes non livrées** | Registre distinct ; aucune idée n’est considérée comme réalisée ou commandée par sa seule inscription. |
 
 [Comparaison V1 / évolutions et statuts](docs/V1-ET-EVOLUTIONS.md) ·

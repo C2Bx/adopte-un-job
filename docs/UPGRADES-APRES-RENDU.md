@@ -3,7 +3,9 @@
 **Ce catalogue concerne les évolutions déjà livrées après la V1.**
 La [V1 de référence](V1-ET-EVOLUTIONS.md) et les [pistes non livrées](PISTES-AMELIORATION.md) sont séparées.
 
-Version applicative actuelle : **0.4.10**, évolution du **17 novembre 2026**, après la fin du rendu.
+Version applicative actuelle : **0.4.11**, évolution du **17 novembre 2026**, après la fin du rendu.
+
+La [0.4.11](ESPACE-COMPARAISON-0.4.11.md) agrandit la lecture des informations comparées : commandes et titres réduits, explications repliées, filtres mobiles regroupés.
 
 La [0.4.10](CONFIRMATION-0.4.10.md) rétablit la popup compacte après candidature à la demande de Bastian ; le message temporaire de cinq secondes est retiré.
 
@@ -47,7 +49,7 @@ Voir [les contrôles de publication](DEPLOIEMENT-2026-11-02.md).
 |---|---|---|
 | V1 — référence du rendu | `b823f58`, 20 octobre, package `0.1.0` | Figée par `reference-rendu-2026-10-20`. |
 | Corrections après V1 | `16c3bb0`, 27 octobre | Fiabilité et sécurité corrigées après rendu. |
-| Améliorations après V1 | Lots `0.2.0` à `0.4.10` | Développés après rendu ; dernier code publié : `a3fa9c0`. |
+| Améliorations après V1 | Lots `0.2.0` à `0.4.11` | Développés après rendu ; dernier code publié : `84cfb1b`. |
 | Pistes | Registre séparé | Non livrées, non engagées par défaut. |
 
 La référence du rendu n'est ni réécrite ni remplacée par la version améliorée.

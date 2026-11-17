@@ -1,5 +1,8 @@
 # Comparaison : davantage de place pour lire — 0.4.11 — 17 novembre 2026
 
+**En production depuis le 17 novembre 2026**, commit applicatif `84cfb1b`.
+[Contrôles de publication](DEPLOIEMENT-0.4.11-2026-11-17.md).
+
 Ajustement après V1 demandé par Bastian : les commandes, compteurs et titres occupaient trop de hauteur,
 au détriment des informations comparées.
 
