@@ -1,5 +1,8 @@
 # Défilement indépendant des candidatures — 0.4.5 — 17 novembre 2026
 
+**En production depuis le 17 novembre 2026**, commit applicatif `16c1bd8`.
+[Contrôles de publication](DEPLOIEMENT-0.4.5-2026-11-17.md).
+
 Correction après V1 signalée par Bastian : dans Mes candidatures, faire défiler le détail de droite
 entraînait aussi la liste de gauche. Le conteneur commun défilait et le détail restait sans hauteur bornée.
 
