@@ -436,15 +436,23 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
         </Feuille>
       )}
 
-      {validation && <Feuille onFermer={() => setValidation(null)}>
-        <h2>Relire avant de candidater</h2><h3>{validation.offre.titre}</h3>
-        <p>{validation.offre.reference} · clôture : {validation.offre.expire?.slice(0, 10) ?? 'non renseignée'}</p>
-        <p>Ton profil enregistré actuellement sera utilisé par l’API de l’équipe. Relis-le avant de confirmer.</p>
-        <p>Document CV : {validation.cv ?? 'Aucun document déposé'}</p>
-        <ApercuDocument document={validation.doc} />
-        <p className="pa">Ce récapitulatif n’est pas une copie figée du dossier chez les recruteurs.</p>
-        <button className="btn primaire" disabled={enCours} onClick={() => { const o = validation.offre; setValidation(null); void envoieDecision(o, 'oui') }}>Confirmer ma candidature</button>
-        <button className="btn" onClick={() => setValidation(null)}>Annuler</button>
+      {validation && <Feuille titre="Relire avant de candidater" onFermer={() => setValidation(null)} pied={
+        <div className="relecture-actions">
+          <p>Rien n’est envoyé tant que tu n’as pas confirmé.</p>
+          <div className="relecture-boutons">
+            <button type="button" className="btn" onClick={() => setValidation(null)}>Annuler</button>
+            <button type="button" className="btn primaire" disabled={enCours} onClick={() => { const o = validation.offre; setValidation(null); void envoieDecision(o, 'oui') }}>Confirmer ma candidature</button>
+          </div>
+        </div>
+      }>
+        <div className="relecture-candidature">
+          <h3>{validation.offre.titre}</h3>
+          <p>{validation.offre.reference} · clôture : {validation.offre.expire?.slice(0, 10) ?? 'non renseignée'}</p>
+          <p>Relis ton dossier, puis confirme l’envoi avec le bouton en bas de cette fenêtre.</p>
+          <p>Document CV : {validation.cv ?? 'Aucun document déposé'}</p>
+          <ApercuDocument document={validation.doc} />
+          <p className="pa">Ton profil et ton CV enregistrés seront utilisés pour cette candidature. Ce récapitulatif n’est pas une copie figée du dossier chez le recruteur.</p>
+        </div>
       </Feuille>}
       {envoyee && (
         <Feuille onFermer={() => setEnvoyee(null)}>

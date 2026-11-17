@@ -24,6 +24,15 @@ et limité, TLS vérifié au déploiement, dépendances corrigées, compétences
 lecture seule, reprise sur profil indisponible et premières améliorations des dialogues accessibles.
 17 tests applicatifs et 8 contrôles PHP validés. Cette étape est postérieure au rendu.
 
+## Corrections des versions améliorées après V1
+
+### 0.4.3 — Confirmation de candidature accessible — 17 novembre 2026
+
+- Confirmer/Annuler fixés en pied de la relecture, dans Offres et Candidatures ; seul le dossier défile.
+- Aucun envoi avant confirmation explicite ; titre et consigne clarifiés.
+- 36 contrôles applicatifs/PHP, compilation et parcours simulés sur sept formats : annuler, confirmer,
+  suivi, favoris et nouvel essai après erreur. [Détails](docs/RELECTURE-0.4.3.md).
+
 ## Améliorations après V1 — lots livrés
 
 ### 0.4.2 — Actions agrandies — 17 novembre 2026

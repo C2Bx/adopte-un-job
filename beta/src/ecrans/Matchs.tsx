@@ -325,13 +325,23 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
           </div>
         </Feuille>
       )}
-      {validation && <Feuille onFermer={() => setValidation(null)}>
-        <h2>Relire avant de candidater</h2><h3>{validation.offre.titre}</h3>
-        <p>Document CV : {validation.cv ?? 'Aucun document déposé'}</p>
-        <ApercuDocument document={validation.doc} />
-        <p>Le profil enregistré est utilisé par l’API existante ; ce récapitulatif n’est pas une copie figée chez le recruteur.</p>
-        <button className="btn primaire" disabled={action} onClick={() => { const x = validation.offre; setValidation(null); void executeDecision(x, 'oui') }}>Confirmer ma candidature</button>
-        <button className="btn" onClick={() => setValidation(null)}>Annuler</button>
+      {validation && <Feuille titre="Relire avant de candidater" onFermer={() => setValidation(null)} pied={
+        <div className="relecture-actions">
+          <p>Rien n’est envoyé tant que tu n’as pas confirmé.</p>
+          <div className="relecture-boutons">
+            <button type="button" className="btn" onClick={() => setValidation(null)}>Annuler</button>
+            <button type="button" className="btn primaire" disabled={action} onClick={() => { const x = validation.offre; setValidation(null); void executeDecision(x, 'oui') }}>Confirmer ma candidature</button>
+          </div>
+        </div>
+      }>
+        <div className="relecture-candidature">
+          <h3>{validation.offre.titre}</h3>
+          
+          <p>Relis ton dossier, puis confirme l’envoi avec le bouton en bas de cette fenêtre.</p>
+          <p>Document CV : {validation.cv ?? 'Aucun document déposé'}</p>
+          <ApercuDocument document={validation.doc} />
+          <p className="pa">Ton profil et ton CV enregistrés seront utilisés pour cette candidature. Ce récapitulatif n’est pas une copie figée du dossier chez le recruteur.</p>
+        </div>
       </Feuille>}
     </div>
   )

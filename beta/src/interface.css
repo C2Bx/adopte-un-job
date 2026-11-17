@@ -560,3 +560,13 @@ button,.btn-fichier,.btn-mini { overflow-wrap:anywhere; }
  #ec-swipe .card .deck-actions .coins svg { width:23px; height:23px; }
  #ec-swipe .card .deck-actions .coin span { font-size:11px; }
 }
+
+/* 0.4.3 : confirmation toujours accessible, seul le dossier défile. */
+.relecture-candidature .upgrade-apercu { max-height:none; overflow:visible; }
+.relecture-actions p { margin:0 0 8px; font-size:var(--t-sm); color:var(--ink-2); }
+.relecture-boutons { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; }
+.relecture-boutons .btn { min-height:44px; white-space:normal; }
+@media(max-width:479px) {
+ .relecture-boutons { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:8px; }
+ .relecture-boutons .btn { padding:10px 8px; }
+}

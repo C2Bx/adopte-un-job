@@ -13,6 +13,11 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
+**Correctif 0.4.3 préparé le 17 novembre 2026** : confirmation et annulation toujours visibles dans la relecture de candidature.
+[Correctif et vérifications](docs/RELECTURE-0.4.3.md). Publication à confirmer.
+
+État publié avant ce correctif :
+
 **0.4.2 publiée le 17 novembre 2026**, commit applicatif `42130ee`. [Contrôles de publication](docs/DEPLOIEMENT-0.4.2-2026-11-17.md).
 
 Version **0.4.2** : [boutons d’action agrandis](docs/ACTIONS-0.4.2.md) dans la [carte pleine hauteur](docs/PLEINE-HAUTEUR-0.4.1.md).
