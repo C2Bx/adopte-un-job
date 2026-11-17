@@ -1,5 +1,7 @@
 # Confirmation animée dans la page — 0.4.7 — 17 novembre 2026
 
+**État historique** : le message temporaire a été remplacé par la [popup rétablie en 0.4.10](CONFIRMATION-0.4.10.md).
+
 **En production depuis le 17 novembre 2026**, commit applicatif `1f3559f`.
 [Contrôles de publication](DEPLOIEMENT-0.4.7-2026-11-17.md).
 

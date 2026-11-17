@@ -1,5 +1,8 @@
 # Retour à la popup après candidature — 0.4.10 — 17 novembre 2026
 
+**En production depuis le 17 novembre 2026**, commit applicatif `a3fa9c0`.
+[Contrôles de publication](DEPLOIEMENT-0.4.10-2026-11-17.md).
+
 Ajustement après V1 demandé par Bastian : rétablir la popup de confirmation après l’envoi.
 Le bandeau animé de cinq secondes de la 0.4.7 est retiré.
 

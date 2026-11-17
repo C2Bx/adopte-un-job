@@ -9,7 +9,7 @@ les corrections, les améliorations livrées et les idées non livrées.
 |---|---|---|
 | **V1 — référence du rendu** | `b823f58`, 20 octobre 2026 ; tag `reference-rendu-2026-10-20` | Périmètre initial figé, avant l’échéance du 21 octobre. |
 | **Corrections après V1** | `16c3bb0`, 27 octobre ; tag `stabilisation-2026-10-27` | Fiabilité, sécurité et régressions corrigées après le rendu. Elles ne font pas partie de la V1 archivée. |
-| **Améliorations après V1, livrées** | Lots `0.2.0` à `0.4.9` ; application publiée `0113d77` | Ajouts et évolutions déjà réalisés après le rendu. La 0.4.9 est publiée le 17 novembre. |
+| **Améliorations après V1, livrées** | Lots `0.2.0` à `0.4.10` ; application publiée `a3fa9c0` | Ajouts et évolutions déjà réalisés après le rendu. La 0.4.10 est publiée le 17 novembre. |
 | **Pistes d’amélioration, non livrées** | [Registre des pistes](PISTES-AMELIORATION.md) | Idées ou validations à étudier. Elles ne deviennent ni réalisées ni commandées par leur seule présence dans la documentation. |
 
 **« V1 » désigne ici la première version fonctionnelle de référence pour le rendu.**
@@ -52,7 +52,8 @@ Les corrections et upgrades ultérieurs ne réécrivent pas ce repère, l’arti
 | `0.4.6` | Publiée le 17 novembre à 16 h 57, `1aa1ae5` | Popup de confirmation compacte, état intermédiaire remplacé par la 0.4.7. |
 | `0.4.7` | Publiée le 17 novembre à 17 h 02, `1f3559f` | Confirmation animée dans la page pendant cinq secondes. |
 | `0.4.8` | Publiée le 17 novembre à 17 h 12, `e74c119` | Comparaison réagencée, douze critères, valeurs partagées et écarts repérés. |
-| `0.4.9` | Publiée le 17 novembre à 17 h 24, `0113d77` | Profil réagencé, progression, étapes et conseils ciblés. **Version applicative actuellement publiée.** |
+| `0.4.9` | Publiée le 17 novembre à 17 h 24, `0113d77` | Profil réagencé, progression, étapes et conseils ciblés. |
+| `0.4.10` | Publiée le 17 novembre à 17 h 28, `a3fa9c0` | Popup compacte après candidature rétablie ; message temporaire retiré. **Version applicative actuellement publiée.** |
 
 Les présentations intermédiaires (barre d’actions sur toute la page, comparaison en fenêtre,
 accordéons de filtres, petits boutons) sont des états historiques, remplacés par les ajustements suivants.
@@ -66,6 +67,6 @@ Ils ne décrivent pas plusieurs variantes simultanément actives.
 4. Garder la V1 et son tag inchangés. Ne pas attribuer les améliorations ultérieures au rendu d’octobre.
 5. Rester dans MS3 et les contrats existants. Si une fonction exige une API nouvelle ou le travail d’un autre groupe, l’écarter ; ne pas la demander à ce groupe.
 
-Le compte rendu du dernier déploiement est [ici](DEPLOIEMENT-0.4.9-2026-11-17.md).
-Un commit documentaire peut suivre `0113d77` sans changer le code servi par le site.
+Le compte rendu du dernier déploiement est [ici](DEPLOIEMENT-0.4.10-2026-11-17.md).
+Un commit documentaire peut suivre `a3fa9c0` sans changer le code servi par le site.
 L’historique technique détaillé reste dans [CHANGELOG](../CHANGELOG.md) et le [catalogue après rendu](UPGRADES-APRES-RENDU.md).
