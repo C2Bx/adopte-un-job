@@ -41,6 +41,13 @@ lecture seule, reprise sur profil indisponible et premières améliorations des 
 
 ## Améliorations après V1 — lots livrés
 
+### 0.4.11 — Comparaison : lecture agrandie — 17 novembre 2026
+
+- Commandes, compteurs et titres compacts ; explications repliées, filtres mobiles regroupés.
+- Tableau dans la hauteur restante, titres donnant accès au détail et sélection conservée.
+- Mesures avant/après, sept formats et guide vérifiés. [Détails](docs/ESPACE-COMPARAISON-0.4.11.md).
+
+
 ### 0.4.10 — Popup après candidature rétablie — 17 novembre 2026
 
 - Retour à la confirmation compacte après envoi, à la demande de Bastian ; bandeau de cinq secondes retiré.
