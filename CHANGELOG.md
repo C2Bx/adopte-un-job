@@ -41,6 +41,13 @@ lecture seule, reprise sur profil indisponible et premières améliorations des 
 
 ## Améliorations après V1 — lots livrés
 
+### 0.4.12 — Boutons avec animation de swipe — 17 novembre 2026
+
+- Vue Cartes : Passer à gauche, Candidater à droite et Favori vers le haut, en 300 ms.
+- Clics répétés bloqués, relecture/annulation conservées, mouvements réduits respectés.
+- Sept formats et parcours d’erreur/navigation vérifiés. [Détails](docs/SWIPE-BOUTONS-0.4.12.md).
+
+
 ### 0.4.11 — Comparaison : lecture agrandie — 17 novembre 2026
 
 - Commandes, compteurs et titres compacts ; explications repliées, filtres mobiles regroupés.

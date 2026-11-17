@@ -849,3 +849,14 @@ dialog.sheet.sheet-compacte .sheet-box { width:min(100%,540px); }
  .comparaison-refonte .comparaison-table tbody th:first-child { width:auto; }
  .comparaison-refonte .comparaison-table tbody td { padding:8px 10px; }
 }
+/* 0.4.12 : les boutons déclenchent le mouvement de décision. */
+#ec-swipe .card.sortie-oui { animation:carte-sortie-droite .3s cubic-bezier(.3,.05,.6,1) forwards; }
+#ec-swipe .card.sortie-non { animation:carte-sortie-gauche .3s cubic-bezier(.3,.05,.6,1) forwards; }
+#ec-swipe .card.sortie-plus_tard { animation:carte-sortie-haut .3s cubic-bezier(.3,.05,.6,1) forwards; }
+#ec-swipe .card .teinte.favori { background:color-mix(in srgb,#f5bf24 18%,transparent); }
+@keyframes carte-sortie-droite { from { transform:translate(0,0) rotate(0); opacity:1; } to { transform:translate(130%,20px) rotate(16deg); opacity:0; } }
+@keyframes carte-sortie-gauche { from { transform:translate(0,0) rotate(0); opacity:1; } to { transform:translate(-130%,20px) rotate(-16deg); opacity:0; } }
+@keyframes carte-sortie-haut { from { transform:translate(0,0) scale(1); opacity:1; } to { transform:translate(0,-110%) scale(.96); opacity:0; } }
+@media(prefers-reduced-motion:reduce) {
+ #ec-swipe .card.sortie-oui,#ec-swipe .card.sortie-non,#ec-swipe .card.sortie-plus_tard { animation:none; }
+}

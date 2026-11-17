@@ -139,6 +139,18 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
   const [envoyee, setEnvoyee] = useState<Offre | null>(null)
+  const [sortie, setSortie] = useState<{ id: number; decision: Decision } | null>(null)
+  const actionAnimee = useRef(false)
+  const generationAnimation = useRef(0)
+  const attenteAnimation = useRef<number | null>(null)
+  const finitAttente = useRef<(() => void) | null>(null)
+  useEffect(() => () => {
+    generationAnimation.current++
+    if (attenteAnimation.current !== null) window.clearTimeout(attenteAnimation.current)
+    finitAttente.current?.()
+    actionAnimee.current = false
+  }, [])
+
   const [detail, setDetail] = useState<Offre | null>(null)
   const [filtres, setFiltres, erreurStockage] = useLocal<Filtres>('filtres', {})
   const [recherche, setRecherche] = useState(filtres.q ?? '')
@@ -260,6 +272,31 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
     finally { setPreparation(false) }
   }
 
+  const decideAvecAnimation = async (o: Offre, decision: Decision) => {
+    if (actionAnimee.current || enCours || preparation || o.statut === 'close') return
+    if (decision === 'oui' && aCombler.length) { await decide(o, decision); return }
+    actionAnimee.current = true
+    const generation = generationAnimation.current
+    try {
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setSortie({ id: o.id, decision })
+        await new Promise<void>((termine) => {
+          finitAttente.current = termine
+          attenteAnimation.current = window.setTimeout(termine, 300)
+        })
+        attenteAnimation.current = null
+        finitAttente.current = null
+      }
+      if (generation !== generationAnimation.current) return
+      await decide(o, decision)
+    } finally {
+      if (generation === generationAnimation.current) {
+        setSortie(null)
+        actionAnimee.current = false
+      }
+    }
+  }
+
   const reviens = async () => {
     if (!dernier) return
     setEnCours(true)
@@ -282,7 +319,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
     if (document.querySelector('dialog[open], .guide-voile')) return
     const cible = e.target as HTMLElement | null
     if (cible?.closest('input, textarea, select, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return
-    if (!courante || courante.statut === 'close' || enCours || preparation || validation || vue !== 'cartes' || detail || envoyee || panneauFiltres || rechercheOuverte) return
+    if (!courante || courante.statut === 'close' || enCours || preparation || actionAnimee.current || validation || vue !== 'cartes' || detail || envoyee || panneauFiltres || rechercheOuverte) return
     if (e.key === 'ArrowRight') { e.preventDefault(); void decide(courante, 'oui') }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); void decide(courante, 'non') }
     else if (e.key === 'ArrowUp') { e.preventDefault(); void decide(courante, 'plus_tard') }
@@ -364,7 +401,8 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
               offre={courante}
               profondeur={0}
               profil={profil}
-              occupe={enCours || preparation}
+              occupe={enCours || preparation || Boolean(sortie)}
+              sortie={sortie?.id === courante.id ? sortie.decision : undefined}
               onDetail={() => { setDetail(courante); void api.vue(courante.id, 'detail') }}
               onDecide={courante.statut === 'close' ? undefined : (d) => void decide(courante, d)}
               adequation={adequationDe(courante)}
@@ -373,7 +411,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
               comparer={() => setSelection(limiteComparaison(selection, courante.id))}
               comparee={selection.includes(courante.id)}
               comparaisonPleine={selection.length >= 3}
-              actions={<ActionsOffre close={courante.statut === 'close'} vide={false} occupe={enCours || preparation} peutRevenir={Boolean(dernier)} onRetour={() => void reviens()} onDecide={(d) => void decide(courante, d)} />}
+              actions={<ActionsOffre close={courante.statut === 'close'} vide={false} occupe={enCours || preparation || Boolean(sortie)} peutRevenir={Boolean(dernier)} onRetour={() => void reviens()} onDecide={(d) => void decideAvecAnimation(courante, d)} />}
             />
           )}
         </div>
@@ -641,7 +679,7 @@ function employeur(o: Offre): string {
 
 const SEUIL = 90          // pixels au-delà desquels le glissé vaut décision
 
-function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequation, actions, comparer, comparee, comparaisonPleine, ouvrirOutils, nbFiltres }: {
+function Carte({ offre: o, profondeur, profil, occupe, sortie, onDetail, onDecide, adequation, actions, comparer, comparee, comparaisonPleine, ouvrirOutils, nbFiltres }: {
   offre: Offre
   profondeur: number
   profil: Profil
@@ -653,6 +691,7 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
   comparee?: boolean
   comparaisonPleine?: boolean
   occupe?: boolean
+  sortie?: Decision
   onDetail?: () => void
   onDecide?: (d: Decision) => void
 }) {
@@ -756,7 +795,8 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
 
   return (
     <article
-      className={`card${jouable ? ' glissable' : ''}${page ? ' turned' : ''}${close ? ' close' : ''}`}
+      className={`card${jouable ? ' glissable' : ''}${page ? ' turned' : ''}${close ? ' close' : ''}${sortie ? ` sortie-${sortie}` : ''}`}
+      aria-busy={sortie ? true : undefined}
       aria-hidden={profondeur > 0 || undefined}
       inert={profondeur > 0}
       style={{
@@ -764,7 +804,7 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
         zIndex: 10 - profondeur,
         transition: lache ? 'transform .22s var(--ease)' : undefined,
         touchAction: 'pan-y',
-        pointerEvents: profondeur > 0 ? 'none' : undefined,
+        pointerEvents: profondeur > 0 || sortie ? 'none' : undefined,
       }}
       onDragStart={(e) => e.preventDefault()}
       onPointerDown={debut}
@@ -772,11 +812,11 @@ function Carte({ offre: o, profondeur, profil, occupe, onDetail, onDecide, adequ
       onPointerUp={fin}
       onPointerCancel={() => { depart.current = null; capture.current = false; setDx(0); setDy(0); setLache(true) }}
     >
-      <span className={`teinte ${dx > 0 ? 'oui' : 'non'}`} aria-hidden="true"
-        style={{ opacity: Math.min(1, Math.abs(dx) / SEUIL) }} />
-      <span className="stamp yes" style={{ opacity: Math.max(0, Math.min(1, dx / SEUIL)) }}>OUI</span>
-      <span className="stamp no" style={{ opacity: Math.max(0, Math.min(1, -dx / SEUIL)) }}>NON</span>
-      <span className="stamp favori" style={{ opacity: Math.max(0, Math.min(1, -dy / SEUIL)) }}>FAVORI</span>
+      <span className={`teinte ${sortie === 'plus_tard' ? 'favori' : sortie === 'oui' || dx > 0 ? 'oui' : 'non'}`} aria-hidden="true"
+        style={{ opacity: sortie ? 1 : Math.min(1, Math.abs(dx) / SEUIL) }} />
+      <span className="stamp yes" style={{ opacity: sortie === 'oui' ? 1 : Math.max(0, Math.min(1, dx / SEUIL)) }}>OUI</span>
+      <span className="stamp no" style={{ opacity: sortie === 'non' ? 1 : Math.max(0, Math.min(1, -dx / SEUIL)) }}>NON</span>
+      <span className="stamp favori" style={{ opacity: sortie === 'plus_tard' ? 1 : Math.max(0, Math.min(1, -dy / SEUIL)) }}>FAVORI</span>
 
       {pages.length > 1 && (
         <div className="segs">
