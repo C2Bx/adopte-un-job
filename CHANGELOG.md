@@ -41,6 +41,14 @@ lecture seule, reprise sur profil indisponible et premières améliorations des 
 
 ## Améliorations après V1 — lots livrés
 
+### 0.4.8 — Comparaison et critères lisibles — 17 novembre 2026
+
+- Douze critères regroupés, points communs repérés, écarts et inconnues distingués.
+- Filtres Tout voir/Les écarts/Comparables et rubriques ; lecture mobile par critère et guide actualisé.
+- 39 contrôles applicatifs/PHP, compilation, recette sur sept formats et états incomplets vérifiés.
+- [Détails et limites des repères](docs/COMPARAISON-0.4.8.md).
+
+
 ### 0.4.7 — Confirmation animée dans la page — 17 novembre 2026
 
 - Message intégré pendant cinq secondes, coche animée et barre de durée ; popup après envoi retirée.

@@ -659,3 +659,66 @@ button,.btn-fichier,.btn-mini { overflow-wrap:anywhere; }
  .retour-envoi,.retour-envoi-icone circle,.retour-envoi-icone path,.retour-envoi-progression { animation:none; }
  .retour-envoi-progression { display:none; }
 }
+
+/* 0.4.8 : comparaison guidée par les critères et les écarts renseignés. */
+.comparaison-refonte { gap:12px; }
+.comparaison-surtitre { display:block; color:var(--brand); font-size:var(--t-xs); font-weight:600; margin-bottom:4px; }
+.comparaison-refonte .comparaison-entete h1 { margin:0 0 4px; }
+.comparaison-bilan { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; flex:none; }
+.comparaison-bilan>span { display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--surface); border:1px solid var(--line); border-radius:12px; font-size:var(--t-xs); color:var(--ink-2); }
+.comparaison-bilan b { font-size:24px; line-height:1.2; color:var(--brand); }
+.comparaison-bilan small { font-size:13px; margin-left:3px; color:var(--ink-3); font-weight:400; }
+.comparaison-filtres { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+.comparaison-modes { display:flex; flex-wrap:wrap; gap:4px; padding:4px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
+.comparaison-modes button { padding:8px 12px; min-height:36px; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--ink-2); font:600 var(--t-xs) var(--font-ui); }
+.comparaison-modes button[aria-pressed=true] { background:var(--surface); color:var(--brand); border-color:var(--line); box-shadow:0 2px 5px #00000009; }
+.comparaison-filtres label { display:flex; align-items:center; gap:8px; font-size:var(--t-xs); color:var(--ink-2); }
+.comparaison-filtres select { min-width:0; max-width:100%; min-height:40px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); font:inherit; }
+.comparaison-legende,.comparaison-conseil { margin:0; font-size:var(--t-xs); line-height:1.5; color:var(--ink-2); }
+.comparaison-conseil { padding:10px 14px; background:var(--brand-soft); border-radius:8px; color:var(--brand); }
+.comparaison-refonte .comparaison-table th:first-child { width:170px; }
+.comparaison-refonte .comparaison-table th,.comparaison-refonte .comparaison-table td { padding:14px; }
+.comparaison-compte { display:block; margin-top:6px; color:var(--ink-2); font-size:var(--t-xs); font-weight:400; }
+.comparaison-numero { display:inline-block; padding:3px 8px; border-radius:6px; font-size:var(--t-xs); font-weight:600; color:var(--brand); background:var(--brand-soft); margin-bottom:8px; }
+.comparaison-numero.offre-1 { color:var(--ink); background:var(--accent-soft); }
+.comparaison-numero.offre-2 { color:var(--yes); background:color-mix(in srgb,var(--yes) 12%,var(--surface)); }
+.comparaison-refonte .comparaison-poste strong { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; color:var(--ink); font-size:var(--t-sm); margin-bottom:10px; }
+.comparaison-rubrique { display:block; margin-bottom:5px; color:var(--ink-2); font-size:11px; font-weight:400; }
+.comparaison-refonte tbody th>strong { display:block; font-size:var(--t-sm); line-height:1.4; }
+.comparaison-etat { display:inline-block; font-size:11px; font-weight:500; padding:4px 7px; margin-top:8px; border-radius:6px; line-height:1.4; border:1px solid var(--line); }
+.comparaison-etat.etat-ecart { color:var(--ink); background:var(--accent-soft); }
+.comparaison-etat.etat-commun { color:var(--brand); background:var(--brand-soft); }
+.comparaison-etat.etat-incomplet { color:var(--ink-2); background:var(--surface); }
+.comparaison-refonte .comparaison-ecart th:first-child { box-shadow:inset 3px 0 var(--accent); }
+.comparaison-refonte .comparaison-valeurs { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+.comparaison-refonte .comparaison-valeurs li { padding:7px 9px; margin:0; border:1px solid transparent; border-radius:8px; line-height:1.6; white-space:pre-line; }
+.comparaison-refonte .comparaison-valeurs li.en-commun { background:var(--brand-soft); border-color:color-mix(in srgb,var(--brand) 20%,var(--line)); }
+.comparaison-commun { display:block; color:var(--brand); font-size:10px; font-weight:600; margin-top:3px; }
+.comparaison-absent { display:inline-block; color:var(--ink-2); background:var(--surface-2); border:1px dashed var(--line); padding:7px 9px; border-radius:8px; font-size:var(--t-xs); }
+.comparaison-suite { margin-top:8px; }
+.comparaison-suite summary { cursor:pointer; font-size:var(--t-xs); color:var(--brand); padding:8px 0; }
+.comparaison-refonte .comparaison-sans-resultat td { padding:32px; text-align:center; }
+.comparaison-sans-resultat p { color:var(--ink-2); font-size:var(--t-sm); line-height:1.6; }
+.comparaison-vide-icone { display:grid; place-items:center; width:64px; height:64px; border-radius:18px; font-size:36px; color:var(--brand); background:var(--brand-soft); }
+@media(max-width:719px) {
+ .comparaison-refonte { overflow:auto; }
+ .comparaison-refonte .comparaison-table { flex:none; overflow:visible; }
+ .comparaison-bilan { gap:6px; }
+ .comparaison-bilan>span { display:block; padding:10px; line-height:1.4; font-size:11px; }
+ .comparaison-bilan b { display:block; font-size:22px; margin-bottom:4px; }
+ .comparaison-filtres { align-items:stretch; }
+ .comparaison-modes { width:100%; flex-wrap:nowrap; }
+ .comparaison-modes button { flex:1; min-width:0; padding:8px 4px; font-size:12px; }
+ .comparaison-filtres label { width:100%; }
+ .comparaison-filtres select { flex:1; }
+ .comparaison-refonte .comparaison-table tbody tr { grid-template-columns:minmax(0,1fr); }
+ .comparaison-refonte .comparaison-table tbody th:first-child { width:auto; }
+ .comparaison-refonte .comparaison-table td { border-right:0; }
+ .comparaison-refonte .comparaison-table td::before { padding:6px 9px; background:var(--surface-2); border-radius:6px; }
+ .comparaison-refonte .comparaison-sans-resultat td::before { display:none; }
+ .comparaison-refonte .comparaison-gestion { max-height:45dvh; }
+}
+@media(max-height:600px) and (min-width:720px) {
+ .comparaison-refonte { overflow:auto; }
+ .comparaison-refonte .comparaison-table { flex:none; overflow:auto; }
+}

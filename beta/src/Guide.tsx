@@ -79,9 +79,9 @@ Object.assign(CONSIGNES, {
 })
 Object.assign(CONSIGNES, {
   'Choisir des offres à comparer': [['Choisir des offres', 'Retourne aux Offres pour sélectionner jusqu’à trois postes.'], ['Comparer', 'Le bouton de chaque carte ou ligne ajoute ou retire une offre.'], ['Menu dédié', 'La pastille indique combien d’offres sont sélectionnées.']],
-  'Lire côte à côte': [['Colonnes', 'Chaque offre garde son titre en tête.'], ['Critères', 'Lis lieu, contrat, clôture, missions, compétences et qualifications.'], ['Petit écran', 'Les offres sont regroupées par critère, avec leur titre, sans défilement horizontal.']],
+  'Lire côte à côte': [['Colonnes', 'Chaque offre garde son titre en tête.'], ['Critères et écarts', 'Tout voir, Les écarts ou Comparables isolent les critères utiles. Choisis aussi une rubrique.'], ['Petit écran', 'Les offres sont regroupées par critère, avec leur titre, sans défilement horizontal.']],
   'Changer la sélection': [['Retirer', 'Supprime une offre avec le bouton de sa colonne.'], ['Vider la sélection', 'Recommence une comparaison complète.'], ['Lire l’offre', 'Ouvre le détail sans quitter la comparaison.']],
-  'Données du comparateur': [['Données manquantes', 'Elles restent signalées plutôt que devinées.'], ['Adéquation', 'Le score disponible vient du service existant.'], ['Sélection locale', 'Elle est conservée par compte dans ce navigateur.']],
+  'Données du comparateur': [['Repères', 'En commun signale les valeurs partagées ; une absence reste À compléter et ne vaut pas une différence.'], ['Adéquation', 'Le score disponible vient du service existant.'], ['Sélection locale', 'Elle est conservée par compte dans ce navigateur.']],
 })
 const NOMS: Record<Onglet, string> = { swipe: 'Offres', comparaison: 'Comparaison', interets: 'Candidatures', profil: 'Profil' }
 

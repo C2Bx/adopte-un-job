@@ -10,7 +10,7 @@ const temporaire = mkdtempSync(join(tmpdir(), 'aj-regression-'))
 let nombre = 0
 const test = async (nom, action) => { await action(); console.log(`OK ${++nombre} — ${nom}`) }
 try {
-  for (const nom of ['types', 'regles', 'jsonResume', 'sauvegarde', 'api', 'filtres', 'dates', 'upgrade']) {
+  for (const nom of ['types', 'regles', 'jsonResume', 'sauvegarde', 'api', 'filtres', 'dates', 'upgrade', 'comparaisonCriteres']) {
     let texte = readFileSync(join(racine, 'src', `${nom}.ts`), 'utf8').replace('import.meta.env.BASE_URL', "'/avp/'")
 
     const js = ts.transpileModule(texte, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText
@@ -185,6 +185,24 @@ try {
     assert.equal(u.id, utilisateur)
     assert(requetes.some((r) => r.p === '/auth/login'))
     location.search = ''; location.href = 'https://local/avp/'
+  })
+  const { analyseComparaison, lignesComparaison } = await charge('comparaisonCriteres')
+  await test('une absence ne devient ni une différence ni une égalité connue', () => {
+    const vide = analyseComparaison([[], []]); assert.equal(vide.comparable, false); assert.equal(vide.etat, 'Non renseigné')
+    const seul = analyseComparaison([['CDI'], []]); assert.equal(seul.different, false); assert.equal(seul.etat, 'À compléter')
+    const partiel = analyseComparaison([['CDI'], ['CDI'], []]); assert.equal(partiel.comparable, true); assert.equal(partiel.etat, 'Identique · partiel')
+    assert.equal(analyseComparaison([['Non renseigné'], []]).comparable, false)
+  })
+  await test('les listes se comparent sans effet de casse, ordre ou doublons', () => {
+    const meme = analyseComparaison([['Vente', ' Conseil ', 'vente'], ['conseil', 'vente']]); assert.equal(meme.different, false); assert.equal(meme.communs.size, 2)
+    const ecart = analyseComparaison([['Vente', 'Conseil'], ['Vente', 'Gestion']]); assert.equal(ecart.different, true); assert.deepEqual([...ecart.communs], ['vente'])
+    assert(analyseComparaison([['CDI'], ['CDI'], ['CDD']]).communs.has('cdi'))
+  })
+  await test('les critères conservent les inconnues et un score existant à zéro', () => {
+    const a = offreDepuisAvp({ id: 101, titre: 'Test', reference: 'A' }); const b = offreDepuisAvp({ id: 102, titre: 'Autre', reference: 'B' })
+    const lignes = lignesComparaison([a, b, undefined], new Map([['A', { pourcentage: 0 }], ['B', { pourcentage: 42 }]]))
+    assert.equal(lignes.find((l) => l.cle === 'contrat').comparable, false)
+    const score = lignes.find((l) => l.cle === 'adequation'); assert.deepEqual(score.valeurs, [['0 %'], ['42 %'], []]); assert.equal(score.different, true)
   })
   console.log(`${nombre} tests de régression réussis.`)
 } finally { rmSync(temporaire, { recursive: true, force: true }) }
