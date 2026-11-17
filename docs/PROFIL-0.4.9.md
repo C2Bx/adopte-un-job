@@ -1,5 +1,8 @@
 # Menu Profil réagencé — 0.4.9 — 17 novembre 2026
 
+**En production depuis le 17 novembre 2026**, commit applicatif `0113d77`.
+[Contrôles de publication](DEPLOIEMENT-0.4.9-2026-11-17.md).
+
 Amélioration après V1 demandée par Bastian : hiérarchiser le dossier, les étapes, les conseils et les outils.
 
 - En-tête de dossier, état de sauvegarde lisible et progression des informations requises.
