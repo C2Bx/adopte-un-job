@@ -9,7 +9,7 @@ les corrections, les améliorations livrées et les idées non livrées.
 |---|---|---|
 | **V1 — référence du rendu** | `b823f58`, 20 octobre 2026 ; tag `reference-rendu-2026-10-20` | Périmètre initial figé, avant l’échéance du 21 octobre. |
 | **Corrections après V1** | `16c3bb0`, 27 octobre ; tag `stabilisation-2026-10-27` | Fiabilité, sécurité et régressions corrigées après le rendu. Elles ne font pas partie de la V1 archivée. |
-| **Améliorations après V1, livrées** | Lots `0.2.0` à `0.4.2` ; application publiée `42130ee` | Ajouts et évolutions déjà réalisés après le rendu. La 0.4.2 est publiée le 17 novembre. |
+| **Améliorations après V1, livrées** | Lots `0.2.0` à `0.4.3` ; application publiée `2938404` | Ajouts et évolutions déjà réalisés après le rendu. La 0.4.3 est publiée le 17 novembre. |
 | **Pistes d’amélioration, non livrées** | [Registre des pistes](PISTES-AMELIORATION.md) | Idées ou validations à étudier. Elles ne deviennent ni réalisées ni commandées par leur seule présence dans la documentation. |
 
 **« V1 » désigne ici la première version fonctionnelle de référence pour le rendu.**
@@ -25,7 +25,7 @@ Les corrections et upgrades ultérieurs ne réécrivent pas ce repère, l’arti
 | Profil | Formulaire guidé et neuf questions, données JSON Resume | Sauvegarde fiabilisée, brouillons, profil enrichi, conseils ciblant le champ exact. Les neuf questions ne sont pas une nouveauté après rendu. |
 | CV | Dépôt et lancement de la lecture du CV via CVForge | Préservation de la saisie, aperçu de l’extraction, sélection et validation des champs ; le moteur d’extraction appartient toujours à MS1. |
 | Import/export | Import/export JSON Resume | Validation, aperçu avant remplacement et restauration de la copie précédente. |
-| Offres | Cartes, filtres et swipe ; détail et contact employeur | Vues liste/tableau, recherche avancée, recherches mémorisées, refonte de l’agencement et carte pleine hauteur. |
+| Offres | Cartes, filtres et swipe ; détail et contact employeur | Vues liste/tableau, recherche avancée, recherches mémorisées, refonte de l’agencement et carte pleine hauteur ; confirmation toujours accessible. |
 | Offres gardées | Mise de côté « plus tard » dans le navigateur | Présentation Favoris, étoile jaune et glissement vers le haut. La mise de côté elle-même existait déjà. |
 | Adéquation | Affichage du résultat fourni par CV-Matching | Explications et présentation enrichies, comparaison et tri du score existant ; aucun nouveau calcul MS3. |
 | Candidatures | Envoi/suivi et affichage des réponses disponibles | Relecture avant confirmation, recherche/tri/statuts, actualisation automatique et agencement revu. |
@@ -45,7 +45,8 @@ Les corrections et upgrades ultérieurs ne réécrivent pas ce repère, l’arti
 | `0.3.1` | Publiée le 16 novembre, `199fe42` | Actions dans la carte, filtres, guide pop-up initial et actualisation automatique. |
 | `0.4.0` | Publiée le 16 novembre, `bb88254` | Quatre menus, comparaison dédiée, agencement et guides complétés ; conseils vers les champs précis. |
 | `0.4.1` | Publiée le 17 novembre, `fc6faa2` | Offre pleine hauteur. |
-| `0.4.2` | Publiée le 17 novembre, `42130ee` | Actions agrandies dans la carte pleine hauteur. **Version applicative actuellement publiée.** |
+| `0.4.2` | Publiée le 17 novembre, `42130ee` | Actions agrandies dans la carte pleine hauteur. |
+| `0.4.3` | Publiée le 17 novembre, `2938404` | Correction de la relecture : actions de confirmation toujours visibles. **Version applicative actuellement publiée.** |
 
 Les présentations intermédiaires (barre d’actions sur toute la page, comparaison en fenêtre,
 accordéons de filtres, petits boutons) sont des états historiques, remplacés par les ajustements suivants.
@@ -59,6 +60,6 @@ Ils ne décrivent pas plusieurs variantes simultanément actives.
 4. Garder la V1 et son tag inchangés. Ne pas attribuer les améliorations ultérieures au rendu d’octobre.
 5. Rester dans MS3 et les contrats existants. Si une fonction exige une API nouvelle ou le travail d’un autre groupe, l’écarter ; ne pas la demander à ce groupe.
 
-Le compte rendu du dernier déploiement est [ici](DEPLOIEMENT-0.4.2-2026-11-17.md).
-Un commit documentaire peut suivre `42130ee` sans changer le code servi par le site.
+Le compte rendu du dernier déploiement est [ici](DEPLOIEMENT-0.4.3-2026-11-17.md).
+Un commit documentaire peut suivre `2938404` sans changer le code servi par le site.
 L’historique technique détaillé reste dans [CHANGELOG](../CHANGELOG.md) et le [catalogue après rendu](UPGRADES-APRES-RENDU.md).

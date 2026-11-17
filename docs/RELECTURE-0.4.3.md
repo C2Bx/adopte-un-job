@@ -1,5 +1,8 @@
 # Confirmation de candidature — 0.4.3 — 17 novembre 2026
 
+**Publiée en production le 17 novembre 2026**, commit applicatif `2938404`.
+[Contrôles de publication](DEPLOIEMENT-0.4.3-2026-11-17.md).
+
 Correction après V1, signalée par Bastian : le récapitulatif pouvait présenter uniquement
 la relecture et la fermeture, les boutons de confirmation étant placés plus bas dans le contenu défilant.
 Sur un écran bas, ils étaient hors de la partie visible et donnaient l’impression d’un parcours bloqué.

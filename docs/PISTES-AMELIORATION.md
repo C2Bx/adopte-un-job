@@ -6,9 +6,9 @@ La [V1, les corrections et les améliorations livrées](V1-ET-EVOLUTIONS.md) son
 
 ## Ce qui est déjà livré
 
-Les demandes acceptées et réalisées jusqu’à **0.4.2** sont dans le [catalogue livré](UPGRADES-APRES-RENDU.md)
+Les demandes acceptées et réalisées jusqu’à **0.4.3** sont dans le [catalogue livré](UPGRADES-APRES-RENDU.md)
 et le [journal des versions](../CHANGELOG.md). Comparaison, guides, favoris, carte pleine hauteur et boutons
-agrandis ne doivent plus être listés comme « à faire ».
+agrandis, ainsi que la correction de confirmation, ne doivent plus être listés comme « à faire ».
 Aucune fonctionnalité acceptée de ces lots n’est ici déclarée en cours de développement.
 
 ## Pistes à étudier — non engagées, non livrées
