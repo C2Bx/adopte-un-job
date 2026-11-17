@@ -336,7 +336,6 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
       }>
         <div className="relecture-candidature">
           <h3>{validation.offre.titre}</h3>
-          
           <p>Relis ton dossier, puis confirme l’envoi avec le bouton en bas de cette fenêtre.</p>
           <p>Document CV : {validation.cv ?? 'Aucun document déposé'}</p>
           <ApercuDocument document={validation.doc} />
