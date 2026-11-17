@@ -1,4 +1,7 @@
-# Upgrades et améliorations après rendu — MS3
+# Upgrades et améliorations après V1 — MS3
+
+**Ce catalogue concerne les évolutions déjà livrées après la V1.**
+La [V1 de référence](V1-ET-EVOLUTIONS.md) et les [pistes non livrées](PISTES-AMELIORATION.md) sont séparées.
 
 Version applicative actuelle : **0.4.2**, évolution du **17 novembre 2026**, après la fin du rendu.
 
@@ -26,11 +29,12 @@ Voir [les contrôles de publication](DEPLOIEMENT-2026-11-02.md).
 
 ## Repères de version
 
-| Période | Référence | Signification |
+| Phase | Référence | Statut |
 |---|---|---|
-| Avant l'échéance du rendu | `b823f58`, 20 octobre | Dernier code versionné avant le 21 octobre ; les ajouts ci-dessous n'y figurent pas. |
-| Stabilisation après audit | `16c3bb0`, 27 octobre | Corrections de fiabilité et de sécurité, déjà postérieures au rendu. |
-| Upgrades MS3 | Version `0.2.0`, historique Git à partir de `16c3bb0` | Améliorations de consultation et de relecture décrites ici. |
+| V1 — référence du rendu | `b823f58`, 20 octobre, package `0.1.0` | Figée par `reference-rendu-2026-10-20`. |
+| Corrections après V1 | `16c3bb0`, 27 octobre | Fiabilité et sécurité corrigées après rendu. |
+| Améliorations après V1 | Lots `0.2.0` à `0.4.2` | Développés après rendu ; dernier code publié : `42130ee`. |
+| Pistes | Registre séparé | Non livrées, non engagées par défaut. |
 
 La référence du rendu n'est ni réécrite ni remplacée par la version améliorée.
 
@@ -48,7 +52,7 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
 | Vue liste | Liste d'offres avec accès au détail, en complément des cartes. |
 | Vue tableau | Tableau défilable et lisible au clavier. |
 | Tris | Clôture, publication, titre et pourcentage déjà fourni par MS5 ; valeurs inconnues conservées. |
-| Comparateur | Deux ou trois offres : lieu, contrat, clôture, missions, compétences, qualifications et score disponible. |
+| Comparateur | Menu dédié, deux ou trois offres, sélection locale conservée ; tableau large ou regroupement mobile par critère. |
 | Recherches mémorisées | Jusqu'à 12 recherches nommées ; filtres et tri restaurables et supprimables localement. |
 | Filtres conservés | Recherche et filtres mémorisés par compte dans ce navigateur. |
 | Repères d'offre | Publication récente, clôture proche/aujourd'hui, consultation et présence d'une note. |
@@ -67,9 +71,9 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
 | Candidatures organisées | Recherche dans titre/référence/notes/étiquettes, filtre sur statut réellement reçu et tri par date/titre/statut/étiquettes. |
 | Notes personnelles | Texte par offre, limité à 3 000 caractères, non transmis au serveur. |
 | Offres mises de côté | Étiquettes personnelles, recherche et classement dans l'écran des candidatures. |
-| Guide par page | Pop-up avec projecteur, Précédent/Suivant/Arrêter/Terminer et lancement initial automatique par compte et navigateur (0.3.1). |
+| Guide par page | Pop-up structuré avec projecteur, visite initiale et 32 étapes réparties sur les quatre menus depuis la 0.4.0. |
 | Favoris et gestes | Étoile ou glissement haut (corps de la carte à la souris, poignée au tactile) ; actions dans la carte et archives désactivées (0.3.1). |
-| Mobile | Commandes qui se replient, alternatives aux gestes et tableaux à défilement horizontal. |
+| Mobile | Carte pleine hauteur et outils accessibles depuis la carte ; comparaison par critère sans défilement horizontal. |
 | Accessibilité | Boutons explicites, labels, lien d'évitement, focus visible et dialogues accessibles conservés. |
 | Confort de lecture | Trois tailles de texte et densité confortable/compacte, conservées localement. |
 | Aide | Parcours, sens des statuts, fonctionnement du score, raccourcis et limites de stockage. |

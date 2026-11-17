@@ -9,6 +9,8 @@ l'Université de la Nouvelle-Calédonie.
 
 📰 **L'article de présentation** (dev.to, track *SaaS no limit*) : https://dev.to/c2b/adopte-un-job-on-swipe-les-vrais-postes-de-lopt-nc-et-on-voit-pourquoi-ils-nous-correspondent-48pc
 
+**Repères du projet :** [V1 et évolutions](docs/V1-ET-EVOLUTIONS.md) · [pistes non livrées](docs/PISTES-AMELIORATION.md).
+
 ## Production
 
 **0.4.2 publiée le 17 novembre 2026**, commit applicatif `42130ee`. [Contrôles de publication](docs/DEPLOIEMENT-0.4.2-2026-11-17.md).
@@ -21,18 +23,25 @@ Historique des publications : [0.2.0 le 2 novembre](docs/DEPLOIEMENT-2026-11-02.
 [0.2.1 le 16 novembre](docs/DEPLOIEMENT-2026-11-16.md).
 Le rendu d'octobre reste une référence distincte de ces évolutions.
 
-## Upgrades et améliorations après rendu — version 0.2.0
+## V1 du rendu et améliorations après V1
 
-**La version du rendu et les améliorations ultérieures sont distinguées.**
+**Le rendu initial et les ajouts ultérieurs sont deux états distincts.**
 
-- **Référence avant la fin du rendu :** `b823f58`, 20 octobre 2026.
-- **Stabilisation après audit :** `16c3bb0`, 27 octobre 2026.
-- **Upgrades MS3 :** version `0.2.0`, 27 octobre 2026, développée après le rendu.
+| État | Référence / statut |
+|---|---|
+| **V1 — référence du rendu** | `b823f58`, 20 octobre 2026, tag `reference-rendu-2026-10-20` ; package initial `0.1.0`. |
+| **Corrections après V1** | `16c3bb0`, 27 octobre : fiabilité et sécurité, postérieures au rendu. |
+| **Améliorations après V1 livrées** | Lots `0.2.0` à `0.4.2`, dont la 0.4.2 publiée le 17 novembre. |
+| **Pistes non livrées** | Registre distinct ; aucune idée n’est considérée comme réalisée ou commandée par sa seule inscription. |
 
-Les nouveaux outils sont décrits dans [Upgrades après rendu](docs/UPGRADES-APRES-RENDU.md)
-et [l'historique](CHANGELOG.md). Ils utilisent les routes déjà disponibles : aucune API serveur
-ajoutée et aucun travail demandé aux autres groupes. La présence dans Git ne signifie pas que
-le site de production a été redéployé.
+[Comparaison V1 / évolutions et statuts](docs/V1-ET-EVOLUTIONS.md) ·
+[Améliorations livrées](docs/UPGRADES-APRES-RENDU.md) ·
+[Pistes à étudier](docs/PISTES-AMELIORATION.md) · [Historique](CHANGELOG.md).
+
+« V1 » est le nom fonctionnel du périmètre initial, pas une version technique `1.0.0`.
+Le commit avant l’échéance ne prouve pas à lui seul l’envoi du formulaire de rendu.
+Les améliorations ne réécrivent ni le tag initial ni les supports du rendu.
+Toutes restent dans MS3 et les routes existantes, sans travail demandé aux autres groupes.
 
 ## Une interface, rien d'autre
 
@@ -50,7 +59,7 @@ donne, et lui transmet ce que la personne saisit.
 | Voit à qui s'adresser pour candidater | L'avis lui-même (`contactEmail`, `contactTelephone`), affiché dans le détail de l'offre |
 | Suit la réponse du recruteur | **HACKAVPI** (`statut`, `entretienAProg`), posée depuis **AVPRO-NC**, l'espace recruteur de **Damien et Lucas** |
 | Voit son adéquation à chaque offre | **CV-Matching**, le module de **Jo-Michel** (`POST /v1/match`, `POST /v1/score`), via le relais : sans les champs d'identité du profil |
-| Met une offre « à plus tard » | Son navigateur (leur API ne le connaît pas) |
+| Garde une offre dans ses favoris (ancien « plus tard ») | Son navigateur (leur API ne le connaît pas) |
 
 ## L'équipe et les modules
 
@@ -82,11 +91,11 @@ nécessiterait un contrat de version côté MS2.
 
 | Fichier | Rôle |
 |---|---|
-| `beta/` | L'application : React 19 + TypeScript strict, Vite. Sortie statique, plus le relais PHP (un hébergement PHP suffit). Trois écrans : le deck, les candidatures, le profil. |
+| `beta/` | L'application : React 19 + TypeScript strict, Vite. Sortie statique, plus le relais PHP (un hébergement PHP suffit). Quatre menus : Offres, Comparaison, Candidatures et Profil. |
 | `beta/src/api.ts` | Le seul endroit qui parle à leur API, et qui traduit leurs réponses dans les formes que les écrans connaissent. |
 | `beta/src/filtres.ts` | Les filtres du deck, calculés dans le navigateur : plusieurs choix par catégorie (OU), catégories combinées (ET), compteurs dynamiques. |
 | `beta/public/relais.php` | Un relais **protégé** vers leur API, tant qu'elle n'envoie pas d'en-têtes CORS, et vers CV-Matching. Il ne relaie que les routes listées, chacune avec sa seule méthode. Pour CV-Matching, il vérifie la session auprès du hub, applique des quotas et ajoute la clé côté serveur ; le jeton n’est jamais transmis au moteur. |
-| `beta/src/Guide.tsx`, `beta/src/Dialogue.tsx`, `beta/src/interface.css` | Tutoriel par page, fenêtres au premier plan et agencement de la version 0.3.0. |
+| `beta/src/Guide.tsx`, `beta/src/Dialogue.tsx`, `beta/src/interface.css` | Tutoriels par page, fenêtres au premier plan et agencement actuel après rendu. |
 | `beta/src/sauvegarde.ts` | File de sauvegarde indépendante des écrans et brouillon par compte dans l'onglet. |
 | `beta/src/jsonResume.ts` | Contrôle de l'import et fusion de l'extraction dans les champs absents. |
 | `beta/public/matching-securite.php` | Contrôle du jeton et quotas techniques du relais de matching. |
