@@ -1,5 +1,8 @@
 # Confirmation animée dans la page — 0.4.7 — 17 novembre 2026
 
+**En production depuis le 17 novembre 2026**, commit applicatif `1f3559f`.
+[Contrôles de publication](DEPLOIEMENT-0.4.7-2026-11-17.md).
+
 Amélioration après V1 demandée par Bastian : après l’envoi, afficher une confirmation animée
 directement sur la page pendant cinq secondes, puis la retirer automatiquement.
 
