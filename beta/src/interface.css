@@ -534,3 +534,29 @@ button,.btn-fichier,.btn-mini { overflow-wrap:anywhere; }
  #ec-swipe .card .hero-top { gap:6px; }
  #ec-swipe .card .hero-top button { padding:5px 8px; font-size:11px; min-height:30px; }
 }
+
+/* 0.4.2 : actions plus grandes dans la carte pleine hauteur. */
+#ec-swipe .card .deck-actions { padding:10px 14px; }
+#ec-swipe .card .deck-actions .coins { gap:20px; }
+#ec-swipe .card .deck-actions .coin { display:flex; flex-direction:column; align-items:center; gap:5px; }
+#ec-swipe .card .deck-actions .coins button { width:56px; height:56px; min-width:56px; border-width:1.5px; }
+#ec-swipe .card .deck-actions .coins .non,#ec-swipe .card .deck-actions .coins .oui { width:64px; height:64px; min-width:64px; }
+#ec-swipe .card .deck-actions .coins svg { width:27px; height:27px; }
+#ec-swipe .card .deck-actions .coin span { font-size:12px; line-height:1.3; margin:0; }
+@media(max-width:719px) {
+ #ec-swipe .card .deck-actions { padding:8px 10px; }
+ #ec-swipe .card .deck-actions .coins { gap:14px; }
+ #ec-swipe .card .deck-actions .coin { gap:4px; }
+ #ec-swipe .card .deck-actions .coins button { width:48px; height:48px; min-width:48px; }
+ #ec-swipe .card .deck-actions .coins .non,#ec-swipe .card .deck-actions .coins .oui { width:56px; height:56px; min-width:56px; }
+ #ec-swipe .card .deck-actions .coins svg { width:24px; height:24px; }
+ #ec-swipe .card .deck-actions .coin span { font-size:11px; }
+}
+@media(max-height:500px) {
+ #ec-swipe .card .deck-actions { padding-block:6px; }
+ #ec-swipe .card .deck-actions .coin { gap:3px; }
+ #ec-swipe .card .deck-actions .coins button { width:48px; height:48px; min-width:48px; }
+ #ec-swipe .card .deck-actions .coins .non,#ec-swipe .card .deck-actions .coins .oui { width:54px; height:54px; min-width:54px; }
+ #ec-swipe .card .deck-actions .coins svg { width:23px; height:23px; }
+ #ec-swipe .card .deck-actions .coin span { font-size:11px; }
+}

@@ -1,5 +1,12 @@
 # Historique des versions
 
+## 0.4.2 — Actions agrandies — 17 novembre 2026
+
+- Retour/Passer/Favori/Candidater agrandis avec icônes et libellés lisibles dans la carte pleine hauteur.
+- Adaptation mobile et écrans bas, étoile jaune conservée ; sept formats et 36 contrôles validés.
+- [Détails](docs/ACTIONS-0.4.2.md).
+
+
 ## 0.4.1 — Offre pleine hauteur — 17 novembre 2026
 
 - Carte sur toute la hauteur utile : commandes à gauche sur ordinateur, accès Filtres depuis la carte sur petit écran.

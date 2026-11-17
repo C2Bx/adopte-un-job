@@ -1,6 +1,8 @@
 # Upgrades et améliorations après rendu — MS3
 
-Version applicative actuelle : **0.4.1**, évolution du **17 novembre 2026**, après la fin du rendu.
+Version applicative actuelle : **0.4.2**, évolution du **17 novembre 2026**, après la fin du rendu.
+
+La [0.4.2](ACTIONS-0.4.2.md) agrandit les quatre boutons d’action et leurs icônes dans la carte pleine hauteur.
 
 La [0.4.1](PLEINE-HAUTEUR-0.4.1.md) donne toute la hauteur utile à la carte, avec les commandes à gauche ou accessibles depuis la carte.
 

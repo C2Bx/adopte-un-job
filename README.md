@@ -11,9 +11,7 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
-**0.4.1 publiée le 17 novembre 2026**, commit applicatif `fc6faa2`. [Contrôles de publication](docs/DEPLOIEMENT-0.4.1-2026-11-17.md).
-
-Version **0.4.1** : [offre pleine hauteur](docs/PLEINE-HAUTEUR-0.4.1.md), avec commandes à gauche sur ordinateur et accès Filtres dans la carte sur mobile/tablette.
+Version **0.4.2** : [boutons d’action agrandis](docs/ACTIONS-0.4.2.md) dans la [carte pleine hauteur](docs/PLEINE-HAUTEUR-0.4.1.md).
 La structure à quatre menus, la comparaison dédiée et les guides sont décrits dans les [parcours 0.4.0](docs/PARCOURS-UI-0.4.0.md).
 
 Les offres et les liens partagés nécessitent une connexion. Le mode fictif reste retiré.
