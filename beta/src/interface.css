@@ -722,3 +722,82 @@ button,.btn-fichier,.btn-mini { overflow-wrap:anywhere; }
  .comparaison-refonte { overflow:auto; }
  .comparaison-refonte .comparaison-table { flex:none; overflow:auto; }
 }
+/* 0.4.9 : profil organisé autour du dossier, des étapes et des conseils. */
+.app #ec-profil .pcols { display:grid; grid-template-columns:minmax(0,1fr); grid-template-areas:'intro' 'conseils' 'edition'; gap:20px; align-items:start; }
+#ec-profil .profil-intro { grid-area:intro; min-width:0; padding:22px; border:1px solid var(--line); border-radius:16px; background:linear-gradient(120deg,var(--brand-soft),var(--surface)); }
+#ec-profil .pcol-a { grid-area:edition; min-width:0; max-width:none; width:100%; }
+#ec-profil .pcol-b { grid-area:conseils; min-width:0; max-width:none; width:100%; margin:0; position:static; }
+.profil-titre { display:flex; align-items:start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.profil-surtitre { display:block; color:var(--brand); font-size:var(--t-xs); font-weight:600; margin-bottom:5px; }
+.profil-titre h1 { font-size:clamp(24px,2.4vw,32px); margin:0; line-height:1.2; letter-spacing:-.025em; }
+.profil-titre p { margin:8px 0 0; color:var(--ink-2); font-size:var(--t-sm); line-height:1.6; max-width:65ch; }
+.profil-titre .psauve { display:inline-flex; align-items:center; gap:7px; flex:none; min-height:32px; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); font-size:var(--t-xs); }
+#ec-profil .profil-bilan { display:flex; align-items:center; gap:24px; margin:20px 0 0; padding-top:18px; border-top:1px solid var(--line); }
+.profil-progression { flex:1; min-width:0; }
+.profil-progression>div:first-child { display:flex; justify-content:space-between; gap:12px; font-size:var(--t-sm); }
+.profil-progression .pbar { width:100%; height:7px; margin-top:10px; min-width:0; background:var(--line); }
+.profil-progression p { margin:8px 0 0; font-size:var(--t-xs); color:var(--ink-2); line-height:1.5; }
+.profil-bilan>.btn { display:flex; align-items:center; gap:14px; padding:12px 16px; min-height:44px; font-size:var(--t-sm); white-space:normal; }
+.profil-raccourcis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+#ec-profil .profil-raccourcis details { margin:0; min-width:0; }
+.profil-raccourcis details[open] { grid-column:1/-1; }
+#ec-profil .profil-raccourcis summary { display:flex; align-items:center; gap:10px; min-height:76px; padding:14px; cursor:pointer; }
+.profil-raccourcis summary::after { content:'+'; margin-left:auto; color:var(--brand); font-size:20px; }
+.profil-raccourcis details[open]>summary::after { content:'−'; }
+.profil-raccourcis summary>span:not(.profil-outil-numero) { min-width:0; }
+.profil-raccourcis small { display:block; margin-top:5px; font-size:var(--t-xs); font-weight:400; line-height:1.5; color:var(--ink-2); overflow-wrap:anywhere; }
+.profil-outil-numero { display:grid; place-items:center; flex:none; width:34px; height:34px; border-radius:9px; color:var(--brand); background:var(--brand-soft); font-size:12px; font-weight:700; }
+.profil-edition { padding:20px; border:1px solid var(--line); border-radius:14px; background:var(--surface); min-width:0; }
+#ec-profil .petapes { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); padding:0 0 18px; margin:0 0 20px; gap:6px; border-bottom:1px solid var(--line); }
+#ec-profil .petapes button { display:flex; align-items:start; min-width:0; padding:10px 8px; min-height:68px; font-size:12px; line-height:1.4; gap:6px; border-radius:10px; }
+#ec-profil .petapes .n { flex:none; margin-top:1px; }
+.profil-etape-nom { min-width:0; overflow-wrap:anywhere; }
+.profil-etape-nom small { display:block; margin-top:5px; font-size:10px; font-weight:400; opacity:.85; }
+.profil-etape-entete>span { font-size:var(--t-xs); color:var(--brand); font-weight:600; }
+#ec-profil .profil-etape-entete h2 { font-family:var(--font-ui); font-size:var(--t-lg); line-height:1.4; margin:6px 0; }
+#ec-profil .profil-etape-entete h2::after { display:none; }
+.profil-etape-entete p { color:var(--ink-2); font-size:var(--t-sm); line-height:1.6; margin:0; }
+.profil-saisie-note { font-size:var(--t-xs); color:var(--ink-2); padding:10px 12px; background:var(--surface-2); border-radius:8px; line-height:1.6; margin:14px 0 22px; }
+#ec-profil .profil-edition .pnav { margin-top:24px; padding-top:16px; border-top:1px solid var(--line); }
+#ec-profil .pmanques { border-radius:10px; padding:12px 14px; }
+#ec-profil .pmanques li button { text-align:left; line-height:1.5; }
+#ec-profil .pform .pf { padding:0; }
+#ec-profil .pform .pl { font-size:var(--t-sm); }
+#ec-profil .pform .pa { line-height:1.6; }
+.profil-donnees-titre h3 { font:600 var(--t-sm) var(--font-ui); margin:20px 0 6px; }
+.profil-donnees-titre p { margin:0; color:var(--ink-2); font-size:var(--t-xs); line-height:1.6; }
+#ec-profil .ui-profil-outils { margin-top:18px; }
+#ec-profil .peffacer { padding-top:16px; margin-top:18px; border-top:1px dashed var(--line); }
+#ec-profil .pguide>summary { cursor:pointer; padding:16px; }
+.profil-redaction { margin:0 16px 6px; padding:12px; background:var(--surface-2); border-radius:9px; }
+.profil-redaction>div { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:var(--t-xs); color:var(--ink-2); }
+.profil-redaction strong { font-size:var(--t-md); color:var(--brand); }
+.profil-redaction p { font-size:var(--t-xs); color:var(--ink-2); line-height:1.6; margin:8px 0 0; }
+#ec-profil .pconseils { padding:0 16px 16px; }
+#ec-profil .pcol-b .pconseils li { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; padding:14px 0; }
+#ec-profil .pcol-b .pconseils li>span { grid-column:auto; font-size:var(--t-xs); line-height:1.6; color:var(--ink-2); }
+#ec-profil .pcol-b .pconseils li>span b { margin-bottom:6px; font-size:var(--t-sm); }
+#ec-profil .pcol-b .pconseils button { grid-column:auto; justify-self:start; min-height:36px; margin:0; }
+@media(min-width:1100px) {
+ .app #ec-profil .pcols { grid-template-columns:minmax(0,1fr) 300px; grid-template-areas:'intro intro' 'edition conseils'; gap:24px; }
+ #ec-profil .pcol-b { position:sticky; top:0; max-height:calc(100dvh - 120px); overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
+}
+@media(max-width:719px) {
+ #ec-profil .profil-intro { padding:16px; }
+ #ec-profil .profil-bilan { display:grid; gap:14px; margin-top:16px; }
+ .profil-bilan>.btn { justify-content:center; width:100%; }
+ .profil-raccourcis { grid-template-columns:minmax(0,1fr); }
+ #ec-profil .profil-raccourcis summary { min-height:66px; }
+ .profil-edition { padding:16px; }
+ #ec-profil .petapes { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ #ec-profil .petapes button { min-height:54px; }
+ #ec-profil .petapes button:last-child { grid-column:1/-1; }
+}
+#ec-profil .petapes button.on.fait .n { background:color-mix(in srgb,var(--brand-ink) 20%,transparent); color:var(--brand-ink); }
+@media(max-width:719px) {
+ #ec-profil .profil-intro { position:relative; }
+ .profil-titre { display:block; }
+ .profil-titre .psauve { position:absolute; top:14px; right:14px; max-width:46%; font-size:11px; min-height:28px; padding:5px 7px; }
+ .profil-titre .profil-surtitre { padding-right:110px; }
+}
+#ec-profil .pcol-b .pguide { margin:0; }

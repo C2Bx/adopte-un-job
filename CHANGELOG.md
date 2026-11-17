@@ -41,6 +41,14 @@ lecture seule, reprise sur profil indisponible et premières améliorations des 
 
 ## Améliorations après V1 — lots livrés
 
+### 0.4.9 — Profil réagencé — 17 novembre 2026
+
+- Dossier et sauvegarde en tête, progression des informations requises et action prioritaire.
+- Cinq étapes lisibles, CV/questions distincts, conseils ciblés et outils du compte séparés.
+- Guide actualisé ; sauvegarde, import annulé et parcours sur sept formats vérifiés.
+- [Détails](docs/PROFIL-0.4.9.md).
+
+
 ### 0.4.8 — Comparaison et critères lisibles — 17 novembre 2026
 
 - Douze critères regroupés, points communs repérés, écarts et inconnues distingués.

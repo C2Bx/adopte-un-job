@@ -158,27 +158,27 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
   const aCombler = manques(profil)
   const surCetEcran = aCombler.filter((m) => m.etape === etape)
   const c = useMemo(() => conseils(profil), [profil])
+  const vaEtape = (numero: number) => { setMode('form'); setEtape(numero); setChampVise('#profil-etape-titre') }
+  const descriptions = ['Tes informations et tes disponibilités pour commencer.', 'Les métiers et contrats qui correspondent à ton projet.', 'Les expériences et formations qui illustrent ton parcours.', 'Tes savoir-faire, langues et compétences du référentiel.', 'Vérifie le dossier et complète les rubriques détaillées utiles.']
 
   return (
     <div className="screen" id="ec-profil">
       <div className="pad">
         <fieldset className="pcols profil-champs" disabled={impEnCours || effEnCours || cv.envoi || cv.lecture === 'en_cours' || cv.validation}>
-          <div className="pcol-a">
-            <h2>Mon profil</h2>
-            <p className="lead">
-              Une fiche structurée, que tu vérifies et corriges. Elle accompagne tes candidatures
-              et sert au calcul d’adéquation des compétences.
-            </p>
-
-            <div className="pentete">
-              <div className="pbar"><b style={{ width: `${completude(profil)}%` }} /></div>
-              <span className="pc">{completude(profil)} % complété</span>
-              <span className={`psauve ${etat}`}>
-                {etat === 'envoi' ? <><Spinner />enregistrement…</> : etat === 'ok' ? 'enregistré' : etat === 'erreur' ? 'non enregistré' : ''}
-              </span>
+          <header className="profil-intro">
+            <div className="profil-titre"><div><span className="profil-surtitre">Ton dossier candidat</span><h1>Mon profil</h1><p>Complète et relis le dossier qui accompagne tes candidatures.</p></div>
+              <span className={`psauve ${etat}`} role="status">{etat === 'envoi' ? <><Spinner />Enregistrement…</> : etat === 'ok' ? '✓ Enregistré' : etat === 'erreur' ? 'Non enregistré' : 'Profil chargé'}</span>
             </div>
-
-            {mode !== 'choix' && <details className="ui-cv"><summary>Mon CV : fichier et lecture</summary><MesCV cv={cv} /></details>}
+            <div className="pentete profil-bilan">
+              <div className="profil-progression"><div><strong>Informations requises</strong><span className="pc">{completude(profil)} %</span></div><div className="pbar" role="progressbar" aria-label="Informations requises renseignées" aria-valuenow={completude(profil)} aria-valuemin={0} aria-valuemax={100}><b style={{ width: `${completude(profil)}%` }} /></div><p>{aCombler.length ? `${aCombler.length} information${aCombler.length > 1 ? 's' : ''} à renseigner avant de candidater.` : 'L’essentiel est renseigné. Prends un instant pour relire le dossier.'}</p></div>
+              <button type="button" className="btn primaire" onClick={() => aCombler[0] ? viseChamp(aCombler[0].etape, aCombler[0].champ) : vaEtape(4)}>{aCombler.length ? 'Compléter mon dossier' : 'Relire mon dossier'} <span aria-hidden="true">→</span></button>
+            </div>
+          </header>
+          <div className="pcol-a">
+            {mode !== 'choix' && <div className="profil-raccourcis">
+              <details className="ui-cv"><summary><span className="profil-outil-numero" aria-hidden="true">CV</span><span>Mon CV : fichier et lecture<small>{!cv.pret ? 'Chargement du document…' : cv.erreur ? 'État du document à vérifier' : cv.actif ? cv.actif.nom : 'Déposer un fichier ou relire son extraction'}</small></span></summary><MesCV cv={cv} /></details>
+              {mode === 'form' && <details className="ui-assistant"><summary><span className="profil-outil-numero" aria-hidden="true">?</span><span>Affiner par questions<small>Neuf étapes pour préciser tes préférences</small></span></summary><div className="qzrappel"><span>Réponds aux questions, puis vérifie les informations dans le formulaire.</span><button type="button" className="btn-mini" onClick={() => setMode('questions')}>Affiner par questions</button></div></details>}
+            </div>}
 
             {/* Les trois façons de remplir son profil, côte à côte. */}
             {mode === 'choix' && (
@@ -208,27 +208,25 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
               />
             )}
 
-            {mode === 'form' && <>
-            <details className="ui-assistant"><summary>Affiner mon profil par questions</summary><div className="qzrappel">
-              <span>Neuf questions courtes remplissent l’essentiel — plus rapide que le formulaire.</span>
-              <button type="button" className="btn-mini" onClick={() => setMode('questions')}>Affiner par questions</button>
-            </div></details>
-
-            <div className="petapes">
+            {mode === 'form' && <section className="profil-edition" aria-labelledby="profil-etape-titre">
+            <nav className="petapes" aria-label="Étapes du profil">
               {ETAPES.map((t, i) => {
                 const n = aCombler.filter((m) => m.etape === i).length
                 return (
                   <button
                     key={t}
-                    className={`${i === etape ? 'on' : ''}${i < etape ? ' fait' : ''}`}
-                    onClick={() => setEtape(i)}
+                    type="button"
+                    aria-current={i === etape ? 'step' : undefined}
+                    className={`${i === etape ? 'on' : ''}${n === 0 && i < 4 ? ' fait' : ''}`}
+                    onClick={() => vaEtape(i)}
                   >
-                    <span className="n">{i + 1}</span>{t}
-                    {n > 0 && <i className="pm">{n}</i>}
+                    <span className="n" aria-hidden="true">{n === 0 && i < 4 ? '✓' : i + 1}</span><span className="profil-etape-nom">{t}<small>{i === 4 ? 'Vérifier le dossier' : n ? `${n} à renseigner` : 'Renseigné'}</small></span>
                   </button>
                 )
               })}
-            </div>
+            </nav>
+            <div className="profil-etape-entete"><span>Étape {etape + 1} sur {ETAPES.length}</span><h2 id="profil-etape-titre" tabIndex={-1}>{ETAPES[etape]}</h2><p>{descriptions[etape]}</p></div>
+            <p className="profil-saisie-note">Les champs du formulaire s’enregistrent automatiquement. Les rubriques détaillées de la relecture ont leur propre bouton Enregistrer.</p>
 
             {surCetEcran.length > 0 && (
               <div className="pmanques">
@@ -238,7 +236,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
                 <ul>
                   {surCetEcran.map((m) => (
                     <li key={m.cle}>
-                      <button type="button" onClick={() => document.querySelector<HTMLElement>(m.champ)?.focus()}>
+                      <button type="button" onClick={() => viseChamp(m.etape, m.champ)}>
                         {m.libelle}
                       </button>
                     </li>
@@ -257,16 +255,17 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
 
             <div className="pnav">
               {etape > 0
-                ? <button className="btn-mini" onClick={() => setEtape(etape - 1)}>← Précédent</button>
+                ? <button className="btn-mini" onClick={() => vaEtape(etape - 1)}>← Précédent</button>
                 : <span />}
               {etape < ETAPES.length - 1 && (
-                <button className="btn-fort" onClick={() => setEtape(etape + 1)}>Suivant →</button>
+                <button className="btn-fort" onClick={() => vaEtape(etape + 1)}>Suivant →</button>
               )}
             </div>
-            </>}
+            </section>}
             <details className="ui-profil-outils"><summary>Mon compte, import et export</summary>
             <MonCompte />
 
+            <div className="profil-donnees-titre"><h3>Une copie de ton dossier</h3><p>Exporte tes informations ou vérifie un fichier avant de l’importer.</p></div>
             <div className="poutils">
               <div className="poutils-btns">
                 {!vierge(profil) && (
@@ -281,7 +280,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
                     onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void importe(f) }} />
                 </label>
               </div>
-              <span className="pa">Ton CV au format standard JSON Resume : télécharge-le, ou importes-en un.</span>
+              <span className="pa">Fichier JSON Resume : il contient les informations structurées du profil, pas le document PDF de ton CV.</span>
               {importPret && <div className="pal info" role="status">
                 <b>Importer {importPret.nom} ?</b>
                 Les rubriques du CV actuel seront remplacées. Tes critères de recherche seront gardés.
@@ -304,7 +303,7 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
               <div className="peffacer">
                 {!effConfirm ? (
                   <button type="button" className="btn-effacer"
-                    onClick={() => { setEffErr(null); setEffConfirm(true) }}>Effacer mon CV</button>
+                    onClick={() => { setEffErr(null); setEffConfirm(true) }}>Réinitialiser les informations du profil</button>
                 ) : (
                   <div className="peffacer-boite">
                     <b>Effacer ce que tu as saisi dans ton profil ?</b>
@@ -335,18 +334,9 @@ export function EcranProfil({ profil, onProfil, onModification, etat, avantOpera
               : (
                 <details className="pguide" open={conseilsOuverts} onToggle={(e) => setConseilsOuverts(e.currentTarget.open)}>
                   <summary>Améliorer mon profil <i>{c.length}</i></summary>
-                  <p className="pa">
-                    Richesse du profil : {force(profil)} %. Ce repère de rédaction est distinct
-                    de l’adéquation au poste calculée par CV-Matching.
-                  </p>
+                  <div className="profil-redaction"><div><span>Richesse de rédaction</span><strong>{force(profil)} %</strong></div><p>Un repère pour présenter ton parcours. Il ne mesure pas l’adéquation à une offre.</p></div>
                   <ol className="pconseils">
-                    {c.map((x) => (
-                      <li key={x.quoi}>
-                        <b className={x.gain ? 'g' : 'g z'}>{x.gain ? `+${x.gain}` : 'profil'}</b>
-                        <span><b>{x.quoi}</b>{x.pourquoi}</span>
-                        <button type="button" className="btn-mini" onClick={() => viseChamp(x.etape, x.champ)}>Corriger</button>
-                      </li>
-                    ))}
+                    {c.map((x) => <li key={x.quoi}><span><b>{x.quoi}</b>{x.pourquoi}</span><button type="button" className="btn-mini" onClick={() => viseChamp(x.etape, x.champ)} aria-label={`Corriger : ${x.quoi}`}>Corriger <span aria-hidden="true">→</span></button></li>)}
                   </ol>
                 </details>
               )}
