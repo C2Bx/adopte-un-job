@@ -35,6 +35,13 @@ lecture seule, reprise sur profil indisponible et premières améliorations des 
 
 ## Améliorations après V1 — lots livrés
 
+### 0.4.4 — Aide et affichage structurés — 17 novembre 2026
+
+- Accès au tutoriel mis en avant, réglages regroupés, quatre fiches pour les menus.
+- Rubriques dépliables, touches de clavier, exemples de recherche, statuts et données expliqués séparément.
+- Encadré avant envoi ; adaptation mobile, thèmes et texte agrandi. [Détails](docs/AIDE-0.4.4.md).
+
+
 ### 0.4.2 — Actions agrandies — 17 novembre 2026
 
 - Retour/Passer/Favori/Candidater agrandis avec icônes et libellés lisibles dans la carte pleine hauteur.

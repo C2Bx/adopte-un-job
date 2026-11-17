@@ -570,3 +570,53 @@ button,.btn-fichier,.btn-mini { overflow-wrap:anywhere; }
  .relecture-boutons { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:8px; }
  .relecture-boutons .btn { padding:10px 8px; }
 }
+/* 0.4.4 : aide structurée et réglages de lecture. */
+.aide-lecture { display:grid; gap:22px; }
+.aide-lecture h3,.aide-lecture h4 { font-family:var(--font-ui); text-transform:none; letter-spacing:normal; }
+.aide-lecture h3::before { display:none; }
+.aide-lecture h3 { margin:0; font-size:var(--t-md); line-height:1.4; }
+.aide-lecture h4 { margin:0 0 4px; font-size:var(--t-sm); }
+.aide-lecture p { margin:8px 0 0; font-size:var(--t-sm); line-height:1.6; color:var(--ink-2); }
+.aide-bienvenue { padding:22px; border:1px solid var(--line); border-radius:16px; background:linear-gradient(125deg,var(--brand-soft),var(--surface)); }
+.aide-repere { display:inline-block; margin-bottom:10px; color:var(--brand); font-size:var(--t-xs); font-weight:700; }
+.aide-lecture .aide-bienvenue h3 { font-size:var(--t-lg); color:var(--ink); }
+.aide-bienvenue .btn { margin-top:16px; gap:12px; white-space:normal; text-align:left; }
+.aide-reglages { padding:18px; border:1px solid var(--line); border-radius:14px; }
+.aide-reglages .upgrade-rangee { margin:14px 0 0; }
+.aide-reglages label { min-width:0; }
+.aide-reglages select { width:100%; min-width:0; }
+.aide-lecture .aide-titre { margin-bottom:12px; }
+.aide-parcours { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; list-style:none; padding:0; margin:0; }
+.aide-lecture .aide-parcours li { display:flex; align-items:start; gap:12px; margin:0; padding:16px; background:var(--surface-2); border:1px solid var(--line); border-radius:12px; }
+.aide-parcours li>span { flex:none; font-size:var(--t-xs); font-weight:700; color:var(--brand); padding-top:2px; }
+.aide-parcours p { margin:0; }
+.aide-sujets { display:grid; gap:10px; }
+.aide-sujets details { min-width:0; border:1px solid var(--line); border-radius:12px; }
+.aide-sujets summary { cursor:pointer; padding:16px; font-weight:600; font-size:var(--t-sm); line-height:1.5; }
+.aide-sujets summary::marker { color:var(--brand); }
+.aide-icone { display:inline-block; width:26px; text-align:center; color:var(--brand); font-size:1.1em; margin-right:6px; }
+.aide-contenu { padding:0 18px 18px; }
+.aide-contenu dl { margin:0; }
+.aide-contenu dl>div { padding:10px 0; border-bottom:1px solid var(--line); }
+.aide-contenu dl>div:last-child { border:0; }
+.aide-contenu dt { font-size:var(--t-sm); font-weight:600; }
+.aide-contenu dd { margin:5px 0 0; color:var(--ink-2); font-size:var(--t-sm); line-height:1.6; }
+.aide-raccourcis>div { display:grid; grid-template-columns:90px minmax(0,1fr); align-items:center; gap:12px; }
+.aide-contenu .aide-raccourcis dd { margin:0; }
+.aide-raccourcis kbd { display:inline-flex; align-items:center; justify-content:center; min-width:30px; min-height:30px; padding:3px 7px; border:1px solid var(--line); border-bottom-width:3px; border-radius:6px; font:inherit; background:var(--surface-2); }
+.aide-exemples code { white-space:normal; overflow-wrap:anywhere; font-size:var(--t-sm); background:var(--surface-2); padding:4px 7px; border-radius:5px; }
+.aide-lecture .aide-note { padding:12px; background:var(--surface-2); border-radius:8px; }
+.aide-attention { display:flex; align-items:start; gap:12px; padding:18px; border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:12px; background:var(--surface-2); }
+.aide-attention>span { display:flex; flex:none; align-items:center; justify-content:center; width:26px; height:26px; border:1px solid currentColor; border-radius:50%; font-weight:700; color:var(--ink); }
+@media(max-width:599px) {
+ .aide-parcours { grid-template-columns:minmax(0,1fr); }
+ .aide-bienvenue { padding:18px; }
+ .aide-reglages .upgrade-rangee { display:grid; grid-template-columns:minmax(0,1fr); }
+ .aide-contenu { padding-inline:14px; }
+ .aide-sujets summary { padding:14px; }
+ .aide-icone { width:20px; margin-right:3px; }
+}
+
+
+.aide-lecture h3 { color:var(--ink); }
+.aide-lecture .aide-bienvenue { margin:0; }
