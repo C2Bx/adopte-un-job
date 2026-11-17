@@ -2,8 +2,8 @@ import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 /** Une fenêtre au premier plan, indépendante des conteneurs défilants. */
-export function Feuille({ onFermer, children, pied, titre = 'Détail et options', taille = 'normale' }: {
-  onFermer: () => void; children: React.ReactNode; pied?: React.ReactNode; titre?: string; taille?: 'normale' | 'compacte'
+export function Feuille({ onFermer, children, pied, titre = 'Détail et options' }: {
+  onFermer: () => void; children: React.ReactNode; pied?: React.ReactNode; titre?: string
 }) {
   const dialogue = useRef<HTMLDialogElement>(null)
   const titreId = useId()
@@ -20,7 +20,7 @@ export function Feuille({ onFermer, children, pied, titre = 'Détail et options'
       if (avant?.isConnected) avant.focus({ preventScroll: true })
     }
   }, [])
-  return createPortal(<dialog ref={dialogue} className={`sheet${taille === 'compacte' ? ' sheet-compacte' : ''}`} aria-labelledby={titreId}
+  return createPortal(<dialog ref={dialogue} className="sheet" aria-labelledby={titreId}
     onKeyDown={(e) => {
       e.stopPropagation()
       if (e.key !== 'Tab') return

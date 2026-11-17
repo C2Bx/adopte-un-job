@@ -139,6 +139,11 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
   const [envoyee, setEnvoyee] = useState<Offre | null>(null)
+  useEffect(() => {
+    if (!envoyee) return
+    const delai = window.setTimeout(() => setEnvoyee(null), 5000)
+    return () => window.clearTimeout(delai)
+  }, [envoyee])
   const [detail, setDetail] = useState<Offre | null>(null)
   const [filtres, setFiltres, erreurStockage] = useLocal<Filtres>('filtres', {})
   const [recherche, setRecherche] = useState(filtres.q ?? '')
@@ -267,6 +272,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
       await api.annuleSwipe(dernier.id)
       setToutes((l) => [dernier, ...(l ?? [])])
       setDernier(null)
+      setEnvoyee(null)
       onDecision?.()
     } catch (e) {
       setErreur(e instanceof ErreurApi ? e.message : 'Impossible de revenir en arrière.')
@@ -281,7 +287,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
     if (document.querySelector('dialog[open], .guide-voile')) return
     const cible = e.target as HTMLElement | null
     if (cible?.closest('input, textarea, select, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return
-    if (!courante || courante.statut === 'close' || enCours || preparation || validation || vue !== 'cartes' || detail || envoyee || panneauFiltres || rechercheOuverte) return
+    if (!courante || courante.statut === 'close' || enCours || preparation || validation || vue !== 'cartes' || detail || panneauFiltres || rechercheOuverte) return
     if (e.key === 'ArrowRight') { e.preventDefault(); void decide(courante, 'oui') }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); void decide(courante, 'non') }
     else if (e.key === 'ArrowUp') { e.preventDefault(); void decide(courante, 'plus_tard') }
@@ -296,6 +302,13 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
 
   return (
     <div className={`screen upgrade-deck ${vue !== 'cartes' ? 'upgrade-vue-liste' : ''} ${offres !== null && !courante ? 'deck-vide' : ''}`} id="ec-swipe">
+      <div className="retour-envoi-zone" role="status" aria-atomic="true">
+        {envoyee && <div key={envoyee.id} className="retour-envoi">
+          <span className="retour-envoi-icone" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" /><path d="m14 24 7 7 14-15" /></svg></span>
+          <div className="retour-envoi-texte"><strong>C’est parti, candidature envoyée !</strong><p>{envoyee.titre}</p><span>Retrouve le suivi dans Candidatures.</span></div>
+          <span className="retour-envoi-progression" aria-hidden="true" />
+        </div>}
+      </div>
       <div className="deck-contenu">
       <div className="upgrade-haut">
         <div className="ui-titre-page"><div><p className="ui-surtitre">Les postes de l’OPT-NC</p><h1>Offres</h1></div><span className="ui-badge">Cartes · liste · tableau</span></div>
@@ -454,21 +467,7 @@ export function EcranDeck({ profil, versProfil, onDecision, avantDecision, versC
           <p className="pa">Ton profil et ton CV enregistrés seront utilisés pour cette candidature. Ce récapitulatif n’est pas une copie figée du dossier chez le recruteur.</p>
         </div>
       </Feuille>}
-      {envoyee && (
-        <Feuille titre="Confirmation d’envoi" taille="compacte" onFermer={() => setEnvoyee(null)} pied={
-          <div className="confirmation-pied"><button type="button" className="btn primaire" onClick={() => setEnvoyee(null)}>Continuer</button></div>
-        }>
-          <div className="confirmation-envoi">
-            <div className="confirmation-entete">
-              <span className="confirmation-icone" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4 10-10" /></svg></span>
-              <h3>C’est parti !</h3>
-            </div>
-            <p>Ta candidature a bien été enregistrée pour cette offre :</p>
-            <div className="confirmation-offre"><span>Le poste</span><strong>{envoyee.titre}</strong></div>
-            <p>Retrouve son suivi et les réponses reçues dans le menu <strong>Candidatures</strong>.</p>
-          </div>
-        </Feuille>
-      )}
+
     </div>
   )
 }

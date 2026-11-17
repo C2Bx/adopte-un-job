@@ -41,6 +41,13 @@ lecture seule, reprise sur profil indisponible et premières améliorations des 
 
 ## Améliorations après V1 — lots livrés
 
+### 0.4.7 — Confirmation animée dans la page — 17 novembre 2026
+
+- Message intégré pendant cinq secondes, coche animée et barre de durée ; popup après envoi retirée.
+- Offre suivante disponible, envois successifs et Retour pris en compte ; mouvements réduits respectés.
+- Relecture avant envoi conservée. [Détails et recette](docs/CONFIRMATION-0.4.7.md).
+
+
 ### 0.4.6 — Confirmation d’envoi compacte — 17 novembre 2026
 
 - Fenêtre proportionnée, texte élargi et agrandi, poste mis en valeur et bouton adapté.

@@ -1,5 +1,8 @@
 # Confirmation d’envoi compacte — 0.4.6 — 17 novembre 2026
 
+**État historique intermédiaire** : publié le 17 novembre à 16 h 57 (`1aa1ae5`), puis remplacé par
+la [confirmation intégrée de cinq secondes](CONFIRMATION-0.4.7.md), à la demande de Bastian.
+
 Amélioration après V1, à partir de la capture de Bastian : la confirmation utilisait la largeur
 prévue pour les grands détails, mais le texte restait limité à une colonne étroite.
 
