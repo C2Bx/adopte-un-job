@@ -1,5 +1,8 @@
 # Swipe animé depuis les boutons — 0.4.12 — 17 novembre 2026
 
+**En production depuis le 17 novembre 2026**, commit applicatif `8c00760`.
+[Contrôles de publication](DEPLOIEMENT-0.4.12-2026-11-17.md).
+
 Amélioration après V1 demandée par Bastian : dans la vue Cartes, les boutons déclenchent une animation
 de swipe avant la décision. Passer : gauche ; Candidater : droite ; Favori : haut.
 
