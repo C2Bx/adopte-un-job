@@ -26,6 +26,12 @@ lecture seule, reprise sur profil indisponible et premières améliorations des 
 
 ## Corrections des versions améliorées après V1
 
+### 0.4.5 — Colonnes de candidatures indépendantes — 17 novembre 2026
+
+- Liste et détail défilent séparément sur grand écran, sans entraînement en fin de colonne.
+- Zones accessibles au clavier ; parcours mobile conservé. [Recette sur sept formats](docs/DEFILEMENT-0.4.5.md).
+
+
 ### 0.4.3 — Confirmation de candidature accessible — 17 novembre 2026
 
 - Confirmer/Annuler fixés en pied de la relecture, dans Offres et Candidatures ; seul le dossier défile.

@@ -620,3 +620,17 @@ button,.btn-fichier,.btn-mini { overflow-wrap:anywhere; }
 
 .aide-lecture h3 { color:var(--ink); }
 .aide-lecture .aide-bienvenue { margin:0; }
+
+/* 0.4.5 : liste et détail des candidatures défilent indépendamment. */
+@media(min-width:1100px) {
+ .app #ec-interets .pad-i:has(#side-i) {
+  grid-template-rows:minmax(0,1fr); align-items:stretch; overflow:hidden;
+ }
+ .app #ec-interets .pad-i:has(#side-i) > .col-liste,
+ .app #ec-interets .pad-i:has(#side-i) #side-i {
+  height:100%; min-height:0; max-height:100%; overflow:auto;
+  overscroll-behavior:contain; scrollbar-gutter:stable;
+ }
+ .app #ec-interets .pad-i:has(#side-i) > .col-liste { padding-right:8px; }
+ .app #ec-interets .pad-i:has(#side-i) #side-i { position:static; }
+}

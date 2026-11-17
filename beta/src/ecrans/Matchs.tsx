@@ -61,7 +61,7 @@ function depuis(quand: string): string {
 }
 
 
-/* Au-delà de 1100 px, le détail tient à côté de la liste : ouvrir une feuille
+/* Au-delà de 1440 px, le détail tient à côté de la liste : ouvrir une feuille
    par-dessus un écran à moitié vide n'a pas de sens. En dessous, la feuille
    reste le seul moyen de montrer autant de contenu. */
 function useLarge(): boolean {
@@ -196,7 +196,7 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
   return (
     <div className="screen" id="ec-interets">
       <div className="pad pad-i">
-        <div className="col-liste">
+        <div className="col-liste" role="region" aria-label="Mes candidatures et mes choix" tabIndex={large ? 0 : undefined}>
         <h2>Mes candidatures</h2>
         <p className="lead">
           Un « oui » est une candidature : elle part chez les recruteurs avec ton profil, et leur
@@ -314,7 +314,7 @@ export function EcranMatchs({ avantDecision }: { avantDecision: () => Promise<vo
         </div>
 
         {/* Le détail à côté de la liste, pas par-dessus. */}
-        {large && choisi && <aside className="side panneau" id="side-i"><Detail offre={choisi} adequation={adequationDe(choisi)} /></aside>}
+        {large && choisi && <aside className="side panneau" id="side-i" aria-label="Détail de l’offre sélectionnée" tabIndex={0}><Detail offre={choisi} adequation={adequationDe(choisi)} /></aside>}
       </div>
 
       {detail && !large && (
