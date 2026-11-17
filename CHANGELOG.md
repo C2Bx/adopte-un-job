@@ -41,6 +41,13 @@ lecture seule, reprise sur profil indisponible et premières améliorations des 
 
 ## Améliorations après V1 — lots livrés
 
+### 0.4.10 — Popup après candidature rétablie — 17 novembre 2026
+
+- Retour à la confirmation compacte après envoi, à la demande de Bastian ; bandeau de cinq secondes retiré.
+- Relecture avant envoi conservée, Continuer sans nouvel envoi ; sept formats vérifiés.
+- [Détails](docs/CONFIRMATION-0.4.10.md).
+
+
 ### 0.4.9 — Profil réagencé — 17 novembre 2026
 
 - Dossier et sauvegarde en tête, progression des informations requises et action prioritaire.
