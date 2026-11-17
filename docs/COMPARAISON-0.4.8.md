@@ -1,5 +1,8 @@
 # Comparaison lisible et critères mis en évidence — 0.4.8 — 17 novembre 2026
 
+**En production depuis le 17 novembre 2026**, commit applicatif `e74c119`.
+[Contrôles de publication](DEPLOIEMENT-0.4.8-2026-11-17.md).
+
 Amélioration après V1 demandée par Bastian : mieux présenter le menu Comparaison et faire ressortir
 ce qui peut être comparé entre les offres, à partir des seules données existantes.
 

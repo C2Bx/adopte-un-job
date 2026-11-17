@@ -13,35 +13,18 @@ l'Université de la Nouvelle-Calédonie.
 
 ## Production
 
-**0.4.7 publiée le 17 novembre 2026**, commit applicatif `1f3559f` : confirmation animée intégrée à la page pendant cinq secondes après envoi, sans popup.
-[Détails](docs/CONFIRMATION-0.4.7.md) · [Publication](docs/DEPLOIEMENT-0.4.7-2026-11-17.md).
+**0.4.8 publiée le 17 novembre 2026**, commit applicatif `e74c119` : comparaison réagencée,
+douze critères, points communs et écarts mis en évidence, filtres par rubrique ou comparabilité.
+[Interface et vérifications](docs/COMPARAISON-0.4.8.md) · [Contrôles de publication](docs/DEPLOIEMENT-0.4.8-2026-11-17.md).
 
-Version précédente documentée :
+Les dernières évolutions comprennent aussi la [confirmation animée de cinq secondes](docs/CONFIRMATION-0.4.7.md),
+le [défilement indépendant des candidatures](docs/DEFILEMENT-0.4.5.md), l’[aide structurée](docs/AIDE-0.4.4.md)
+et la [relecture avant envoi toujours accessible](docs/RELECTURE-0.4.3.md).
+L’offre garde sa [pleine hauteur](docs/PLEINE-HAUTEUR-0.4.1.md) et ses [actions agrandies](docs/ACTIONS-0.4.2.md).
 
-**0.4.5 publiée le 17 novembre 2026**, commit applicatif `16c1bd8` : liste et détail des candidatures défilent indépendamment sur grand écran.
-[Correction](docs/DEFILEMENT-0.4.5.md) · [Publication](docs/DEPLOIEMENT-0.4.5-2026-11-17.md).
-
-Version précédente :
-
-**0.4.4 publiée le 17 novembre 2026**, commit applicatif `8d89af8` : aide structurée, rubriques dépliables et réglages de lecture regroupés.
-[Détails](docs/AIDE-0.4.4.md) · [Publication](docs/DEPLOIEMENT-0.4.4-2026-11-17.md).
-
-Versions précédentes :
-
-**0.4.3 publiée le 17 novembre 2026**, commit applicatif `2938404` : confirmation et annulation toujours visibles dans la relecture de candidature.
-[Correctif et vérifications](docs/RELECTURE-0.4.3.md) · [Contrôles de publication](docs/DEPLOIEMENT-0.4.3-2026-11-17.md).
-
-État publié avant ce correctif :
-
-**0.4.2 publiée le 17 novembre 2026**, commit applicatif `42130ee`. [Contrôles de publication](docs/DEPLOIEMENT-0.4.2-2026-11-17.md).
-
-Version **0.4.2** : [boutons d’action agrandis](docs/ACTIONS-0.4.2.md) dans la [carte pleine hauteur](docs/PLEINE-HAUTEUR-0.4.1.md).
-La structure à quatre menus, la comparaison dédiée et les guides sont décrits dans les [parcours 0.4.0](docs/PARCOURS-UI-0.4.0.md).
-
-Les offres et les liens partagés nécessitent une connexion. Le mode fictif reste retiré.
-Historique des publications : [0.2.0 le 2 novembre](docs/DEPLOIEMENT-2026-11-02.md),
-[0.2.1 le 16 novembre](docs/DEPLOIEMENT-2026-11-16.md).
-Le rendu d'octobre reste une référence distincte de ces évolutions.
+Les offres et liens partagés nécessitent une connexion. Le mode fictif reste retiré.
+L’[historique des lots](docs/V1-ET-EVOLUTIONS.md) et le [journal des versions](CHANGELOG.md)
+conservent les états précédents et les preuves de publication. Le rendu d’octobre reste distinct.
 
 ## V1 du rendu et améliorations après V1
 
@@ -51,7 +34,7 @@ Le rendu d'octobre reste une référence distincte de ces évolutions.
 |---|---|
 | **V1 — référence du rendu** | `b823f58`, 20 octobre 2026, tag `reference-rendu-2026-10-20` ; package initial `0.1.0`. |
 | **Corrections après V1** | `16c3bb0`, 27 octobre : fiabilité et sécurité, postérieures au rendu. |
-| **Améliorations après V1 livrées** | Lots `0.2.0` à `0.4.7`, dont la confirmation animée 0.4.7 publiée le 17 novembre. |
+| **Améliorations après V1 livrées** | Lots `0.2.0` à `0.4.8`, dont la comparaison améliorée 0.4.8 publiée le 17 novembre. |
 | **Pistes non livrées** | Registre distinct ; aucune idée n’est considérée comme réalisée ou commandée par sa seule inscription. |
 
 [Comparaison V1 / évolutions et statuts](docs/V1-ET-EVOLUTIONS.md) ·

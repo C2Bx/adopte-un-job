@@ -3,7 +3,9 @@
 **Ce catalogue concerne les évolutions déjà livrées après la V1.**
 La [V1 de référence](V1-ET-EVOLUTIONS.md) et les [pistes non livrées](PISTES-AMELIORATION.md) sont séparées.
 
-Version applicative actuelle : **0.4.7**, évolution du **17 novembre 2026**, après la fin du rendu.
+Version applicative actuelle : **0.4.8**, évolution du **17 novembre 2026**, après la fin du rendu.
+
+La [0.4.8](COMPARAISON-0.4.8.md) présente douze critères de comparaison, les valeurs partagées, les écarts et les inconnues, avec filtres par rubrique/comparabilité.
 
 La [0.4.7](CONFIRMATION-0.4.7.md) affiche une confirmation animée dans la page pendant cinq secondes après envoi, sans popup. La popup compacte 0.4.6 est remplacée.
 
@@ -41,7 +43,7 @@ Voir [les contrôles de publication](DEPLOIEMENT-2026-11-02.md).
 |---|---|---|
 | V1 — référence du rendu | `b823f58`, 20 octobre, package `0.1.0` | Figée par `reference-rendu-2026-10-20`. |
 | Corrections après V1 | `16c3bb0`, 27 octobre | Fiabilité et sécurité corrigées après rendu. |
-| Améliorations après V1 | Lots `0.2.0` à `0.4.7` | Développés après rendu ; dernier code publié : `1f3559f`. |
+| Améliorations après V1 | Lots `0.2.0` à `0.4.8` | Développés après rendu ; dernier code publié : `e74c119`. |
 | Pistes | Registre séparé | Non livrées, non engagées par défaut. |
 
 La référence du rendu n'est ni réécrite ni remplacée par la version améliorée.
@@ -60,7 +62,7 @@ Les documents ne sont ni générés ni extraits par MS3 ; MS3 présente et édit
 | Vue liste | Liste d'offres avec accès au détail, en complément des cartes. |
 | Vue tableau | Tableau défilable et lisible au clavier. |
 | Tris | Clôture, publication, titre et pourcentage déjà fourni par MS5 ; valeurs inconnues conservées. |
-| Comparateur | Menu dédié, deux ou trois offres, sélection locale conservée ; tableau large ou regroupement mobile par critère. |
+| Comparateur | Menu dédié, deux ou trois offres, douze critères, valeurs partagées et écarts repérés ; filtres par rubrique/comparabilité, sélection locale conservée, tableau large ou lecture mobile par critère. |
 | Recherches mémorisées | Jusqu'à 12 recherches nommées ; filtres et tri restaurables et supprimables localement. |
 | Filtres conservés | Recherche et filtres mémorisés par compte dans ce navigateur. |
 | Repères d'offre | Publication récente, clôture proche/aujourd'hui, consultation et présence d'une note. |
