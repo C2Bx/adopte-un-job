@@ -11,6 +11,9 @@ l'Université de la Nouvelle-Calédonie.
 
 **Repères du projet :** [V1 et évolutions](docs/V1-ET-EVOLUTIONS.md) · [pistes non livrées](docs/PISTES-AMELIORATION.md).
 
+**Réutiliser le guide dans une autre application :** [prompt et exigences de guide dynamique](docs/GUIDE-DYNAMIQUE-PROMPT.md).
+Il s’agit d’une référence documentaire, distincte des fonctions déjà livrées dans MS3.
+
 ## Production
 
 **0.4.12 publiée le 17 novembre 2026**, commit applicatif `8c00760` : dans les cartes, les boutons

@@ -1,6 +1,6 @@
 # Pistes d’amélioration — après V1
 
-**Statut : registre de réflexion, au 17 novembre 2026.** Une entrée ici n’est pas une fonctionnalité livrée,
+**Statut : registre de réflexion, au 18 novembre 2026.** Une entrée ici n’est pas une fonctionnalité livrée,
 une promesse de développement ou une tâche déjà approuvée.
 La [V1, les corrections et les améliorations livrées](V1-ET-EVOLUTIONS.md) sont documentées séparément.
 
@@ -10,6 +10,14 @@ Les demandes acceptées et réalisées jusqu’à **0.4.12** sont dans le [catal
 et le [journal des versions](../CHANGELOG.md). Comparaison, guides, favoris, carte pleine hauteur et boutons
 agrandis, ainsi que la correction de confirmation, ne doivent plus être listés comme « à faire ».
 Aucune fonctionnalité acceptée de ces lots n’est ici déclarée en cours de développement.
+
+## Consignes pour une autre application — documentation uniquement
+
+Le [prompt de guide dynamique](GUIDE-DYNAMIQUE-PROMPT.md) a été rédigé à la demande de Bastian
+pour être transmis à une autre conversation. Il prévoit des parcours conditionnels, des cibles stables,
+une gestion des disparitions et des nouveautés, ainsi qu’une maintenance liée aux changements d’interface.
+Il n’atteste aucune réalisation dans cette autre application et ne commande pas une refonte de MS3.
+Ne pas le compter comme une nouvelle fonctionnalité livrée ou une tâche MS3 engagée.
 
 ## Pistes à étudier — non engagées, non livrées
 

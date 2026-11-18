@@ -72,3 +72,9 @@ Ils ne décrivent pas plusieurs variantes simultanément actives.
 Le compte rendu du dernier déploiement est [ici](DEPLOIEMENT-0.4.12-2026-11-17.md).
 Un commit documentaire peut suivre `8c00760` sans changer le code servi par le site.
 L’historique technique détaillé reste dans [CHANGELOG](../CHANGELOG.md) et le [catalogue après rendu](UPGRADES-APRES-RENDU.md).
+
+## Complément documentaire — 18 novembre 2026
+
+Un [prompt de guide dynamique](GUIDE-DYNAMIQUE-PROMPT.md) est conservé pour une autre application,
+dans une autre conversation. Ses exigences ne sont pas déclarées implémentées dans MS3 et ne modifient
+ni la V1 ni la version applicative 0.4.12. Aucun nouveau déploiement pour ce complément.

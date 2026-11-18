@@ -4,6 +4,13 @@ La V1 de référence du rendu est figée. Les corrections et améliorations suiv
 « V1 » est un repère fonctionnel (package initial `0.1.0`), pas une publication `1.0.0`.
 [Définitions et comparaison](docs/V1-ET-EVOLUTIONS.md). Les [pistes non livrées](docs/PISTES-AMELIORATION.md) ne figurent pas comme réalisations dans ce journal.
 
+## Documentation — 18 novembre 2026
+
+Prompt et consignes de guide dynamique conservés pour une autre application : adaptation aux fonctions
+présentes, maintenance des parcours, cibles stables et nouveautés versionnées.
+[Statut et prompt complet](docs/GUIDE-DYNAMIQUE-PROMPT.md). Aucun changement applicatif,
+aucune version supplémentaire et aucun déploiement associés à cette mise à jour.
+
 ## V1 — référence du rendu
 
 Référence Git : `b823f58` — dernier état versionné du dépôt avant l'échéance du 21 octobre.
